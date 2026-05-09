@@ -1,0 +1,162 @@
+<?php
+
+namespace App\Http\Controllers\Doctor;
+
+use App\Http\Controllers\Controller;
+use App\Models\DoctorBlockedDate;
+use App\Models\DoctorWeeklySchedule;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class DoctorAvailabilityController extends Controller
+{
+    public function index(): View
+    {
+        $doctor = auth('doctor')->user();
+        $this->ensureDefaultWeeklySchedule($doctor->id);
+
+        $weeklySchedules = DoctorWeeklySchedule::query()
+            ->where('doctor_id', $doctor->id)
+            ->orderBy('weekday')
+            ->get();
+
+        $blockedDates = DoctorBlockedDate::query()
+            ->where('doctor_id', $doctor->id)
+            ->orderBy('blocked_date')
+            ->get();
+
+        return view('doctor.availability.index', compact('weeklySchedules', 'blockedDates'));
+    }
+
+    public function editWeekday(int $weekday): View
+    {
+        $doctorId = auth('doctor')->id();
+        abort_unless($weekday >= 1 && $weekday <= 7, 404);
+
+        $this->ensureDefaultWeeklySchedule($doctorId);
+
+        $schedule = DoctorWeeklySchedule::query()
+            ->where('doctor_id', $doctorId)
+            ->where('weekday', $weekday)
+            ->firstOrFail();
+
+        return view('doctor.availability.edit', compact('schedule'));
+    }
+
+    public function updateWeekday(Request $request, int $weekday): RedirectResponse
+    {
+        $doctorId = auth('doctor')->id();
+        abort_unless($weekday >= 1 && $weekday <= 7, 404);
+
+        $isActive = $request->boolean('is_active');
+
+        $rules = [
+            'is_active' => ['sometimes', 'boolean'],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i'],
+        ];
+        if ($isActive) {
+            $rules['start_time'] = ['required', 'date_format:H:i'];
+            $rules['end_time'] = ['required', 'date_format:H:i', 'after:start_time'];
+        }
+        $validated = $request->validate($rules);
+
+        $schedule = DoctorWeeklySchedule::query()
+            ->where('doctor_id', $doctorId)
+            ->where('weekday', $weekday)
+            ->firstOrFail();
+
+        $schedule->is_active = $isActive;
+        if ($schedule->is_active) {
+            $schedule->start_time = $validated['start_time'] ?? $schedule->start_time;
+            $schedule->end_time = $validated['end_time'] ?? $schedule->end_time;
+        } else {
+            $schedule->start_time = null;
+            $schedule->end_time = null;
+        }
+        $schedule->save();
+
+        return redirect()
+            ->route('doctor.availability')
+            ->with('success', 'Weekly schedule updated.');
+    }
+
+    public function toggleDay(Request $request, int $weekday): RedirectResponse
+    {
+        $doctorId = auth('doctor')->id();
+        abort_unless($weekday >= 1 && $weekday <= 7, 404);
+
+        $this->ensureDefaultWeeklySchedule($doctorId);
+
+        $schedule = DoctorWeeklySchedule::query()
+            ->where('doctor_id', $doctorId)
+            ->where('weekday', $weekday)
+            ->firstOrFail();
+
+        $schedule->is_active = $request->boolean('is_active');
+        if (! $schedule->is_active) {
+            $schedule->start_time = null;
+            $schedule->end_time = null;
+        } elseif (! $schedule->start_time || ! $schedule->end_time) {
+            $schedule->start_time = '09:00';
+            $schedule->end_time = '17:00';
+        }
+        $schedule->save();
+
+        return redirect()
+            ->route('doctor.availability')
+            ->with('success', 'Day availability updated.');
+    }
+
+    public function storeBlockedDate(Request $request): RedirectResponse
+    {
+        $doctorId = auth('doctor')->id();
+
+        $validated = $request->validate([
+            'blocked_date' => ['required', 'date', 'after_or_equal:today'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DoctorBlockedDate::query()->updateOrCreate(
+            [
+                'doctor_id' => $doctorId,
+                'blocked_date' => $validated['blocked_date'],
+            ],
+            ['reason' => $validated['reason'] ?? null]
+        );
+
+        return redirect()
+            ->route('doctor.availability')
+            ->with('success', 'Blocked date saved.');
+    }
+
+    public function destroyBlockedDate(DoctorBlockedDate $blockedDate): RedirectResponse
+    {
+        abort_unless((int) $blockedDate->doctor_id === (int) auth('doctor')->id(), 403);
+        $blockedDate->delete();
+
+        return redirect()
+            ->route('doctor.availability')
+            ->with('success', 'Blocked date removed.');
+    }
+
+    private function ensureDefaultWeeklySchedule(int $doctorId): void
+    {
+        $exists = DoctorWeeklySchedule::query()->where('doctor_id', $doctorId)->exists();
+        if ($exists) {
+            return;
+        }
+
+        for ($d = 1; $d <= 7; $d++) {
+            $isWeekend = $d >= 6;
+            DoctorWeeklySchedule::query()->create([
+                'doctor_id' => $doctorId,
+                'weekday' => $d,
+                'is_active' => ! $isWeekend,
+                'start_time' => $isWeekend ? null : '09:00:00',
+                'end_time' => $isWeekend ? null : '17:00:00',
+            ]);
+        }
+    }
+}

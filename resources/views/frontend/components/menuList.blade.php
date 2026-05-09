@@ -1,0 +1,57 @@
+<ul class="main-menu__list">
+    <!-- Home Dropdown -->
+    <li class="{{ Request::is('/') ? 'current' : '' }}">
+        <a href="{{ url('/') }}">Home</a>
+        
+    </li>
+
+    <!-- About Us -->
+    <li class="{{ Request::is('about-us') ? 'current' : '' }}">
+        <a href="{{ route('about') }}">About Us</a>
+    </li>
+   
+    
+
+     <!-- Pricing Page -->
+     <li class="{{ Request::is('pricing') ? 'current' : '' }}">
+        <a href="{{ url('pricing') }}">Pricing</a>
+    </li>
+
+    <!-- Services Dropdown -->
+    <li class="{{ Request::is('our-services') ? 'current' : '' }}">
+        <a href="{{ url('our-services') }}">Our Services</a>
+    </li>
+
+    <li class="{{ Request::is('our-products') || Request::is('our-products/*') ? 'current' : '' }}">
+        <a href="{{ route('our-products') }}">Products</a>
+    </li>
+<!-- Testimonials Page -->
+<li class="{{ Request::is('our-testimonials') ? 'current' : '' }}">
+        <a href="{{ route('testimonials') }}">Testimonials</a>
+    </li>
+   
+    <li class="{{ Request::is('faq') ? 'current' : '' }}">
+        <a href="{{ url('faq') }}">Faq</a>
+    </li>
+
+    <!-- Contact -->
+    <li class="{{ Request::is('contact') ? 'current' : '' }}">
+        <a href="{{ url('contact') }}">Contact</a>
+    </li>
+
+    @if(auth('web')->check() || auth('doctor')->check())
+    <li class="{{ Request::is('patient', 'patient/*', 'doctor', 'doctor/*') ? 'current' : '' }}">
+        <a href="{{ auth('doctor')->check() ? route('doctor.dashboard') : route('patient.dashboard') }}">Dashboard</a>
+    </li>
+    @else
+    <!-- Members Dropdown -->
+    <li class="dropdown {{ Request::is('login', 'register') ? 'current' : '' }}">
+        <a href="#">Members</a>
+        <ul>
+            <li><a href="{{ route('login') }}">Login</a></li>
+            <li><a href="{{ route('register') }}">Register Here</a></li>
+        </ul>
+    </li>
+    @endif
+</ul>
+
