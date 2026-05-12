@@ -61,6 +61,7 @@ class PosController extends Controller
 
         return response()->json([
             'message' => 'POS login successful.',
+            'csrf_token' => csrf_token(),
             'admin' => [
                 'id' => $admin->id,
                 'name' => $admin->name,
@@ -86,6 +87,7 @@ class PosController extends Controller
         $admin = $request->user('admin');
 
         return response()->json([
+            'csrf_token' => csrf_token(),
             'admin' => [
                 'id' => $admin?->id,
                 'name' => $admin?->name,

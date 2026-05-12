@@ -24,9 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // middleware group in app/Http/Kernel.php (Laravel 10 and earlier).
         $middleware->statefulApi();
 
+        // POS SPA runs on another subdomain; browser cannot attach X-XSRF-TOKEN from
+        // the API host’s cookie to cross-origin requests. Exempt api/pos/* (still protected
+        // by auth:admin + admin_role). Web route aliases under /pos/* stay listed explicitly.
         $middleware->validateCsrfTokens(except: [
-            'api/pos/login',
-            'api/pos/logout',
+            'api/pos/*',
             'pos/login',
             'pos/logout',
         ]);
