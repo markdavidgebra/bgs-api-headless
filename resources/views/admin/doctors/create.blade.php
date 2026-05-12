@@ -95,7 +95,7 @@
               <ul class="text-secondary mb-0 ps-3">
                 <li>Name and email are required.</li>
                 <li>Password is generated automatically on save.</li>
-                <li>The doctor will receive an email with username and password after saving.</li>
+                <li>The doctor will receive an email with username and password only after approval.</li>
               </ul>
             </div>
           </div>

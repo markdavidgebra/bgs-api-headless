@@ -14,12 +14,16 @@
 
      <!-- Pricing Page -->
      <li class="{{ Request::is('pricing') ? 'current' : '' }}">
-        <a href="{{ url('pricing') }}">Pricing</a>
+        <a href="{{ url('pricing') }}">Be A Member</a>
     </li>
 
     <!-- Services Dropdown -->
     <li class="{{ Request::is('our-services') ? 'current' : '' }}">
         <a href="{{ url('our-services') }}">Our Services</a>
+    </li>
+
+    <li class="{{ Request::is('our-packages') ? 'current' : '' }}">
+        <a href="{{ route('our-packages') }}">Packages</a>
     </li>
 
     <li class="{{ Request::is('our-products') || Request::is('our-products/*') ? 'current' : '' }}">

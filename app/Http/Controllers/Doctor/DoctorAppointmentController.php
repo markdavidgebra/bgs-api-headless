@@ -6,9 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\Product;
+use App\Models\TreatmentPackageUsageHistory;
+use App\Models\TreatmentPatientPackage;
+use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\View\View;
 
 class DoctorAppointmentController extends Controller
@@ -118,8 +123,57 @@ class DoctorAppointmentController extends Controller
     public function show(Appointment $appointment): View
     {
         $appointment = $this->ownedAppointment($appointment)->load(['patient', 'service', 'note', 'timelines', 'prescribedProducts']);
+        $patientPackages = TreatmentPatientPackage::query()
+            ->where('patient_id', $appointment->patient_id)
+            ->with('treatmentPackage:id,name')
+            ->orderByDesc('start_date')
+            ->orderByDesc('purchased_at')
+            ->orderByDesc('id')
+            ->get();
 
-        return view('doctor.appointments.show', compact('appointment'));
+        $patientPackage = $this->resolvePatientPackageForAppointment($appointment);
+        if ($patientPackage === null && $patientPackages->isNotEmpty()) {
+            $patientPackage = $patientPackages->first();
+        }
+        $serviceChecklist = collect();
+        $checkedServiceSessionKeys = [];
+
+        if ($patientPackage !== null) {
+            $patientPackage->loadMissing('treatmentPackage.services:id,name');
+            $completedByService = TreatmentPackageUsageHistory::query()
+                ->where('patient_package_id', $patientPackage->id)
+                ->where('status', 'completed')
+                ->selectRaw('service_id, COUNT(*) as total_done')
+                ->groupBy('service_id')
+                ->pluck('total_done', 'service_id')
+                ->map(static fn ($v): int => (int) $v)
+                ->all();
+
+            foreach ($patientPackage->treatmentPackage?->services ?? [] as $service) {
+                $serviceId = (int) $service->id;
+                $requiredSessions = max(1, (int) ($service->pivot->sessions ?? 1));
+                $doneSessions = min($requiredSessions, (int) ($completedByService[$serviceId] ?? 0));
+
+                for ($sessionNo = 1; $sessionNo <= $requiredSessions; $sessionNo++) {
+                    $serviceChecklist->push([
+                        'key' => $serviceId.':'.$sessionNo,
+                        'service_id' => $serviceId,
+                        'service_name' => (string) $service->name,
+                        'session_no' => $sessionNo,
+                        'required_sessions' => $requiredSessions,
+                        'is_done' => $sessionNo <= $doneSessions,
+                    ]);
+                }
+            }
+
+            $checkedServiceSessionKeys = $serviceChecklist
+                ->filter(static fn (array $row): bool => $row['is_done'] === true)
+                ->pluck('key')
+                ->values()
+                ->all();
+        }
+
+        return view('doctor.appointments.show', compact('appointment', 'patientPackage', 'patientPackages', 'serviceChecklist', 'checkedServiceSessionKeys'));
     }
 
     public function createNotes(Appointment $appointment): View
@@ -163,12 +217,139 @@ class DoctorAppointmentController extends Controller
         return back()->with('success', 'Appointment marked as completed.');
     }
 
+    public function updateSessionDone(Request $request, Appointment $appointment): RedirectResponse
+    {
+        $appointment = $this->ownedAppointment($appointment);
+        $validated = $request->validate([
+            'session_done' => ['nullable', 'in:1'],
+        ]);
+
+        $isDone = ($validated['session_done'] ?? null) === '1';
+
+        $appointment->update([
+            'status' => $isDone ? 'completed' : 'confirmed',
+        ]);
+
+        return back()->with('success', $isDone
+            ? 'Session marked as done.'
+            : 'Session marked as not done.'
+        );
+    }
+
     public function markNoShow(Appointment $appointment): RedirectResponse
     {
         $appointment = $this->ownedAppointment($appointment);
         $appointment->update(['status' => 'cancelled']);
 
         return back()->with('success', 'Appointment marked as no-show.');
+    }
+
+    public function updateTreatmentProgress(Request $request, Appointment $appointment): RedirectResponse
+    {
+        $appointment = $this->ownedAppointment($appointment);
+        $patientPackage = $this->resolvePatientPackageForAppointment($appointment);
+
+        if ($patientPackage === null) {
+            return back()->withErrors([
+                'treatment_progress' => 'No treatment package is linked to this appointment service.',
+            ]);
+        }
+
+        $patientPackage->loadMissing('treatmentPackage.services:id,name');
+        $requiredByService = [];
+        foreach ($patientPackage->treatmentPackage?->services ?? [] as $service) {
+            $requiredByService[(int) $service->id] = max(1, (int) ($service->pivot->sessions ?? 1));
+        }
+
+        $validated = $request->validate([
+            'checked_service_sessions' => ['nullable', 'array'],
+            'checked_service_sessions.*' => ['string', 'regex:/^(\d+):(\d+)$/'],
+        ]);
+
+        $desiredDoneByService = [];
+        foreach ($validated['checked_service_sessions'] ?? [] as $token) {
+            if (! is_string($token)) {
+                continue;
+            }
+            [$serviceIdRaw, $sessionNoRaw] = array_pad(explode(':', $token, 2), 2, null);
+            $serviceId = (int) $serviceIdRaw;
+            $sessionNo = (int) $sessionNoRaw;
+
+            if ($serviceId < 1 || $sessionNo < 1 || ! isset($requiredByService[$serviceId])) {
+                continue;
+            }
+
+            $required = $requiredByService[$serviceId];
+            if ($sessionNo > $required) {
+                continue;
+            }
+
+            $desiredDoneByService[$serviceId] = max($desiredDoneByService[$serviceId] ?? 0, $sessionNo);
+        }
+
+        $expectedTotal = array_sum($requiredByService);
+        $totalSessions = max((int) ($patientPackage->total_sessions ?? 0), $expectedTotal);
+        $newUsedSessions = array_sum($desiredDoneByService);
+        $newRemainingSessions = max($totalSessions - $newUsedSessions, 0);
+        $newStatus = $newUsedSessions >= $totalSessions && $totalSessions > 0
+            ? 'completed'
+            : ($newUsedSessions > 0 ? 'ongoing' : 'pending');
+
+        DB::transaction(function () use ($patientPackage, $appointment, $requiredByService, $desiredDoneByService, $newUsedSessions, $newRemainingSessions, $newStatus, $totalSessions): void {
+            $patientPackage->update([
+                'total_sessions' => $totalSessions,
+                'used_sessions' => $newUsedSessions,
+                'remaining_sessions' => $newRemainingSessions,
+                'status' => $newStatus,
+            ]);
+
+            $existingDoneByService = TreatmentPackageUsageHistory::query()
+                ->where('patient_package_id', $patientPackage->id)
+                ->where('status', 'completed')
+                ->selectRaw('service_id, COUNT(*) as total_done')
+                ->groupBy('service_id')
+                ->pluck('total_done', 'service_id')
+                ->map(static fn ($v): int => (int) $v)
+                ->all();
+
+            foreach ($requiredByService as $serviceId => $requiredSessions) {
+                $desired = min($requiredSessions, (int) ($desiredDoneByService[$serviceId] ?? 0));
+                $existing = min($requiredSessions, (int) ($existingDoneByService[$serviceId] ?? 0));
+                $diff = $desired - $existing;
+
+                if ($diff > 0) {
+                    for ($i = 0; $i < $diff; $i++) {
+                        TreatmentPackageUsageHistory::query()->create([
+                            'patient_package_id' => $patientPackage->id,
+                            'patient_id' => $appointment->patient_id,
+                            'service_id' => $serviceId,
+                            'used_on' => now()->toDateString(),
+                            'session_change' => -1,
+                            'status' => 'completed',
+                            'notes' => 'Doctor progress checklist from appointment #'.$appointment->appointment_no,
+                        ]);
+                    }
+                } elseif ($diff < 0) {
+                    $removeCount = abs($diff);
+                    $toDelete = TreatmentPackageUsageHistory::query()
+                        ->where('patient_package_id', $patientPackage->id)
+                        ->where('service_id', $serviceId)
+                        ->where('status', 'completed')
+                        ->orderByDesc('used_on')
+                        ->orderByDesc('id')
+                        ->limit($removeCount)
+                        ->pluck('id');
+
+                    if ($toDelete->isNotEmpty()) {
+                        TreatmentPackageUsageHistory::query()
+                            ->whereIn('id', $toDelete->all())
+                            ->delete();
+                    }
+                }
+            }
+        });
+
+        return back()->with('success', 'Treatment progress updated.');
     }
 
     public function addNotes(Request $request, Appointment $appointment): RedirectResponse
@@ -219,16 +400,34 @@ class DoctorAppointmentController extends Controller
                 ->withInput();
         }
 
+        $noteFieldKeys = ['patient_concern', 'appointment_remarks', 'admin_notes', 'doctor_notes', 'instructions', 'alerts'];
+
+        $oldSnapshot = [];
+        foreach ($noteFieldKeys as $key) {
+            $oldSnapshot[$key] = $existingNote?->{$key};
+        }
+
+        $newPayload = [
+            'patient_concern' => $validated['patient_concern'] ?? $existingNote?->patient_concern,
+            'appointment_remarks' => $validated['appointment_remarks'] ?? $validated['procedure_done'] ?? $existingNote?->appointment_remarks,
+            'admin_notes' => $validated['admin_notes'] ?? $existingNote?->admin_notes,
+            'doctor_notes' => $validated['doctor_notes'] ?? $validated['observations'] ?? $existingNote?->doctor_notes,
+            'instructions' => $validated['instructions'] ?? $validated['recommendation'] ?? $existingNote?->instructions,
+            'alerts' => $validated['alerts'] ?? $validated['follow_up_needed'] ?? $existingNote?->alerts,
+        ];
+
+        $doctor = auth('doctor')->user();
+        $newPayload['section_authors'] = AppointmentNote::mergeAuthorsOnFieldChanges(
+            is_array($existingNote?->section_authors) ? $existingNote->section_authors : null,
+            $oldSnapshot,
+            $newPayload,
+            $noteFieldKeys,
+            AppointmentNote::authorPayloadFromUserName('doctor', $doctor?->name),
+        );
+
         AppointmentNote::query()->updateOrCreate(
             ['appointment_id' => $appointment->id],
-            [
-                'patient_concern' => $validated['patient_concern'] ?? $existingNote?->patient_concern,
-                'appointment_remarks' => $validated['appointment_remarks'] ?? $validated['procedure_done'] ?? $existingNote?->appointment_remarks,
-                'admin_notes' => $validated['admin_notes'] ?? $existingNote?->admin_notes,
-                'doctor_notes' => $validated['doctor_notes'] ?? $validated['observations'] ?? $existingNote?->doctor_notes,
-                'instructions' => $validated['instructions'] ?? $validated['recommendation'] ?? $existingNote?->instructions,
-                'alerts' => $validated['alerts'] ?? $validated['follow_up_needed'] ?? $existingNote?->alerts,
-            ]
+            $newPayload
         );
 
         $appointment->prescribedProducts()->sync($prescribeSync);
@@ -249,7 +448,13 @@ class DoctorAppointmentController extends Controller
             'appointment_date' => $validated['appointment_date'],
             'appointment_time' => $validated['appointment_time'],
             'status' => 'rescheduled',
+            'reminder_sent_at' => null,
         ]);
+
+        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+        if ($appointment->patient && filled($appointment->patient->email)) {
+            Notification::send($appointment->patient, new AppointmentRescheduledPatientNotification($appointment));
+        }
 
         return back()->with('success', 'Appointment rescheduled successfully.');
     }
@@ -259,6 +464,19 @@ class DoctorAppointmentController extends Controller
         abort_unless((int) $appointment->doctor_id === (int) auth('doctor')->id(), 403);
 
         return $appointment;
+    }
+
+    private function resolvePatientPackageForAppointment(Appointment $appointment): ?TreatmentPatientPackage
+    {
+        return TreatmentPatientPackage::query()
+            ->where('patient_id', $appointment->patient_id)
+            ->whereHas('treatmentPackage.services', function ($q) use ($appointment): void {
+                $q->where('services.id', $appointment->service_id);
+            })
+            ->orderByDesc('start_date')
+            ->orderByDesc('purchased_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /**

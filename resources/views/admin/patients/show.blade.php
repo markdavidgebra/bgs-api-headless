@@ -81,7 +81,13 @@
                     <table class="table table-vcenter table-sm">
                       <thead>
                         <tr>
-                          <th>Date</th><th>Time</th><th>No.</th><th>Service</th><th>Doctor</th><th>Status</th>
+                          <th>Date</th>
+                          <th>Time</th>
+                          <th>No.</th>
+                          <th>Service</th>
+                          <th>Doctor</th>
+                          <th>Status</th>
+                          <th class="w-1"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -93,36 +99,164 @@
                             <td>{{ $a->service?->name ?? '—' }}</td>
                             <td>{{ $a->doctor?->name ?? '—' }}</td>
                             <td><span class="badge {{ $a->status_badge }}">{{ $a->status_label }}</span></td>
+                            <td class="text-end text-nowrap">
+                              <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#doctor-notes-modal-{{ $a->id }}">
+                                View
+                              </button>
+                            </td>
                           </tr>
                         @empty
-                          <tr><td colspan="6" class="text-secondary text-center py-4">No appointment records.</td></tr>
+                          <tr><td colspan="7" class="text-secondary text-center py-4">No appointment records.</td></tr>
                         @endforelse
                       </tbody>
                     </table>
                   </div>
 
-                  <hr class="my-4">
+                  @foreach ($appointments as $a)
+                    @php
+                      $dn = $a->note;
+                      $errApptId = session('appointment_note_error_id');
+                      $noteField = static function (string $key) use ($a, $dn, $errApptId): string {
+                          if ((int) $errApptId === (int) $a->id) {
+                              return (string) old($key, '');
+                          }
 
-                  <h4 class="mb-3">Appointment Notes</h4>
-                  <div class="table-responsive">
-                    <table class="table table-vcenter table-sm">
-                      <thead>
-                        <tr><th>Appointment</th><th>Concern</th><th>Doctor notes</th><th>Alerts</th></tr>
-                      </thead>
-                      <tbody>
-                        @forelse ($appointmentNotes as $n)
-                          <tr>
-                            <td>{{ $n->appointment?->appointment_no ?? '—' }}</td>
-                            <td>{{ $n->patient_concern ?: '—' }}</td>
-                            <td>{{ $n->doctor_notes ?: '—' }}</td>
-                            <td>{{ $n->alerts ?: '—' }}</td>
-                          </tr>
-                        @empty
-                          <tr><td colspan="4" class="text-secondary text-center py-4">No appointment notes.</td></tr>
-                        @endforelse
-                      </tbody>
-                    </table>
-                  </div>
+                          return (string) ($dn?->{$key} ?? '');
+                      };
+                      $noteSectionLabels = [
+                          'patient_concern' => 'Patient concern',
+                          'doctor_notes' => 'Doctor notes',
+                          'instructions' => 'Instructions',
+                          'alerts' => 'Alerts',
+                          'appointment_remarks' => 'Appointment remarks',
+                          'admin_notes' => 'Admin notes',
+                      ];
+                      $initialNote = [
+                          'patient_concern' => $noteField('patient_concern'),
+                          'doctor_notes' => $noteField('doctor_notes'),
+                          'instructions' => $noteField('instructions'),
+                          'alerts' => $noteField('alerts'),
+                          'appointment_remarks' => $noteField('appointment_remarks'),
+                          'admin_notes' => $noteField('admin_notes'),
+                      ];
+                      $defaultEditField = 'patient_concern';
+                      if ($dn) {
+                          foreach (array_keys($noteSectionLabels) as $k) {
+                              if (filled($dn->{$k})) {
+                                  $defaultEditField = $k;
+                                  break;
+                              }
+                          }
+                      }
+                      $showEditOnLoad = (int) $errApptId === (int) $a->id;
+                      $editFieldOnLoad = $showEditOnLoad ? (string) session('appointment_note_error_field', $defaultEditField) : null;
+                      if ($editFieldOnLoad !== null && ! array_key_exists($editFieldOnLoad, $noteSectionLabels)) {
+                          $editFieldOnLoad = $defaultEditField;
+                      }
+                      if (! $canManagePatientRecords) {
+                          $showEditOnLoad = false;
+                          $editFieldOnLoad = null;
+                      }
+                    @endphp
+                    <div class="modal fade" id="doctor-notes-modal-{{ $a->id }}" tabindex="-1" aria-labelledby="doctor-notes-modal-label-{{ $a->id }}" aria-hidden="true" data-default-edit-field="{{ $defaultEditField }}" data-initial-note-json="{{ e(json_encode($initialNote)) }}">
+                      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="doctor-notes-modal-label-{{ $a->id }}">
+                              {{ $a->appointment_no ?? 'Appointment #'.$a->id }}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <div id="appt-note-view-{{ $a->id }}" class="@if ($showEditOnLoad) d-none @endif">
+                              @if ($dn)
+                                @php
+                                  $anySectionFilled = collect(array_keys($noteSectionLabels))->contains(fn (string $k): bool => filled($dn->{$k}));
+                                @endphp
+                                @foreach ($noteSectionLabels as $fieldKey => $fieldLabel)
+                                  @if (filled($dn->{$fieldKey}))
+                                    <div class="mb-3">
+                                      <span class="text-secondary small">{{ $fieldLabel }}</span>
+                                      @php
+                                        $sectionAuthors = is_array($dn->section_authors) ? $dn->section_authors : [];
+                                        $createdByLabel = \App\Models\AppointmentNote::creatorLabelForSection(
+                                            $sectionAuthors,
+                                            $fieldKey,
+                                            $a->patient,
+                                            $a->doctor,
+                                        );
+                                      @endphp
+                                      <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                                        <div class="text-break flex-grow-1">{!! nl2br(e($dn->{$fieldKey})) !!}</div>
+                                        <div class="d-flex flex-shrink-0 flex-column align-items-end gap-1">
+                                          @if ($createdByLabel)
+                                            <span class="text-secondary small text-end" style="max-width: 12rem;">{{ __('By :name', ['name' => $createdByLabel]) }}</span>
+                                          @endif
+                                          @if ($canManagePatientRecords)
+                                            <div class="d-flex align-items-center gap-1 mb-0 flex-wrap justify-content-end">
+                                              <button type="button" class="btn btn-link p-0 text-decoration-underline js-appt-note-open-edit" data-appt-id="{{ $a->id }}" data-focus-field="{{ $fieldKey }}">edit</button>
+                                              <span class="text-secondary small">·</span>
+                                              <form method="POST" action="{{ route('admin.patients.appointments.appointment-notes.field.destroy', [$patient->id, $a->id, $fieldKey]) }}" class="mb-0 d-inline" onsubmit="return confirm(@json(__('Remove this section?')));">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-link p-0 text-danger text-decoration-underline">delete</button>
+                                              </form>
+                                            </div>
+                                          @endif
+                                        </div>
+                                      </div>
+                                    </div>
+                                  @endif
+                                @endforeach
+                                @if (! $anySectionFilled)
+                                  <p class="text-secondary mb-0">No note text yet.</p>
+                                @endif
+                                @if ($dn->updated_at)
+                                  <p class="text-secondary small mb-0 mt-2">{{ $dn->updated_at->timezone('Asia/Manila')->format('M j, Y h:i A') }}</p>
+                                @endif
+                              @else
+                                <p class="text-secondary mb-0">No note yet.</p>
+                              @endif
+                              @if (! $dn && $canManagePatientRecords)
+                                <p class="mb-0 mt-3">
+                                  <button type="button" class="btn btn-link p-0 align-baseline text-decoration-underline js-appt-note-open-edit" data-appt-id="{{ $a->id }}" data-focus-field="patient_concern">add</button>
+                                </p>
+                              @endif
+                            </div>
+                            @if ($canManagePatientRecords)
+                            <div id="appt-note-edit-{{ $a->id }}" class="@if (! $showEditOnLoad) d-none @endif">
+                              @foreach ($noteSectionLabels as $activeFieldKey => $activeFieldLabel)
+                                <form id="appt-note-form-{{ $a->id }}-{{ $activeFieldKey }}" class="appt-note-single-form @if (! $showEditOnLoad || $editFieldOnLoad !== $activeFieldKey) d-none @endif" method="POST" action="{{ route('admin.patients.appointments.appointment-notes.update', [$patient->id, $a->id]) }}">
+                                  @csrf
+                                  @method('PUT')
+                                  <p class="text-secondary small mb-2">{{ $activeFieldLabel }}</p>
+                                  @foreach ($noteSectionLabels as $k => $lbl)
+                                    @if ($k === $activeFieldKey)
+                                      <textarea id="appt-note-ta-{{ $a->id }}-{{ $activeFieldKey }}" name="{{ $k }}" class="form-control form-control-sm @if ((int) $errApptId === (int) $a->id && $errors->has($k)) is-invalid @endif" rows="{{ $k === 'doctor_notes' ? 5 : 4 }}">{{ $noteField($k) }}</textarea>
+                                      @if ((int) $errApptId === (int) $a->id)
+                                        @error($k)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                      @endif
+                                    @else
+                                      <input type="hidden" name="{{ $k }}" value="{{ e($noteField($k)) }}">
+                                    @endif
+                                  @endforeach
+                                  <p class="mb-0 mt-2">
+                                    <button type="submit" class="btn btn-link p-0 align-baseline text-decoration-underline">save</button>
+                                    <span class="text-secondary"> · </span>
+                                    <button type="button" class="btn btn-link p-0 align-baseline text-decoration-underline text-secondary js-appt-note-cancel-edit" data-appt-id="{{ $a->id }}">cancel</button>
+                                  </p>
+                                </form>
+                              @endforeach
+                            </div>
+                            @endif
+                          </div>
+                          <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-link p-0 text-secondary" data-bs-dismiss="modal">close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  @endforeach
                 </div>
 
                 <div class="tab-pane" id="tab-patient-payments">
@@ -262,7 +396,7 @@
                       <tbody>
                         @forelse ($packageUsageHistory as $u)
                           <tr>
-                            <td>{{ $u->used_on?->format('M j, Y') ?? '—' }}</td>
+                            <td>{{ $u->created_at?->timezone('Asia/Manila')->format('M j, Y h:i A') ?? $u->used_on?->timezone('Asia/Manila')->format('M j, Y') ?? '—' }}</td>
                             <td>{{ $u->patientPackage?->treatmentPackage?->name ?? '—' }}</td>
                             <td>{{ $u->service?->name ?? '—' }}</td>
                             <td>{{ $u->status ?? '—' }}</td>
@@ -353,11 +487,35 @@
               <div class="card">
                 <div class="card-body">
                   <h3 class="card-title">Quick actions</h3>
-                  <div class="btn-list">
-                    <a href="#" class="btn btn-outline-secondary disabled" aria-disabled="true">Book appointment</a>
-                    <a href="#" class="btn btn-outline-secondary disabled" aria-disabled="true">Edit patient</a>
-                  </div>
-                  <div class="text-secondary small mt-2">Enable these when backend actions are ready.</div>
+                  @if ($canManagePatientRecords)
+                    <div class="btn-list">
+                      <a href="{{ route('admin.patients.edit', $patient->id) }}" class="btn btn-outline-primary">Edit patient profile</a>
+                      <form method="POST" action="{{ route('admin.patients.password.reset-link', $patient->id) }}" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-secondary">Send password reset link</button>
+                      </form>
+                    </div>
+                    <hr class="my-3">
+                    <form method="POST" action="{{ route('admin.patients.password.update', $patient->id) }}" class="row g-2">
+                      @csrf
+                      <div class="col-12">
+                        <label class="form-label" for="patient-password">Set new password</label>
+                        <input id="patient-password" type="password" name="password" class="form-control @error('password') is-invalid @enderror" minlength="8" required>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label" for="patient-password-confirmation">Confirm new password</label>
+                        <input id="patient-password-confirmation" type="password" name="password_confirmation" class="form-control" minlength="8" required>
+                      </div>
+                      <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Update password</button>
+                      </div>
+                    </form>
+                    @if (! $canManageStatus)
+                      <div class="text-secondary small mt-2">Your role can edit this profile but cannot change patient account status.</div>
+                    @endif
+                  @else
+                    <p class="text-secondary small mb-0">You have view-only access to this patient. Appointment notes and profile changes require the <strong>Patients (edit &amp; clinical notes)</strong> permission.</p>
+                  @endif
                 </div>
               </div>
             </div>
@@ -367,3 +525,121 @@
     </div>
   </div>
 @endsection
+
+@push('scripts')
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var noteKeys = ['patient_concern', 'doctor_notes', 'instructions', 'alerts', 'appointment_remarks', 'admin_notes'];
+
+      function applyInitialNoteToApptForms(apptId) {
+        var modal = document.getElementById('doctor-notes-modal-' + apptId);
+        if (!modal) return;
+        var raw = modal.getAttribute('data-initial-note-json');
+        if (!raw) return;
+        var data;
+        try {
+          data = JSON.parse(raw);
+        } catch (err) {
+          return;
+        }
+        var editWrap = document.getElementById('appt-note-edit-' + apptId);
+        if (!editWrap) return;
+        editWrap.querySelectorAll('form.appt-note-single-form').forEach(function (form) {
+          noteKeys.forEach(function (k) {
+            if (!form.elements[k]) return;
+            form.elements[k].value = data[k] != null ? data[k] : '';
+          });
+        });
+      }
+
+      function showApptNoteView(apptId) {
+        var view = document.getElementById('appt-note-view-' + apptId);
+        var edit = document.getElementById('appt-note-edit-' + apptId);
+        if (edit) {
+          edit.classList.add('d-none');
+          edit.querySelectorAll('form.appt-note-single-form').forEach(function (f) {
+            f.classList.add('d-none');
+          });
+        }
+        if (view) view.classList.remove('d-none');
+        applyInitialNoteToApptForms(apptId);
+      }
+
+      function showApptNoteEdit(apptId, focusField) {
+        var modal = document.getElementById('doctor-notes-modal-' + apptId);
+        var view = document.getElementById('appt-note-view-' + apptId);
+        var edit = document.getElementById('appt-note-edit-' + apptId);
+        var field = focusField || (modal && modal.getAttribute('data-default-edit-field')) || 'patient_concern';
+        if (view) view.classList.add('d-none');
+        if (edit) {
+          edit.classList.remove('d-none');
+          edit.querySelectorAll('form.appt-note-single-form').forEach(function (f) {
+            f.classList.add('d-none');
+          });
+          var target = document.getElementById('appt-note-form-' + apptId + '-' + field);
+          if (target) {
+            target.classList.remove('d-none');
+          } else {
+            var fallback = document.getElementById('appt-note-form-' + apptId + '-patient_concern');
+            if (fallback) fallback.classList.remove('d-none');
+            field = 'patient_concern';
+          }
+        }
+        requestAnimationFrame(function () {
+          var ta = document.getElementById('appt-note-ta-' + apptId + '-' + field);
+          if (ta) {
+            ta.focus();
+            ta.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        });
+      }
+
+      document.addEventListener('click', function (e) {
+        var open = e.target.closest('.js-appt-note-open-edit');
+        if (open) {
+          e.preventDefault();
+          var apptId = open.getAttribute('data-appt-id');
+          var focusField = open.getAttribute('data-focus-field');
+          showApptNoteEdit(apptId, focusField || null);
+          return;
+        }
+        var cancel = e.target.closest('.js-appt-note-cancel-edit');
+        if (cancel) {
+          e.preventDefault();
+          showApptNoteView(cancel.getAttribute('data-appt-id'));
+          return;
+        }
+      });
+
+      document.querySelectorAll('[id^="doctor-notes-modal-"]').forEach(function (modal) {
+        modal.addEventListener('hidden.bs.modal', function () {
+          var id = modal.id.replace('doctor-notes-modal-', '');
+          if (!/^\d+$/.test(id)) return;
+          showApptNoteView(id);
+        });
+      });
+
+      var hash = window.location.hash;
+      if (hash === '#tab-patient-appointments') {
+        var tabTrigger = document.querySelector('a.nav-link[href="' + hash + '"]');
+        if (tabTrigger && window.bootstrap && window.bootstrap.Tab) {
+          new bootstrap.Tab(tabTrigger).show();
+        }
+      }
+      @if (session()->has('appointment_note_error_id'))
+        (function () {
+          var errApptId = '{{ session('appointment_note_error_id') }}';
+          var errField = @json(session('appointment_note_error_field', 'patient_concern'));
+          var noteModal = document.getElementById('doctor-notes-modal-' + errApptId);
+          if (!noteModal || !window.bootstrap || !window.bootstrap.Modal) return;
+          noteModal.addEventListener('shown.bs.modal', function onShown() {
+            noteModal.removeEventListener('shown.bs.modal', onShown);
+            showApptNoteEdit(errApptId, errField);
+          });
+          var m = bootstrap.Modal.getInstance(noteModal) || new bootstrap.Modal(noteModal);
+          m.show();
+        })();
+      @endif
+    });
+  </script>
+@endpush

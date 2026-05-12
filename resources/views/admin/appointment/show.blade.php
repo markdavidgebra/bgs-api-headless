@@ -203,29 +203,62 @@
                       <div class="card card-sm border-0 bg-light-lt">
                         <div class="card-body text-body">
                           <div class="datagrid mb-0">
+                            @php
+                              $apptNoteAuthors = is_array($appointmentNote?->section_authors) ? $appointmentNote->section_authors : [];
+                            @endphp
                             <div class="datagrid-item">
                               <div class="datagrid-title">Patient concern</div>
-                              <div class="datagrid-content">{{ $appointmentNote?->patient_concern ?: '—' }}</div>
+                              <div class="datagrid-content">
+                                {{ $appointmentNote?->patient_concern ?: '—' }}
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'patient_concern', $appointment->patient, $appointment->doctor))
+                                  <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
+                                @endif
+                              </div>
                             </div>
                             <div class="datagrid-item">
                               <div class="datagrid-title">Appointment remarks</div>
-                              <div class="datagrid-content">{{ $appointmentNote?->appointment_remarks ?: '—' }}</div>
+                              <div class="datagrid-content">
+                                {{ $appointmentNote?->appointment_remarks ?: '—' }}
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'appointment_remarks', $appointment->patient, $appointment->doctor))
+                                  <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
+                                @endif
+                              </div>
                             </div>
                             <div class="datagrid-item">
                               <div class="datagrid-title">Admin notes</div>
-                              <div class="datagrid-content">{{ $appointmentNote?->admin_notes ?: '—' }}</div>
+                              <div class="datagrid-content">
+                                {{ $appointmentNote?->admin_notes ?: '—' }}
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'admin_notes', $appointment->patient, $appointment->doctor))
+                                  <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
+                                @endif
+                              </div>
                             </div>
                             <div class="datagrid-item">
                               <div class="datagrid-title">Doctor notes</div>
-                              <div class="datagrid-content">{{ $appointmentNote?->doctor_notes ?: '—' }}</div>
+                              <div class="datagrid-content">
+                                {{ $appointmentNote?->doctor_notes ?: '—' }}
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'doctor_notes', $appointment->patient, $appointment->doctor))
+                                  <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
+                                @endif
+                              </div>
                             </div>
                             <div class="datagrid-item">
                               <div class="datagrid-title">Instructions</div>
-                              <div class="datagrid-content">{{ $appointmentNote?->instructions ?: '—' }}</div>
+                              <div class="datagrid-content">
+                                {{ $appointmentNote?->instructions ?: '—' }}
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'instructions', $appointment->patient, $appointment->doctor))
+                                  <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
+                                @endif
+                              </div>
                             </div>
                             <div class="datagrid-item">
                               <div class="datagrid-title">Alerts</div>
-                              <div class="datagrid-content">{{ $appointmentNote?->alerts ?: '—' }}</div>
+                              <div class="datagrid-content">
+                                {{ $appointmentNote?->alerts ?: '—' }}
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'alerts', $appointment->patient, $appointment->doctor))
+                                  <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
+                                @endif
+                              </div>
                             </div>
                           </div>
                         </div>

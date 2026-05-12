@@ -59,7 +59,7 @@
         <div class="row">
             <div class="col-xl-8 col-lg-7">
                 <div class="appoinment-page__left">
-                    <h3 class="appoinment-page__title">Appiontment Now</h3>
+                    <h3 class="appoinment-page__title">Appointment Now</h3>
                     <form class="contact-form-validated appoinment-page__form" method="POST" action="assets/inc/sendemail.php" novalidate="novalidate">
                         <div class="row">
                             <div class="col-xl-6 col-lg-6 col-md-6">

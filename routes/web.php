@@ -16,6 +16,7 @@ use App\Http\Controllers\Patient\PatientAftercareInstructionController;
 use App\Http\Controllers\Patient\PatientAppointmentController;
 use App\Http\Controllers\Patient\PatientDashboardController;
 use App\Http\Controllers\Patient\PatientMembershipController;
+use App\Http\Controllers\Patient\PatientNotificationController;
 use App\Http\Controllers\Patient\PatientPackageController;
 use App\Http\Controllers\Patient\PatientPaymentController;
 use App\Http\Controllers\Patient\PatientProfileController;
@@ -54,6 +55,8 @@ Route::get('/our-products/{product:slug}', [FrontEndController::class, 'productS
 Route::get('/pure-life-health-services', [FrontEndController::class, 'pureLifeHealthServices'])->name('pure-life-health-services');
 Route::get('/service-carousel', [FrontEndController::class, 'serviceCarousel'])->name('service-carousel');
 Route::get('/our-services', [FrontEndController::class, 'ourServices'])->name('our-services');
+Route::get('/our-packages', [FrontEndController::class, 'packages'])->name('our-packages');
+Route::get('/our-packages/{package:slug}', [FrontEndController::class, 'packageShow'])->name('our-packages.show');
 Route::get('/services/{service:slug}', [FrontEndController::class, 'serviceShow'])->name('services.show');
 Route::get('/sign-up', [FrontEndController::class, 'signUp'])->name('sign-up');
 Route::get('/testimonial-carousel', [FrontEndController::class, 'testimonialCarousel'])->name('testimonial-carousel');
@@ -78,6 +81,9 @@ Route::middleware(['auth:admin', 'admin_role:admin,cashier'])->prefix('pos')->gr
 
 Route::group(['middleware' => ['prevent_cross_guard:web', 'auth:web', 'verified'], 'prefix' => 'patient', 'as' => 'patient.'], function () {
     Route::get('/dashboard', [PatientDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/notifications', [PatientNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [PatientNotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifications/{notification}/read', [PatientNotificationController::class, 'markRead'])->name('notifications.read');
     Route::get('/appointments', [PatientAppointmentController::class, 'index'])->name('appointments');
     Route::get('/appointments/book', [PatientAppointmentController::class, 'book'])->name('appointments.book');
     Route::get('/appointments/book/doctors', [PatientAppointmentController::class, 'doctorsForBookingDate'])->name('appointments.book.doctors');
@@ -106,7 +112,7 @@ Route::group(['middleware' => ['prevent_cross_guard:web', 'auth:web', 'verified'
 *==========================
 */
 
-Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'verified'], 'prefix' => 'doctor', 'as' => 'doctor.'], function () {
+Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doctor_approved', 'verified'], 'prefix' => 'doctor', 'as' => 'doctor.'], function () {
     Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
     Route::get('/products', [DoctorProductInventoryController::class, 'index'])->name('products');
     Route::get('/services', [DoctorServiceController::class, 'index'])->name('services');
@@ -137,6 +143,8 @@ Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'ver
     Route::delete('/availability/blocked-dates/{blockedDate}', [DoctorAvailabilityController::class, 'destroyBlockedDate'])->name('availability.blocked.destroy');
     Route::post('/appointments/{appointment}/start-session', [DoctorAppointmentController::class, 'startSession'])->name('appointments.start-session');
     Route::post('/appointments/{appointment}/complete', [DoctorAppointmentController::class, 'markCompleted'])->name('appointments.complete');
+    Route::post('/appointments/{appointment}/session-done', [DoctorAppointmentController::class, 'updateSessionDone'])->name('appointments.session-done');
+    Route::post('/appointments/{appointment}/treatment-progress', [DoctorAppointmentController::class, 'updateTreatmentProgress'])->name('appointments.treatment-progress');
     Route::post('/appointments/{appointment}/notes', [DoctorAppointmentController::class, 'addNotes'])->name('appointments.notes');
     Route::post('/appointments/{appointment}/reschedule', [DoctorAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::post('/appointments/{appointment}/mark-no-show', [DoctorAppointmentController::class, 'markNoShow'])->name('appointments.mark-no-show');

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\AppointmentPayment;
+use App\Observers\AppointmentPaymentObserver;
 use App\Support\SiteFooterConfig;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
@@ -28,5 +30,18 @@ class AppServiceProvider extends ServiceProvider
         View::composer('frontend.layouts.footer', function ($view) {
             $view->with('siteFooter', SiteFooterConfig::get());
         });
+
+        View::composer('patient.layouts.sidebar', function ($view): void {
+            if (auth('web')->check()) {
+                $view->with(
+                    'patientUnreadNotificationsCount',
+                    (int) auth('web')->user()->unreadNotifications()->count(),
+                );
+            } else {
+                $view->with('patientUnreadNotificationsCount', 0);
+            }
+        });
+
+        AppointmentPayment::observe(AppointmentPaymentObserver::class);
     }
 }

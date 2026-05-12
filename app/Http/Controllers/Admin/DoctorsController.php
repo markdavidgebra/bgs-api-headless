@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\DoctorAccountCreatedMail;
+use App\Mail\NewDoctorPendingAdminMail;
 use App\Models\Doctor;
+use App\Support\AdminNotificationRecipients;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DoctorsController extends Controller
@@ -60,16 +64,70 @@ class DoctorsController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
-            'password' => $plainPassword,
-            'status' => 'active',
+            'password' => Str::password(32),
+            'pending_password_plain' => Crypt::encryptString($plainPassword),
+            'status' => 'pending',
+            'approved_at' => null,
         ]);
 
-        Mail::to($doctor->email)->send(new DoctorAccountCreatedMail($doctor, $plainPassword));
+        $notifyEmails = array_values(array_unique(array_merge(
+            AdminNotificationRecipients::emailsForPermission('doctors.manage'),
+            AdminNotificationRecipients::superAdminEmails(),
+        )));
+        if ($notifyEmails !== []) {
+            Mail::to($notifyEmails)->send(new NewDoctorPendingAdminMail($doctor));
+        }
 
         return redirect()
             ->route('admin.doctors.show', $doctor)
-            ->with('status', __('Doctor created successfully.'))
-            ->with('temporary_password', $plainPassword);
+            ->with('status', __('Doctor created and saved as pending approval.'));
+    }
+
+    public function updateStatus(Request $request, int $id): RedirectResponse
+    {
+        $doctor = Doctor::query()->findOrFail($id);
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(['pending', 'active', 'inactive'])],
+        ]);
+        $targetStatus = strtolower(trim($validated['status']));
+        $payload = [
+            'status' => $targetStatus,
+        ];
+        $approvalPassword = null;
+
+        if ($targetStatus === 'active') {
+            if (($doctor->status ?? 'pending') !== 'active') {
+                $payload['approved_at'] = now();
+            }
+
+            if (! empty($doctor->pending_password_plain)) {
+                try {
+                    $approvalPassword = Crypt::decryptString($doctor->pending_password_plain);
+                    $payload['password'] = $approvalPassword;
+                    $payload['pending_password_plain'] = null;
+                } catch (\Throwable) {
+                    // If decrypt fails, keep current password and continue.
+                }
+            }
+
+            if ($approvalPassword === null || $approvalPassword === '') {
+                $approvalPassword = Str::password(12);
+                $payload['password'] = $approvalPassword;
+                $payload['pending_password_plain'] = null;
+            }
+        } else {
+            $payload['approved_at'] = null;
+        }
+
+        $doctor->update($payload);
+
+        if ($targetStatus === 'active' && $doctor->wasChanged('status')) {
+            Mail::to($doctor->email)->send(new DoctorAccountCreatedMail($doctor->fresh(), (string) $approvalPassword));
+        }
+
+        return redirect()
+            ->route('admin.doctors')
+            ->with('status', __('Doctor status updated.'));
     }
 
     public function show(int $id): View

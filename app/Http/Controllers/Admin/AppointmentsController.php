@@ -8,10 +8,51 @@ use App\Models\AppointmentNote;
 use App\Models\AppointmentPayment;
 use App\Models\AppointmentTimeline;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class AppointmentsController extends Controller
 {
+    public function calendar(Request $request): View
+    {
+        $monthInput = (string) $request->input('month', now()->format('Y-m'));
+        try {
+            $monthCursor = Carbon::createFromFormat('Y-m', $monthInput)->startOfMonth();
+        } catch (\Throwable) {
+            $monthCursor = now()->startOfMonth();
+        }
+
+        $start = $monthCursor->copy()->startOfMonth();
+        $end = $monthCursor->copy()->endOfMonth();
+
+        $appointments = Appointment::query()
+            ->with([
+                'patient:id,name',
+                'service:id,name',
+                'doctor:id,name',
+            ])
+            ->whereBetween('appointment_date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('appointment_date')
+            ->orderBy('appointment_time')
+            ->get();
+
+        $appointmentsByDate = $appointments
+            ->groupBy(static function (Appointment $a): string {
+                if (empty($a->appointment_date)) {
+                    return '';
+                }
+
+                return Carbon::parse((string) $a->appointment_date)->toDateString();
+            });
+
+        return view('admin.appointment.calendar', [
+            'monthCursor' => $monthCursor,
+            'appointmentsByDate' => $appointmentsByDate,
+            'prevMonth' => $monthCursor->copy()->subMonth()->format('Y-m'),
+            'nextMonth' => $monthCursor->copy()->addMonth()->format('Y-m'),
+        ]);
+    }
+
     public function index(Request $request): View
     {
         $query = Appointment::query()
@@ -72,6 +113,7 @@ class AppointmentsController extends Controller
                 'doctor_notes',
                 'instructions',
                 'alerts',
+                'section_authors',
             ])
             ->first();
 

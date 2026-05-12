@@ -57,6 +57,7 @@
               <label class="form-label" for="status">Status</label>
               <select id="status" class="form-select" name="status">
                 <option value="">All</option>
+                <option value="pending" @selected(request('status') === 'pending')>Pending</option>
                 <option value="active" @selected(request('status') === 'active')>Active</option>
                 <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
               </select>
@@ -90,8 +91,7 @@
             <tbody>
               @forelse($doctors as $doctor)
                 @php
-                  $status = $doctor->status ?? 'active';
-                  $badge = $status === 'active' ? 'bg-green-lt' : 'bg-secondary-lt';
+                  $status = strtolower((string) ($doctor->status ?? 'pending'));
                   $imageUrl = $doctor->image_url;
                   $initial = strtoupper(substr($doctor->name ?? '?', 0, 1));
                 @endphp
@@ -137,7 +137,19 @@
                     {{ $doctor->image_path ?? '—' }}
                   </td>
                   <td>
-                    <span class="badge {{ $badge }}">{{ ucfirst($status) }}</span>
+                    <form method="POST" action="{{ route('admin.doctors.status', $doctor->id) }}">
+                      @csrf
+                      <select
+                        name="status"
+                        class="form-select form-select-sm"
+                        onchange="this.form.submit()"
+                        aria-label="Update doctor status"
+                      >
+                        <option value="pending" @selected($status === 'pending')>Pending</option>
+                        <option value="active" @selected($status === 'active')>Approved</option>
+                        <option value="inactive" @selected($status === 'inactive')>Disapproved</option>
+                      </select>
+                    </form>
                   </td>
                   <td>
                     <a href="{{ route('admin.doctors.show', $doctor->id) }}" class="btn btn-ghost-primary btn-sm">View</a>

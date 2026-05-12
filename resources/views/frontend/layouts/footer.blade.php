@@ -49,7 +49,7 @@
                                     </ul>
                                 </div>
                             </div>
-                            <div class="col-xl-2 col-lg-6 col-md-6 wow fadeInUp" data-wow-delay="300ms">
+                            <div class="col-xl-4 col-lg-6 col-md-6 wow fadeInUp" data-wow-delay="300ms">
                                 <div class="footer-widget-two__contact-info">
                                     <h4 class="footer-widget-two__title">{{ $sf['contact_title'] ?? 'Contact' }}</h4>
                                     <ul class="footer-widget-two__contact-list list-unstyled">
@@ -85,7 +85,7 @@
                                     </ul>
                                 </div>
                             </div>
-                            <div class="col-xl-2 col-lg-6 col-md-6 wow fadeInUp" data-wow-delay="400ms">
+                            <!-- <div class="col-xl-2 col-lg-6 col-md-6 wow fadeInUp" data-wow-delay="400ms">
                                 <div class="footer-widget-two__page-link">
                                     <h4 class="footer-widget-two__title">{{ $sf['page_links_title'] ?? 'Page' }}</h4>
                                     <ul class="footer-widget-two__services-link-list list-unstyled">
@@ -98,7 +98,7 @@
                                         @endforeach
                                     </ul>
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
                     </div>
                 </div>

@@ -231,14 +231,33 @@ class DoctorPatientRecordController extends Controller
             return back()->withErrors(['observation' => 'Please fill at least one treatment note field.'])->withInput();
         }
 
+        $existing = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
+
+        $fieldKeys = ['doctor_notes', 'appointment_remarks', 'instructions', 'alerts'];
+        $oldSnapshot = [];
+        foreach ($fieldKeys as $key) {
+            $oldSnapshot[$key] = $existing?->{$key};
+        }
+
+        $newPayload = [
+            'doctor_notes' => $validated['observation'] ?? null,
+            'appointment_remarks' => $validated['procedure_done'] ?? null,
+            'instructions' => $validated['recommendation'] ?? null,
+            'alerts' => $validated['follow_up'] ?? null,
+        ];
+
+        $doctor = auth('doctor')->user();
+        $newPayload['section_authors'] = AppointmentNote::mergeAuthorsOnFieldChanges(
+            is_array($existing?->section_authors) ? $existing->section_authors : null,
+            $oldSnapshot,
+            $newPayload,
+            $fieldKeys,
+            AppointmentNote::authorPayloadFromUserName('doctor', $doctor?->name),
+        );
+
         AppointmentNote::query()->updateOrCreate(
             ['appointment_id' => $appointment->id],
-            [
-                'doctor_notes' => $validated['observation'] ?? null,
-                'appointment_remarks' => $validated['procedure_done'] ?? null,
-                'instructions' => $validated['recommendation'] ?? null,
-                'alerts' => $validated['follow_up'] ?? null,
-            ]
+            $newPayload
         );
 
         return redirect()

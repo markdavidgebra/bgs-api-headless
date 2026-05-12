@@ -9,6 +9,14 @@
           href="{{ route('patient.dashboard') }}"><i class="fi-rs-settings-sliders mr-10"></i>Dashboard</a>
       </li>
       <li class="nav-item">
+        <a class="nav-link {{ request()->routeIs('patient.notifications*') ? 'active' : '' }}"
+          href="{{ route('patient.notifications.index') }}"><i class="fi-rs-bell mr-10"></i>Notifications
+          @if (($patientUnreadNotificationsCount ?? 0) > 0)
+            <span class="badge bg-primary ms-1">{{ $patientUnreadNotificationsCount }}</span>
+          @endif
+        </a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link {{ $isAppointmentsListRoute ? 'active' : '' }}"
           href="{{ route('patient.appointments') }}"><i class="fi-rs-calendar mr-10"></i>My appointments</a>
       </li>

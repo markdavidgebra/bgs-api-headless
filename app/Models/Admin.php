@@ -23,6 +23,9 @@ class Admin extends Authenticatable
         'email',
         'role',
         'image_path',
+        'status',
+        'approved_at',
+        'pending_password_plain',
         'password',
     ];
 
@@ -45,8 +48,14 @@ class Admin extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isApproved(): bool
+    {
+        return strtolower((string) ($this->status ?? 'draft')) === 'approved';
     }
 
     public function hasRole(string ...$roles): bool

@@ -56,6 +56,7 @@
               <label class="form-label" for="status">Status</label>
               <select id="status" class="form-select" name="status">
                 <option value="">All</option>
+                <option value="pending" @selected(request('status') === 'pending')>Pending</option>
                 <option value="active" @selected(request('status') === 'active')>Active</option>
                 <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
               </select>
@@ -86,8 +87,7 @@
             <tbody>
               @forelse($patients as $patient)
                 @php
-                  $status = $patient->status ?? 'active';
-                  $badge = $status === 'active' ? 'bg-green-lt' : 'bg-secondary-lt';
+                  $status = strtolower((string) ($patient->status ?? 'pending'));
                   $lastAppt = $patient->latestAppointmentDateFromHistory();
                 @endphp
                 <tr>
@@ -109,9 +109,32 @@
                   <td>{{ $patient->phone ?: '—' }}</td>
                   <td class="text-secondary">{{ $lastAppt ?? '—' }}</td>
                   <td>{{ $patient->subscription ?: '—' }}</td>
-                  <td><span class="badge {{ $badge }}">{{ ucfirst($status) }}</span></td>
                   <td>
-                    <a href="{{ route('admin.patients.show', $patient->id) }}" class="btn btn-sm btn-primary">View</a>
+                    @if ($canManageStatus)
+                      <form method="POST" action="{{ route('admin.patients.status', $patient->id) }}">
+                        @csrf
+                        <select
+                          name="status"
+                          class="form-select form-select-sm"
+                          onchange="this.form.submit()"
+                          aria-label="Update patient status"
+                        >
+                          <option value="pending" @selected($status === 'pending')>Pending</option>
+                          <option value="active" @selected($status === 'active')>Active</option>
+                          <option value="inactive" @selected($status === 'inactive')>Inactive</option>
+                        </select>
+                      </form>
+                    @else
+                      <span class="badge {{ $patient->status_badge }}">{{ ucfirst((string) $status) }}</span>
+                    @endif
+                  </td>
+                  <td>
+                    <div class="btn-list flex-nowrap">
+                      <a href="{{ route('admin.patients.show', $patient->id) }}" class="btn btn-sm btn-primary">View</a>
+                      @if ($canManagePatientRecords)
+                        <a href="{{ route('admin.patients.edit', $patient->id) }}" class="btn btn-sm">Edit</a>
+                      @endif
+                    </div>
                   </td>
                 </tr>
               @empty

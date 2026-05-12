@@ -28,7 +28,8 @@ class AdminPermissions
                 ['key' => 'registrations.manage', 'label' => 'Registrations'],
                 ['key' => 'staff.manage', 'label' => 'Staff'],
                 ['key' => 'doctors.manage', 'label' => 'Doctors'],
-                ['key' => 'patients.manage', 'label' => 'Patients'],
+                ['key' => 'patients.view', 'label' => 'Patients (view only)'],
+                ['key' => 'patients.manage', 'label' => 'Patients (edit & clinical notes)'],
             ],
             'Catalog and Billing' => [
                 ['key' => 'services.manage', 'label' => 'Services'],
@@ -90,7 +91,24 @@ class AdminPermissions
         $permissions = is_array($adminRole->permissions) ? $adminRole->permissions : [];
         $allowed = array_map(static fn ($value): string => (string) $value, $permissions);
 
-        return array_values(array_intersect(self::allKeys(), $allowed));
+        $allowed = array_values(array_intersect(self::allKeys(), $allowed));
+
+        return self::expandImpliedPermissions($allowed);
+    }
+
+    /**
+     * Grant implied keys so older role rows that only store e.g. patients.manage still work.
+     *
+     * @param  list<string>  $allowed
+     * @return list<string>
+     */
+    private static function expandImpliedPermissions(array $allowed): array
+    {
+        if (in_array('patients.manage', $allowed, true) && ! in_array('patients.view', $allowed, true)) {
+            $allowed[] = 'patients.view';
+        }
+
+        return array_values(array_unique($allowed));
     }
 
     public static function normalizeRole(string $value): string

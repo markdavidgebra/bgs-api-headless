@@ -6,22 +6,51 @@
   <title>Doctor Account Created</title>
 </head>
 <body style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
-  <p>Hello Dr. {{ $doctor->name }},</p>
+  @php
+    $nameParts = preg_split('/\s+/', trim((string) $doctor->name)) ?: [];
+    $lastName = end($nameParts) ?: (string) $doctor->name;
+    $portalLink = route('login');
+  @endphp
 
-  <p>Your account has been created. You can now log in using the credentials below:</p>
+  <p>Dear Dr. {{ $lastName }},</p>
+
+  <p>Greetings from BioGlow Solutions (BGS) Beauty and Wellness Hub.</p>
+
+  <p>Welcome to the BGS Physician Portal. We are pleased to inform you that your account has been successfully created.</p>
+
+  <p>Please see your login credentials below:</p>
 
   <p>
-    <strong>Username (Email):</strong> {{ $doctor->email }}<br>
-    <strong>Password:</strong> {{ $plainPassword }}
+    <strong>Username:</strong> {{ $doctor->email }}<br>
+    <strong>Temporary Password:</strong> {{ $plainPassword }}
   </p>
+
+  <p>You may access the portal through the link below:</p>
+
+  <p><a href="{{ $portalLink }}">{{ $portalLink }}</a></p>
+
+  <p>Through the BGS portal, you will be able to conveniently access and manage:</p>
+
+  <ul>
+    <li>Patient appointments</li>
+    <li>Patient records and information</li>
+    <li>Programs and treatment plans</li>
+    <li>Services and procedures</li>
+    <li>Packages</li>
+    <li>Other clinic-related updates and resources</li>
+  </ul>
+
+  <p>For security purposes, once you have successfully accessed your account, please update your temporary password within twenty-four (24) hours.</p>
+
+  <p>We are excited to have you onboard as part of our growing commitment to health, wellness, and longevity-focused care.</p>
+
+  <p>Should you need any assistance accessing your account, please feel free to contact us.</p>
+
+  <p>Thank you, and welcome to BioGlow Solutions (BGS) Beauty and Wellness Hub.</p>
 
   <p>
-    <strong>Login URL:</strong>
-    <a href="{{ route('login') }}">{{ route('login') }}</a>
+    Warm regards,<br>
+    BioGlow Solutions (BGS) Beauty and Wellness Hub
   </p>
-
-  <p>For security, please change your password after your first login.</p>
-
-  <p>Thank you.</p>
 </body>
 </html>

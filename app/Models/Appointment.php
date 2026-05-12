@@ -22,6 +22,7 @@ class Appointment extends Model
         'appointment_date',
         'appointment_time',
         'status',
+        'reminder_sent_at',
         'created_by',
         'updated_by',
     ];
@@ -30,6 +31,7 @@ class Appointment extends Model
     {
         return [
             'appointment_date' => 'date',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 

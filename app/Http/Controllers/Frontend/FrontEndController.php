@@ -14,6 +14,7 @@ use App\Models\Promotion;
 use App\Models\Service;
 use App\Models\Slide;
 use App\Models\Testimonial;
+use App\Models\TreatmentPackage;
 use App\Support\PageHeaderConfig;
 use App\Support\SiteFooterConfig;
 use Illuminate\Contracts\View\View;
@@ -228,6 +229,36 @@ class FrontEndController extends Controller
         return view('frontend.pages.pricing.pricing', [
             'membershipPlans' => $membershipPlans,
             'pricingPageHeaderBgUrl' => PageHeaderConfig::pricingBackgroundUrl(),
+        ]);
+    }
+
+    public function packages(): View
+    {
+        $packages = TreatmentPackage::query()
+            ->where('status', 'active')
+            ->with(['services' => function ($query) {
+                $query->orderBy('name');
+            }])
+            ->orderBy('name')
+            ->get();
+
+        return view('frontend.pages.packages.packages', [
+            'packages' => $packages,
+            'packagesPageHeaderBgUrl' => PageHeaderConfig::servicesBackgroundUrl(),
+        ]);
+    }
+
+    public function packageShow(TreatmentPackage $package): View
+    {
+        abort_unless($package->status === 'active', 404);
+
+        $package->load(['services' => function ($query) {
+            $query->orderBy('name');
+        }]);
+
+        return view('frontend.pages.packages.show', [
+            'package' => $package,
+            'packagesPageHeaderBgUrl' => PageHeaderConfig::servicesBackgroundUrl(),
         ]);
     }
 

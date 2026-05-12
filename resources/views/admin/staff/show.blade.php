@@ -44,6 +44,27 @@
               <div class="datagrid-content"><span class="badge bg-azure-lt">{{ $staff->role ?: '—' }}</span></div>
             </div>
             <div class="datagrid-item">
+              <div class="datagrid-title">Status</div>
+              <div class="datagrid-content">
+                @php
+                  $staffStatus = strtolower((string) ($staff->status ?? 'draft'));
+                  $statusMap = [
+                    'approved' => ['label' => 'Approved', 'badge' => 'bg-green-lt'],
+                    'disapproved' => ['label' => 'Disapproved', 'badge' => 'bg-red-lt'],
+                    'draft' => ['label' => 'Draft', 'badge' => 'bg-secondary-lt'],
+                  ];
+                  $statusMeta = $statusMap[$staffStatus] ?? $statusMap['draft'];
+                @endphp
+                <span class="badge {{ $statusMeta['badge'] }}">
+                  {{ $statusMeta['label'] }}
+                </span>
+              </div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Approved At</div>
+              <div class="datagrid-content">{{ $staff->approved_at?->format('M j, Y h:i A') ?? '—' }}</div>
+            </div>
+            <div class="datagrid-item">
               <div class="datagrid-title">Created</div>
               <div class="datagrid-content">{{ $staff->created_at?->format('M j, Y h:i A') ?? '—' }}</div>
             </div>

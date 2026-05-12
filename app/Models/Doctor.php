@@ -18,6 +18,7 @@ class Doctor extends Authenticatable
         'name',
         'email',
         'password',
+        'pending_password_plain',
         'phone',
         'specialty',
         'license_no',
@@ -26,6 +27,7 @@ class Doctor extends Authenticatable
         'image_path',
         'social_links',
         'status',
+        'approved_at',
     ];
 
     protected $hidden = [
@@ -37,6 +39,7 @@ class Doctor extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved_at' => 'datetime',
             'password' => 'hashed',
             'experience_years' => 'integer',
             'social_links' => 'array',
@@ -50,9 +53,13 @@ class Doctor extends Authenticatable
 
     public function getStatusBadgeAttribute()
     {
-        return ($this->status ?? 'active') === 'active'
-            ? 'bg-green-lt'
-            : 'bg-secondary-lt';
+        $status = strtolower((string) ($this->status ?? 'pending'));
+
+        return match ($status) {
+            'active' => 'bg-green-lt',
+            'inactive' => 'bg-red-lt',
+            default => 'bg-secondary-lt',
+        };
     }
 
     public function getInitialAttribute()

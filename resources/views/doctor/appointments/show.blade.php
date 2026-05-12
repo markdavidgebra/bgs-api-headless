@@ -26,6 +26,10 @@
                     <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Back to list</a>
                   </div>
 
+                  @if (session('success'))
+                    <div class="alert alert-success mb-20">{{ session('success') }}</div>
+                  @endif
+
                   <div class="card mb-20">
                     <div class="card-body">
                       <div class="row">
@@ -34,7 +38,91 @@
                         <div class="col-md-6 mb-2"><strong>Patient:</strong> {{ $appointment->patient_name }}</div>
                         <div class="col-md-6 mb-2"><strong>Service:</strong> {{ $appointment->service_name }}</div>
                         <div class="col-md-6 mb-2"><strong>Status:</strong> {{ $appointment->status_label }}</div>
+                        <div class="col-md-6 mb-2">
+                          <strong>Treatment package(s):</strong>
+                          @if (($patientPackages ?? collect())->isEmpty())
+                            —
+                          @else
+                            {{ $patientPackages->pluck('treatmentPackage.name')->filter()->unique()->implode(', ') ?: '—' }}
+                          @endif
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <form method="POST" action="{{ route('doctor.appointments.session-done', $appointment) }}" class="d-inline-block">
+                            @csrf
+                            <div class="form-check">
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                value="1"
+                                id="session_done"
+                                name="session_done"
+                                onchange="this.form.submit()"
+                                @checked(($appointment->status ?? '') === 'completed')
+                              >
+                              <label class="form-check-label" for="session_done">
+                                Session done
+                              </label>
+                            </div>
+                          </form>
+                        </div>
                       </div>
+                    </div>
+                  </div>
+
+                  <div class="card mb-20">
+                    <div class="card-header">
+                      <h5 class="mb-0">Treatment progress</h5>
+                    </div>
+                    <div class="card-body">
+                      @if ($patientPackage === null)
+                        <div class="text-muted">
+                          No linked treatment package found for this appointment service.
+                        </div>
+                      @else
+                        <p class="mb-3">
+                          <strong>Package:</strong> {{ $patientPackage->treatmentPackage?->name ?? 'Treatment package' }}<br>
+                          <strong>Sessions:</strong> {{ (int) $patientPackage->used_sessions }} / {{ (int) $patientPackage->total_sessions }} done
+                        </p>
+
+                        <form method="POST" action="{{ route('doctor.appointments.treatment-progress', $appointment) }}">
+                          @csrf
+                          @php
+                            $serviceGroups = collect($serviceChecklist)->groupBy('service_name');
+                          @endphp
+                          <div style="max-height: 320px; overflow:auto;">
+                            @forelse ($serviceGroups as $serviceName => $serviceRows)
+                              <div class="card mb-3 border">
+                                <div class="card-header py-2 bg-light">
+                                  <strong>{{ $serviceName }}</strong>
+                                </div>
+                                <div class="card-body py-2">
+                                  @foreach ($serviceRows as $sessionRow)
+                                    @php $sessionInputId = 'session-done-'.str_replace(':', '-', $sessionRow['key']); @endphp
+                                    <div class="form-check mb-2">
+                                      <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        name="checked_service_sessions[]"
+                                        value="{{ $sessionRow['key'] }}"
+                                        id="{{ $sessionInputId }}"
+                                        @checked(in_array($sessionRow['key'], $checkedServiceSessionKeys, true))
+                                      >
+                                      <label class="form-check-label" for="{{ $sessionInputId }}">
+                                        Session {{ $sessionRow['session_no'] }} of {{ $sessionRow['required_sessions'] }}
+                                      </label>
+                                    </div>
+                                  @endforeach
+                                </div>
+                              </div>
+                            @empty
+                              <div class="text-muted">This package has no configured services/sessions.</div>
+                            @endforelse
+                          </div>
+                          <div class="mt-3">
+                            <button type="submit" class="btn btn-sm btn-primary">Save treatment progress</button>
+                          </div>
+                        </form>
+                      @endif
                     </div>
                   </div>
 

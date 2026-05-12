@@ -68,6 +68,23 @@ class LoginRequest extends FormRequest
             }
         }
 
+        if (Auth::guard('doctor')->check()) {
+            $doctor = Auth::guard('doctor')->user();
+            $status = strtolower((string) ($doctor->status ?? 'pending'));
+            if ($status !== 'active') {
+                Auth::guard('doctor')->logout();
+                RateLimiter::hit($this->throttleKey());
+
+                $message = $status === 'inactive'
+                    ? __('Your doctor portal access has been removed.')
+                    : __('Your doctor account is awaiting admin approval.');
+
+                throw ValidationException::withMessages([
+                    'email' => $message,
+                ]);
+            }
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

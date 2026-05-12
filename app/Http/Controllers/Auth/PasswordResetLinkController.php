@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Patient;
+use App\Notifications\Patient\PatientPasswordResetLinkSentNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
@@ -35,6 +38,13 @@ class PasswordResetLinkController extends Controller
         $email = $request->only('email');
 
         $status = Password::broker('users')->sendResetLink($email);
+
+        if ($status === Password::RESET_LINK_SENT) {
+            $patient = Patient::query()->where('email', strtolower(trim((string) $request->input('email'))))->first();
+            if ($patient) {
+                Notification::send($patient, new PatientPasswordResetLinkSentNotification);
+            }
+        }
 
         if ($status !== Password::RESET_LINK_SENT) {
             $status = Password::broker('doctors')->sendResetLink($email);

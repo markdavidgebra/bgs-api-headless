@@ -49,6 +49,24 @@ class AdminLoginRequest extends FormRequest
             ]);
         }
 
+        if (Auth::guard('admin')->check()) {
+            $admin = Auth::guard('admin')->user();
+            $status = strtolower((string) ($admin->status ?? 'approved'));
+
+            if ($status !== 'approved') {
+                Auth::guard('admin')->logout();
+                RateLimiter::hit($this->throttleKey());
+
+                $message = $status === 'disapproved'
+                    ? __('Your admin access has been removed.')
+                    : __('Your staff account is still in draft. Please ask a super admin to approve it first.');
+
+                throw ValidationException::withMessages([
+                    'email' => $message,
+                ]);
+            }
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

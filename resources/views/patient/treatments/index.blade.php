@@ -64,6 +64,17 @@
 
                   <div class="row d-lg-none">
                     @forelse ($treatments as $row)
+                      @php
+                        $mobileTotalSessions = (int) ($row->total_sessions ?? 0);
+                        $mobileDoneSessions = (int) ($row->sessions_done ?? 0);
+                        $mobileStatusKey = (string) ($row->display_status ?? 'ongoing');
+                        $mobileStatusLabel = (string) ($row->display_label ?? 'Ongoing');
+                        $mobileCanBeCompleted = $mobileTotalSessions > 0 && $mobileDoneSessions >= $mobileTotalSessions;
+                        if ($mobileStatusKey === 'completed' && ! $mobileCanBeCompleted) {
+                            $mobileStatusKey = 'ongoing';
+                            $mobileStatusLabel = 'Ongoing';
+                        }
+                      @endphp
                       <div class="col-md-6 mb-25">
                         <div class="card h-100 mb-0">
                           <div class="card-body p-25">
@@ -80,7 +91,7 @@
                               <span class="text-muted">(done / total)</span>
                             </p>
                             <p class="font-sm mb-0">
-                              <span class="{{ $treatmentStatusClass($row->display_status) }}">{{ $row->display_label }}</span>
+                              <span class="{{ $treatmentStatusClass($mobileStatusKey) }}">{{ $mobileStatusLabel }}</span>
                             </p>
                             <p class="mt-10 mb-0">
                               <a href="{{ route('patient.treatments.show', $row->id) }}" class="font-sm">View details</a>
@@ -117,6 +128,17 @@
                           </thead>
                           <tbody>
                             @forelse ($treatments as $row)
+                              @php
+                                $desktopTotalSessions = (int) ($row->total_sessions ?? 0);
+                                $desktopDoneSessions = (int) ($row->sessions_done ?? 0);
+                                $desktopStatusKey = (string) ($row->display_status ?? 'ongoing');
+                                $desktopStatusLabel = (string) ($row->display_label ?? 'Ongoing');
+                                $desktopCanBeCompleted = $desktopTotalSessions > 0 && $desktopDoneSessions >= $desktopTotalSessions;
+                                if ($desktopStatusKey === 'completed' && ! $desktopCanBeCompleted) {
+                                    $desktopStatusKey = 'ongoing';
+                                    $desktopStatusLabel = 'Ongoing';
+                                }
+                              @endphp
                               <tr>
                                 <td>
                                   <a href="{{ route('patient.treatments.show', $row->id) }}">{{ $row->treatment_name }}</a>
@@ -128,7 +150,7 @@
                                 <td class="text-center">{{ $row->total_sessions }}</td>
                                 <td class="text-center">{{ $row->sessions_done }}</td>
                                 <td>
-                                  <span class="{{ $treatmentStatusClass($row->display_status) }}">{{ $row->display_label }}</span>
+                                  <span class="{{ $treatmentStatusClass($desktopStatusKey) }}">{{ $desktopStatusLabel }}</span>
                                 </td>
                               </tr>
                             @empty

@@ -61,44 +61,6 @@
                         @if (filled($plan->description))
                             <p class="pricing-card-m__lede">{{ \Illuminate\Support\Str::limit(strip_tags($plan->description), 155) }}</p>
                         @endif
-                        <div class="pricing-one__price-box pricing-card-m__price">
-                            @php
-                                $periodWord = match ($plan->billing_cycle) {
-                                    'monthly' => 'month',
-                                    'yearly' => 'year',
-                                    'quarterly' => 'quarter',
-                                    default => null,
-                                };
-                                $priceAria = '₱'.number_format((float) $plan->price, 0);
-                                if ($periodWord) {
-                                    $priceAria .= ' per '.$periodWord;
-                                }
-                            @endphp
-                            <div class="pricing-card-m__price-panel">
-                                <p class="pricing-card-m__price-figure" aria-label="{{ $priceAria }}">
-                                    <span class="pricing-card-m__currency" aria-hidden="true">₱</span>
-                                    <span class="pricing-card-m__amount">{{ number_format((float) $plan->price, 0) }}</span>
-                                </p>
-                                <p class="pricing-card-m__price-caption">
-                                    @if ($periodWord)
-                                        <span class="pricing-card-m__caption-strong">Per {{ $periodWord }}</span>
-                                    @elseif ($billingLabel)
-                                        <span class="pricing-card-m__caption-strong">{{ $billingLabel }}</span>
-                                    @else
-                                        <span class="pricing-card-m__caption-strong">Membership</span>
-                                    @endif
-                                    @php
-                                        $redundantDuration = $plan->billing_cycle === 'monthly'
-                                            && (int) $plan->duration_value === 1
-                                            && $plan->duration_type === 'month';
-                                    @endphp
-                                    @if (filled($plan->duration_label) && ! $redundantDuration)
-                                        <span class="pricing-card-m__caption-dot" aria-hidden="true">·</span>
-                                        <span class="pricing-card-m__caption-soft">{{ $plan->duration_label }} included</span>
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
                         <p class="pricing-card-m__included">What's included</p>
                         <ul class="list-unstyled pricing-one__point pricing-card-m__list">
                             @if (filled($plan->max_usage_per_month))

@@ -44,6 +44,7 @@
                 <th>Staff</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Status</th>
                 <th class="w-1"></th>
               </tr>
             </thead>
@@ -54,6 +55,22 @@
                   <td>{{ $staff->email }}</td>
                   <td><span class="badge bg-azure-lt">{{ $staff->role ?: '—' }}</span></td>
                   <td>
+                    @php $staffStatus = strtolower((string) ($staff->status ?? 'draft')); @endphp
+                    <form method="POST" action="{{ route('admin.staffs.status', $staff->id) }}">
+                      @csrf
+                      <select
+                        name="status"
+                        class="form-select form-select-sm"
+                        onchange="this.form.submit()"
+                        aria-label="Update staff status"
+                      >
+                        <option value="draft" @selected($staffStatus === 'draft')>Draft</option>
+                        <option value="approved" @selected($staffStatus === 'approved')>Approved</option>
+                        <option value="disapproved" @selected($staffStatus === 'disapproved')>Disapproved</option>
+                      </select>
+                    </form>
+                  </td>
+                  <td>
                     <div class="btn-list flex-nowrap">
                       <a href="{{ route('admin.staffs.show', $staff->id) }}" class="btn btn-sm btn-primary">View</a>
                       <a href="{{ route('admin.staffs.edit', $staff->id) }}" class="btn btn-sm">Edit</a>
@@ -62,7 +79,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="4" class="text-secondary text-center py-4">No staff found.</td>
+                  <td colspan="5" class="text-secondary text-center py-4">No staff found.</td>
                 </tr>
               @endforelse
             </tbody>

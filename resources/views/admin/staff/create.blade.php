@@ -45,10 +45,8 @@
                 </select>
                 @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
               </div>
-              <div class="col-md-6">
-                <label class="form-label required" for="password">Password</label>
-                <input id="password" type="password" name="password" class="form-control @error('password') is-invalid @enderror" required>
-                @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+              <div class="col-12">
+                <small class="form-hint">A temporary password will be generated automatically and sent to the staff email after creation. Account login is activated only after approval.</small>
               </div>
             </div>
           </div>

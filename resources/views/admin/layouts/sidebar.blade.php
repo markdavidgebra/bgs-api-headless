@@ -251,6 +251,14 @@
             <span class="nav-link-title">Appointments</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link {{ request()->routeIs('admin.appointments.calendar') ? 'active' : '' }}" href="{{ route('admin.appointments.calendar') }}">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 4m0 1a1 1 0 0 1 1 -1h8a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-8a1 1 0 0 1 -1 -1z" /><path d="M11 8h2" /><path d="M10 12h4" /><path d="M10 16h4" /></svg>
+            </span>
+            <span class="nav-link-title">Calendar</span>
+          </a>
+        </li>
         @endif
         @if ($can('inquiries.manage'))
         <li class="nav-item">
@@ -292,7 +300,7 @@
           </a>
         </li>
         @endif
-        @if ($can('patients.manage'))
+        @if ($can('patients.view'))
         <li class="nav-item">
           <a class="nav-link {{ request()->routeIs('admin.patients') ? 'active' : '' }}" href="{{ route('admin.patients') }}">
             <span class="nav-link-icon d-md-none d-lg-inline-block">

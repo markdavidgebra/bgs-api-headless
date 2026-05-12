@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Mail\PatientAppointmentBookedMail;
 use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\Doctor;
+use App\Models\Patient;
 use App\Models\Service;
+use App\Notifications\Patient\AppointmentBookedPatientNotification;
+use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
+use App\Support\DoctorAppointmentAlerts;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class PatientAppointmentController extends Controller
@@ -116,9 +119,16 @@ class PatientAppointmentController extends Controller
             ]);
 
             if (! empty($data['patient_concern'])) {
+                $patient = Patient::query()->find($patientId);
                 AppointmentNote::create([
                     'appointment_id' => $appointment->id,
                     'patient_concern' => $data['patient_concern'],
+                    'section_authors' => [
+                        'patient_concern' => AppointmentNote::authorPayloadFromUserName(
+                            'patient',
+                            $patient?->name,
+                        ),
+                    ],
                 ]);
             }
 
@@ -126,11 +136,10 @@ class PatientAppointmentController extends Controller
         });
 
         $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
-        if (! empty($appointment->patient?->email)) {
-            Mail::to((string) $appointment->patient->email)->send(
-                new PatientAppointmentBookedMail($appointment)
-            );
+        if ($appointment->patient && filled($appointment->patient->email)) {
+            Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
         }
+        DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
 
         return redirect()
             ->route('patient.appointments.show', $appointment)
@@ -174,7 +183,13 @@ class PatientAppointmentController extends Controller
             'appointment_date' => $data['appointment_date'],
             'appointment_time' => $data['appointment_time'],
             'status' => 'rescheduled',
+            'reminder_sent_at' => null,
         ])->save();
+
+        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+        if ($appointment->patient && filled($appointment->patient->email)) {
+            Notification::send($appointment->patient, new AppointmentRescheduledPatientNotification($appointment));
+        }
 
         return redirect()
             ->route('patient.appointments.show', $appointment)
