@@ -23,6 +23,7 @@ return [
         'http://localhost:5173', 
         'http://localhost:3000', 
         'https://catalog.bioglowsolutions.com',
+        'https://pos.bioglowsolutions.com',
         ],
 
     'allowed_origins_patterns' => [],

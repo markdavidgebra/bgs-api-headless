@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Equivalent to adding EnsureFrontendRequestsAreStateful to the `api`
+        // middleware group in app/Http/Kernel.php (Laravel 10 and earlier).
+        $middleware->statefulApi();
+
         $middleware->validateCsrfTokens(except: [
             'api/pos/login',
             'api/pos/logout',
