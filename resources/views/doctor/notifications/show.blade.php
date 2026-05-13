@@ -25,7 +25,7 @@
             <div class="row">
               @include('doctor.layouts.sidebar')
 
-              <div class="col-md-9">
+              <div class="col-12 col-md-9">
                 <div class="account dashboard-content pl-50">
                   @if (session('success'))
                     <div class="alert alert-success mb-20">{{ session('success') }}</div>

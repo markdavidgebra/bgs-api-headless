@@ -104,11 +104,11 @@
     <div class="page-header__bg" style="background-image: url({{ $loginPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::loginPageBackgroundUrl() }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>{{ $title ?? 'Login Page' }}</h2>
+            <!-- <h2>{{ $title ?? 'Login Page' }}</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ url('/') }}">Home</a></li>
+                <!-- <li><a href="{{ url('/') }}">Home</a></li>
                 <li><span>-</span></li>
-                <li>{{ $subtitle ?? 'Login Page' }}</li>
+                <li>{{ $subtitle ?? 'Login Page' }}</li> -->
             </ul>
         </div>
     </div>

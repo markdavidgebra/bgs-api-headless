@@ -124,4 +124,14 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_users_can_logout_via_get(): void
+    {
+        $user = Patient::factory()->create();
+
+        $response = $this->actingAs($user)->get('/logout');
+
+        $this->assertGuest();
+        $response->assertRedirect('/');
+    }
 }

@@ -31,16 +31,22 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteFooter', SiteFooterConfig::get());
         });
 
-        View::composer('patient.layouts.sidebar', function ($view): void {
-            if (auth('web')->check()) {
-                $view->with(
-                    'patientUnreadNotificationsCount',
-                    (int) auth('web')->user()->unreadNotifications()->count(),
-                );
-            } else {
-                $view->with('patientUnreadNotificationsCount', 0);
+        View::composer(
+            [
+                'patient.layouts.sidebar',
+                'patient.layouts.mobile-view',
+            ],
+            function ($view): void {
+                if (auth('web')->check()) {
+                    $view->with(
+                        'patientUnreadNotificationsCount',
+                        (int) auth('web')->user()->unreadNotifications()->count(),
+                    );
+                } else {
+                    $view->with('patientUnreadNotificationsCount', 0);
+                }
             }
-        });
+        );
 
         AppointmentPayment::observe(AppointmentPaymentObserver::class);
     }

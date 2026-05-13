@@ -16,7 +16,7 @@
       <div class="container">
         <div class="row">
           @include('patient.layouts.sidebar')
-          <div class="col-md-9">
+          <div class="col-12 col-md-9">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
               <h4 class="mb-0">Notifications</h4>
               @if (auth()->user()->unreadNotifications()->exists())

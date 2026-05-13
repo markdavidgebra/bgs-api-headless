@@ -35,7 +35,7 @@
           <div class="col-12">
             <div class="row">
               @include('patient.layouts.sidebar')
-              <div class="col-md-9">
+              <div class="col-12 col-md-9">
                 <div class="account dashboard-content pl-50">
                   <div class="card mb-4">
                     <div class="card-header p-0 pb-10">

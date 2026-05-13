@@ -25,6 +25,8 @@
     <!-- Template CSS -->
    
     <link rel="stylesheet" href="{{ $pd('css/main.css') }}?v=6.0" />
+    <link rel="stylesheet" href="{{ $pd('css/patient-mobile-drawer.css') }}?v=1.3" />
+    <link rel="stylesheet" href="{{ $pd('css/bgs-portal-mobile-content.css') }}?v=1.1" />
 </head>
 
 <body>

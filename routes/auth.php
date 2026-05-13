@@ -37,7 +37,7 @@ Route::middleware('guest:web,admin,doctor')->group(function () {
 });
 
 Route::middleware('auth:web,doctor')->group(function () {
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+    Route::match(['get', 'post'], 'logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });
 

@@ -19,11 +19,11 @@
     <div class="page-header__bg" style="background-image: url({{ asset('frontend/assets/images/backgrounds/page-header-bg.jpg') }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>{{ $title ?? 'Reset Password' }}</h2>
+            <!-- <h2>{{ $title ?? 'Reset Password' }}</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ url('/') }}">Home</a></li>
+                <!-- <li><a href="{{ url('/') }}">Home</a></li>
                 <li><span>-</span></li>
-                <li>{{ $subtitle ?? 'Reset Password' }}</li>
+                <li>{{ $subtitle ?? 'Reset Password' }}</li> -->
             </ul>
         </div>
     </div>

@@ -1,0 +1,124 @@
+/* Patient & doctor portals: center primary content on small screens (main column + breadcrumbs) */
+
+@media (max-width: 767.98px) {
+  .main.pages .page-header.breadcrumb-wrap .container {
+    text-align: center;
+  }
+
+  .main.pages .page-header.breadcrumb-wrap .breadcrumb {
+    display: inline-block;
+  }
+
+  /* Override template left padding in the main account column */
+  .main.pages .account.dashboard-content.pl-50 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Page intro blocks */
+  .main.pages .account.dashboard-content > .section-title {
+    text-align: center;
+  }
+
+  .main.pages .account.dashboard-content > .section-title h1,
+  .main.pages .account.dashboard-content > .section-title h3,
+  .main.pages .account.dashboard-content > .section-title h4,
+  .main.pages .account.dashboard-content > .section-title h5 {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .main.pages .account.dashboard-content > .section-title p {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 26rem;
+  }
+
+  .main.pages .account.dashboard-content > .section-title .d-flex.flex-wrap {
+    justify-content: center;
+  }
+
+  .main.pages .account.dashboard-content > .section-title.d-flex {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.75rem !important;
+    text-align: center;
+  }
+
+  .main.pages .account.dashboard-content > .section-title.d-flex > * {
+    text-align: center;
+  }
+
+  .main.pages .account.dashboard-content > .section-title.d-flex .btn,
+  .main.pages .account.dashboard-content > .section-title.d-flex a.btn {
+    margin-left: 0.25rem !important;
+    margin-right: 0.25rem !important;
+  }
+
+  /* Bootstrap alerts in the main column */
+  .main.pages .account.dashboard-content .alert {
+    text-align: center;
+  }
+
+  /* Filter / action bars (full-width row under the title) */
+  .main.pages .account.dashboard-content > .d-flex.justify-content-between {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center;
+  }
+
+  .main.pages .account.dashboard-content > .d-flex.justify-content-between .d-flex {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Snapshot / summary cards (uppercase small heading pattern) */
+  .main.pages .account.dashboard-content .card .card-body:has(> h6.text-uppercase:first-child) {
+    text-align: center;
+  }
+
+  .main.pages .account.dashboard-content .card .card-body:has(> h6.text-uppercase:first-child) .badge {
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-block;
+  }
+
+  /* Simple card headers */
+  .main.pages .account.dashboard-content .card > .card-header h5:only-child,
+  .main.pages .account.dashboard-content .card > .card-header h4:only-child {
+    text-align: center;
+    width: 100%;
+  }
+
+  .main.pages .account.dashboard-content .card-header.d-flex {
+    flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .main.pages .account.dashboard-content .card-header.d-flex > a,
+  .main.pages .account.dashboard-content .card-header.d-flex > .small,
+  .main.pages .account.dashboard-content .card-header.d-flex > span {
+    margin-left: 0 !important;
+  }
+
+  /* Keep data tables readable */
+  .main.pages .account.dashboard-content .table-responsive,
+  .main.pages .account.dashboard-content .table-responsive th,
+  .main.pages .account.dashboard-content .table-responsive td {
+    text-align: left !important;
+  }
+
+  .main.pages .account.dashboard-content .table-responsive .text-center {
+    text-align: center !important;
+  }
+
+  /* Pagination */
+  .main.pages .account.dashboard-content .pagination {
+    justify-content: center;
+  }
+}
