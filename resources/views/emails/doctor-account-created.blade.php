@@ -9,7 +9,7 @@
   @php
     $nameParts = preg_split('/\s+/', trim((string) $doctor->name)) ?: [];
     $lastName = end($nameParts) ?: (string) $doctor->name;
-    $portalLink = url('/login');
+    $portalLink = url('/login?tab=staff');
   @endphp
 
   <p>Dear Dr. {{ $lastName }},</p>

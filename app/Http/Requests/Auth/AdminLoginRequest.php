@@ -12,6 +12,18 @@ use Illuminate\Validation\ValidationException;
 class AdminLoginRequest extends FormRequest
 {
     /**
+     * Redirect failed rule validation back to the unified login page when the staff form was submitted from there.
+     */
+    protected function getRedirectUrl(): string
+    {
+        if ($this->cameFromPublicLoginPage()) {
+            return route('login', ['tab' => 'staff']);
+        }
+
+        return parent::getRedirectUrl();
+    }
+
+    /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
@@ -41,10 +53,22 @@ class AdminLoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::guard('admin')->attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->only('email', 'password');
+        $remember = $this->boolean('remember');
+
+        $loggedIn = Auth::guard('admin')->attempt($credentials, $remember)
+            || Auth::guard('doctor')->attempt($credentials, $remember);
+
+        if (! $loggedIn) {
             RateLimiter::hit($this->throttleKey());
 
-            throw ValidationException::withMessages([
+            if (Auth::guard('web')->validate($credentials)) {
+                $this->throwAuthValidation([
+                    'email' => __('Use the Patient tab to sign in with this email.'),
+                ]);
+            }
+
+            $this->throwAuthValidation([
                 'email' => trans('auth.failed'),
             ]);
         }
@@ -61,7 +85,24 @@ class AdminLoginRequest extends FormRequest
                     ? __('Your admin access has been removed.')
                     : __('Your staff account is still in draft. Please ask a super admin to approve it first.');
 
-                throw ValidationException::withMessages([
+                $this->throwAuthValidation([
+                    'email' => $message,
+                ]);
+            }
+        }
+
+        if (Auth::guard('doctor')->check()) {
+            $doctor = Auth::guard('doctor')->user();
+            $status = strtolower((string) ($doctor->status ?? 'pending'));
+            if ($status !== 'active') {
+                Auth::guard('doctor')->logout();
+                RateLimiter::hit($this->throttleKey());
+
+                $message = $status === 'inactive'
+                    ? __('Your doctor portal access has been removed.')
+                    : __('Your doctor account is awaiting admin approval.');
+
+                $this->throwAuthValidation([
                     'email' => $message,
                 ]);
             }
@@ -85,7 +126,7 @@ class AdminLoginRequest extends FormRequest
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
-        throw ValidationException::withMessages([
+        $this->throwAuthValidation([
             'email' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
@@ -99,5 +140,36 @@ class AdminLoginRequest extends FormRequest
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+    }
+
+    /**
+     * @param  array<string, array<int, string>|string>  $messages
+     */
+    protected function throwAuthValidation(array $messages): never
+    {
+        $exception = ValidationException::withMessages($messages);
+
+        if ($this->cameFromPublicLoginPage()) {
+            $exception->redirectTo(route('login', ['tab' => 'staff']));
+        }
+
+        throw $exception;
+    }
+
+    protected function cameFromPublicLoginPage(): bool
+    {
+        $referer = $this->headers->get('referer');
+        if (! $referer) {
+            return false;
+        }
+
+        $path = parse_url($referer, PHP_URL_PATH) ?? '';
+        if (str_contains($path, '/admin/login')) {
+            return false;
+        }
+
+        $trimmed = rtrim($path, '/');
+
+        return $trimmed === 'login' || str_ends_with($trimmed, '/login');
     }
 }

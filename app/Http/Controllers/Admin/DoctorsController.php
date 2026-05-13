@@ -244,7 +244,7 @@ class DoctorsController extends Controller
                     ->with('doctor_portal_credentials', [
                         'email' => $email,
                         'password' => (string) $approvalPassword,
-                        'login_url' => url('/login'),
+                        'login_url' => url('/login?tab=staff'),
                     ]);
             }
         }

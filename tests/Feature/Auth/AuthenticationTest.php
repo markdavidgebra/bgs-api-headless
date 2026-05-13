@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Admin;
+use App\Models\Doctor;
 use App\Models\Patient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,8 +28,8 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertAuthenticated('web');
+        $response->assertRedirect(route('patient.dashboard', absolute: false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -40,6 +42,77 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_staff_credentials_cannot_sign_in_through_patient_login(): void
+    {
+        $admin = Admin::factory()->create([
+            'email' => 'staff-only@example.com',
+            'password' => 'password',
+            'status' => 'approved',
+        ]);
+
+        $this->post('/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest('admin');
+        $this->assertGuest('web');
+        $this->assertGuest('doctor');
+    }
+
+    public function test_patient_credentials_cannot_sign_in_through_staff_login(): void
+    {
+        $patient = Patient::factory()->create([
+            'email' => 'patient-only@example.com',
+            'password' => 'password',
+        ]);
+
+        $this->post('/admin/login', [
+            'email' => $patient->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest('admin');
+        $this->assertGuest('web');
+        $this->assertGuest('doctor');
+    }
+
+    public function test_doctor_credentials_cannot_sign_in_through_patient_login(): void
+    {
+        $doctor = Doctor::factory()->create([
+            'email' => 'doctor-only@example.com',
+            'password' => 'password',
+            'status' => 'active',
+        ]);
+
+        $this->post('/login', [
+            'email' => $doctor->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest('admin');
+        $this->assertGuest('web');
+        $this->assertGuest('doctor');
+    }
+
+    public function test_doctor_can_authenticate_using_staff_login(): void
+    {
+        $doctor = Doctor::factory()->create([
+            'email' => 'doctor-portal@example.com',
+            'password' => 'password',
+            'status' => 'active',
+        ]);
+
+        $response = $this->post('/admin/login', [
+            'email' => $doctor->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated('doctor');
+        $this->assertGuest('admin');
+        $response->assertRedirect(route('doctor.dashboard', absolute: false));
     }
 
     public function test_users_can_logout(): void

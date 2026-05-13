@@ -44,10 +44,15 @@ class LoginRequest extends FormRequest
         $credentials = $this->only('email', 'password');
         $remember = $this->boolean('remember');
 
-        if (
-            ! Auth::guard('web')->attempt($credentials, $remember)
-            && ! Auth::guard('doctor')->attempt($credentials, $remember)
-        ) {
+        if (Auth::guard('admin')->validate($credentials) || Auth::guard('doctor')->validate($credentials)) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => __('Use the Staff tab to sign in with this email.'),
+            ]);
+        }
+
+        if (! Auth::guard('web')->attempt($credentials, $remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -55,34 +60,15 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        if (Auth::guard('web')->check()) {
-            $patient = Auth::guard('web')->user();
-            $status = strtolower((string) ($patient->status ?? 'active'));
-            if ($status !== 'active') {
-                Auth::guard('web')->logout();
-                RateLimiter::hit($this->throttleKey());
+        $patient = Auth::guard('web')->user();
+        $status = strtolower((string) ($patient->status ?? 'active'));
+        if ($status !== 'active') {
+            Auth::guard('web')->logout();
+            RateLimiter::hit($this->throttleKey());
 
-                throw ValidationException::withMessages([
-                    'email' => __('Your account is awaiting admin approval.'),
-                ]);
-            }
-        }
-
-        if (Auth::guard('doctor')->check()) {
-            $doctor = Auth::guard('doctor')->user();
-            $status = strtolower((string) ($doctor->status ?? 'pending'));
-            if ($status !== 'active') {
-                Auth::guard('doctor')->logout();
-                RateLimiter::hit($this->throttleKey());
-
-                $message = $status === 'inactive'
-                    ? __('Your doctor portal access has been removed.')
-                    : __('Your doctor account is awaiting admin approval.');
-
-                throw ValidationException::withMessages([
-                    'email' => $message,
-                ]);
-            }
+            throw ValidationException::withMessages([
+                'email' => __('Your account is awaiting admin approval.'),
+            ]);
         }
 
         RateLimiter::clear($this->throttleKey());
