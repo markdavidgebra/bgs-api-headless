@@ -14,11 +14,11 @@
     <div class="page-header__bg" style="background-image: url({{ $pricingPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::pricingBackgroundUrl() }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>{{ $title ?? 'Pricing' }}</h2>
+            <!-- <h2>{{ $title ?? 'Pricing' }}</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ url('/') }}">Home</a></li>
+                <!-- <li><a href="{{ url('/') }}">Home</a></li>
                 <li><span>-</span></li>
-                <li>{{ $subtitle ?? 'Pricing' }}</li>
+                <li>{{ $subtitle ?? 'Pricing' }}</li> -->
             </ul>
         </div>
     </div>

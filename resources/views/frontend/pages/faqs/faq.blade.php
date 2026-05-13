@@ -12,11 +12,11 @@
     <div class="page-header__bg" style="background-image: url({{ $faqPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::faqBackgroundUrl() }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>{{ $title ?? 'FAQ' }}</h2>
+            <!-- <h2>{{ $title ?? 'FAQ' }}</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ url('/') }}">Home</a></li>
+                <!-- <li><a href="{{ url('/') }}">Home</a></li>
                 <li><span>-</span></li>
-                <li>FAQ</li>
+                <li>FAQ</li> -->
             </ul>
         </div>
     </div>

@@ -39,9 +39,7 @@
     </li>
 
     <!-- Contact -->
-    <li class="{{ Request::is('contact') ? 'current' : '' }}">
-        <a href="{{ url('contact') }}">Contact</a>
-    </li>
+  
 
     @if(auth('web')->check() || auth('doctor')->check())
     <li class="{{ Request::is('patient', 'patient/*', 'doctor', 'doctor/*') ? 'current' : '' }}">

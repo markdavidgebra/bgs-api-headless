@@ -67,11 +67,11 @@
         <div class="page-header__bg" style="background-image: url({{ $aboutPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::aboutBackgroundUrl() }});"></div>
         <div class="container">
             <div class="page-header__inner">
-                <h2>{{ $about?->title ?: 'About Us' }}</h2>
+                <!-- <h2>{{ $about?->title ?: 'About Us' }}</h2> -->
                 <ul class="thm-breadcrumb list-unstyled">
-                    <li><a href="{{ url('/') }}">Home</a></li>
+                    <!-- <li><a href="{{ url('/') }}">Home</a></li>
                     <li><span>-</span></li>
-                    <li>About</li>
+                    <li>About</li> -->
                 </ul>
             </div>
         </div>

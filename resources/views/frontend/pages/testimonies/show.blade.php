@@ -13,13 +13,13 @@
     <div class="page-header__bg" style="background-image: url({{ $testimonialShowPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::testimonialShowBackgroundUrl() }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>Testimonial Details</h2>
+            <!-- <h2>Testimonial Details</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ route('home') }}">Home</a></li>
+                <!-- <li><a href="{{ route('home') }}">Home</a></li>
                 <li><span>-</span></li>
                 <li><a href="{{ route('testimonials') }}">Testimonials</a></li>
                 <li><span>-</span></li>
-                <li>{{ $testimonial->name }}</li>
+                <li>{{ $testimonial->name }}</li> -->
             </ul>
         </div>
     </div>

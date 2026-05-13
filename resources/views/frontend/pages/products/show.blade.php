@@ -19,13 +19,13 @@
     <div class="page-header__bg" style="background-image: url({{ $productShowPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::productShowBackgroundUrl() }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>{{ $product->name }}</h2>
+            <!-- <h2>{{ $product->name }}</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ url('/') }}">Home</a></li>
+                <!-- <li><a href="{{ url('/') }}">Home</a></li>
                 <li><span>-</span></li>
                 <li><a href="{{ route('our-products') }}">Products</a></li>
                 <li><span>-</span></li>
-                <li>{{ $product->name }}</li>
+                <li>{{ $product->name }}</li> -->
             </ul>
         </div>
     </div>

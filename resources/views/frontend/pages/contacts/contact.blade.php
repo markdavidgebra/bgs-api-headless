@@ -15,11 +15,11 @@
     <div class="page-header__bg" style="background-image: url({{ $contactPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::contactBackgroundUrl() }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>{{ $title ?? 'Contact' }}</h2>
+            <!-- <h2>{{ $title ?? 'Contact' }}</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ url('/') }}">Home</a></li>
+                <!-- <li><a href="{{ url('/') }}">Home</a></li>
                 <li><span>-</span></li>
-                <li>{{ $subtitle ?? 'Contact' }}</li>
+                <li>{{ $subtitle ?? 'Contact' }}</li> -->
             </ul>
         </div>
     </div>

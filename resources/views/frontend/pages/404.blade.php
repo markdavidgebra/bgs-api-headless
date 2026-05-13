@@ -21,11 +21,11 @@
     <div class="page-header__bg" style="background-image: url({{ $notFoundPageHeaderBgUrl ?? \App\Support\PageHeaderConfig::notFoundBackgroundUrl() }});"></div>
     <div class="container">
         <div class="page-header__inner">
-            <h2>{{ $title ?? 'About Us' }}</h2>
+            <!-- <h2>{{ $title ?? 'About Us' }}</h2> -->
             <ul class="thm-breadcrumb list-unstyled">
-                <li><a href="{{ url('/') }}">Home</a></li>
+                <!-- <li><a href="{{ url('/') }}">Home</a></li>
                 <li><span>-</span></li>
-                <li>{{ $subtitle ?? 'About Us' }}</li>
+                <li>{{ $subtitle ?? 'About Us' }}</li> -->
             </ul>
         </div>
     </div>
