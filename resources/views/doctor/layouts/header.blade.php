@@ -1,7 +1,7 @@
 @php
     $pd ??= fn (string $path) => asset('patients/' . ltrim($path, '/'));
 @endphp
-<header class="header-area header-style-1 header-style-5 header-height-2">
+<header class="header-area header-style-1 header-style-5 header-height-2 bgs-portal-scroll-header">
        
         <div class="header-bottom header-bottom-bg-color sticky-bar">
             <div class="container">

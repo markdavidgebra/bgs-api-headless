@@ -71,25 +71,31 @@
       line-height: 1;
     }
 
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 10px;
+    .doctor-appt-calendar table.calendar-grid {
+      table-layout: fixed;
     }
 
-    .calendar-day {
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      background: #fff;
-      min-height: 180px;
-      padding: 10px;
-    }
-
-    .calendar-day-head {
-      font-size: 12px;
+    .doctor-appt-calendar table.calendar-grid thead th {
+      text-align: center;
+      font-size: 11px;
       font-weight: 700;
-      color: #4b5563;
-      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6b7280;
+      background: #f9fafb;
+      border-color: #e5e7eb;
+      padding: 10px 6px;
+    }
+
+    .doctor-appt-calendar table.calendar-grid td {
+      border-color: #e5e7eb;
+      min-height: 110px;
+      width: 14.28%;
+      vertical-align: top;
+    }
+
+    .doctor-appt-calendar .js-open-day-bookings {
+      font-weight: 700;
     }
 
     .calendar-item {
@@ -179,6 +185,7 @@
                   <div class="card mb-25">
                     <div class="card-body">
                       <form method="GET" action="{{ route('doctor.appointments') }}" class="row g-3">
+                        <input type="hidden" name="view" value="{{ $viewMode }}">
                         <div class="col-lg-3 col-md-6">
                           <label for="date_filter" class="form-label">Date filter</label>
                           <select name="date_filter" id="date_filter" class="form-control">
@@ -215,13 +222,13 @@
                           <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Reset</a>
 
                           <div class="ms-auto d-flex gap-2 view-switch">
-                            <a href="{{ route('doctor.appointments', array_merge(request()->query(), ['view' => 'table'])) }}"
-                              class="btn btn-sm view-btn {{ $viewMode === 'table' ? 'is-active' : '' }}">
-                              Table view
-                            </a>
                             <a href="{{ route('doctor.appointments', array_merge(request()->query(), ['view' => 'calendar'])) }}"
                               class="btn btn-sm view-btn {{ $viewMode === 'calendar' ? 'is-active' : '' }}">
                               Calendar view
+                            </a>
+                            <a href="{{ route('doctor.appointments', array_merge(request()->query(), ['view' => 'table'])) }}"
+                              class="btn btn-sm view-btn {{ $viewMode === 'table' ? 'is-active' : '' }}">
+                              Table view
                             </a>
                             <a href="{{ route('doctor.appointments', array_merge(request()->query(), ['view' => 'timeline'])) }}"
                               class="btn btn-sm view-btn {{ $viewMode === 'timeline' ? 'is-active' : '' }}">
@@ -233,31 +240,228 @@
                     </div>
                   </div>
 
-                  @if ($viewMode === 'calendar')
-                    <div class="card mb-25">
-                      <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Weekly Schedule</h5>
-                        <span class="small text-muted">{{ $weekStart->format('M d') }} - {{ $weekEnd->format('M d, Y') }}</span>
-                      </div>
+                  @if ($viewMode === 'calendar' && $monthCursor && $appointmentsByDate)
+                    @php
+                      $startGrid = $monthCursor->copy()->startOfMonth()->startOfWeek(\Illuminate\Support\Carbon::SUNDAY);
+                      $endGrid = $monthCursor->copy()->endOfMonth()->endOfWeek(\Illuminate\Support\Carbon::SATURDAY);
+                      $calendarDayCells = collect();
+                      $cursor = $startGrid->copy();
+                      while ($cursor->lte($endGrid)) {
+                          $dateKey = $cursor->toDateString();
+                          $dayAppointments = collect($appointmentsByDate->get($dateKey, collect()))
+                              ->map(function ($appt) {
+                                  $status = (string) ($appt->status ?? 'pending');
+                                  $badge = match ($status) {
+                                      'confirmed' => 'bg-primary',
+                                      'completed' => 'bg-success',
+                                      'cancelled' => 'bg-danger',
+                                      'rescheduled' => 'bg-info text-dark',
+                                      default => 'bg-warning text-dark',
+                                  };
+                                  $timeRaw = $appt->appointment_time;
+                                  $timeLabel = $timeRaw
+                                      ? (is_string($timeRaw) && strlen($timeRaw) >= 8
+                                          ? substr($timeRaw, 0, 5)
+                                          : \Illuminate\Support\Carbon::parse($timeRaw)->format('H:i'))
+                                      : '—';
+
+                                  return [
+                                      'id' => (int) $appt->id,
+                                      'time' => $timeLabel,
+                                      'patient' => (string) ($appt->patient?->name ?? '—'),
+                                      'procedure' => (string) ($appt->service?->name ?? '—'),
+                                      'doctor' => (string) ($appt->doctor?->name ?? '—'),
+                                      'status' => ucfirst($status),
+                                      'badge' => $badge,
+                                      'showUrl' => route('doctor.appointments.show', $appt->id),
+                                  ];
+                              })
+                              ->values();
+
+                          $calendarDayCells->push([
+                              'date' => $cursor->copy(),
+                              'dateKey' => $dateKey,
+                              'isCurrentMonth' => $cursor->month === $monthCursor->month && $cursor->year === $monthCursor->year,
+                              'appointments' => $dayAppointments,
+                          ]);
+                          $cursor->addDay();
+                      }
+                      $calendarWeeks = $calendarDayCells->chunk(7);
+                    @endphp
+
+                    <div class="card mb-25 doctor-appt-calendar">
                       <div class="card-body">
-                        <div class="calendar-grid">
-                          @foreach ($calendarDays as $day)
-                            <div class="calendar-day">
-                              <div class="calendar-day-head">{{ $day['date']->format('D, M d') }}</div>
-                              @forelse ($day['appointments'] as $appointment)
-                                <div class="calendar-item">
-                                  <div><strong>{{ $appointment->time_display }}</strong> - {{ $appointment->patient_name }}</div>
-                                  <div class="text-muted">{{ $appointment->service_name }} · {{ $appointment->doctor_name }}</div>
-                                </div>
-                              @empty
-                                <p class="small text-muted mb-0">No appointments</p>
-                              @endforelse
-                            </div>
-                          @endforeach
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-20">
+                          <div class="h4 mb-0">{{ $monthCursor->format('F Y') }}</div>
+                          <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ route('doctor.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => $prevMonth])) }}"
+                              class="btn btn-sm btn-outline">Previous</a>
+                            <a href="{{ route('doctor.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => now()->format('Y-m')])) }}"
+                              class="btn btn-sm btn-outline">Current month</a>
+                            <a href="{{ route('doctor.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => $nextMonth])) }}"
+                              class="btn btn-sm btn-outline">Next</a>
+                          </div>
                         </div>
-                        <p class="small text-muted mt-3 mb-0">Drag & drop rescheduling can be added later.</p>
+
+                        <div class="table-responsive">
+                          <table class="table table-bordered calendar-grid mb-0">
+                            <thead>
+                              <tr>
+                                <th>Sunday</th>
+                                <th>Monday</th>
+                                <th>Tuesday</th>
+                                <th>Wednesday</th>
+                                <th>Thursday</th>
+                                <th>Friday</th>
+                                <th>Saturday</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @foreach ($calendarWeeks as $week)
+                                <tr>
+                                  @foreach ($week as $day)
+                                    @php
+                                      $isToday = $day['dateKey'] === now()->toDateString();
+                                      $dayCount = $day['appointments']->count();
+                                      $btnClass = $dayCount > 0 ? 'btn-primary' : 'btn-outline-secondary';
+                                    @endphp
+                                    <td class="align-top p-2 {{ $day['isCurrentMonth'] ? '' : 'bg-light text-secondary' }}">
+                                      <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <strong class="{{ $isToday ? 'text-primary' : '' }}">{{ $day['date']->format('j') }}</strong>
+                                        @if ($isToday)
+                                          <span class="badge bg-primary">Today</span>
+                                        @endif
+                                      </div>
+
+                                      @if ($dayCount > 0)
+                                        <button
+                                          type="button"
+                                          class="btn btn-sm {{ $btnClass }} mb-2 w-100 js-open-day-bookings"
+                                          data-date="{{ $day['date']->format('l, M j, Y') }}"
+                                          data-appointments='@json($day['appointments'])'
+                                        >
+                                          {{ $dayCount }} booking{{ $dayCount > 1 ? 's' : '' }}
+                                        </button>
+
+                                        <div class="small">
+                                          @foreach ($day['appointments']->take(2) as $row)
+                                            <div class="text-truncate">{{ $row['time'] }} · {{ $row['patient'] }}</div>
+                                          @endforeach
+                                          @if ($dayCount > 2)
+                                            <div class="text-secondary">+{{ $dayCount - 2 }} more</div>
+                                          @endif
+                                        </div>
+                                      @else
+                                        <div class="text-secondary small">No bookings</div>
+                                      @endif
+                                    </td>
+                                  @endforeach
+                                </tr>
+                              @endforeach
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
+
+                    <div class="modal fade" id="dayBookingsModal" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title">Bookings — <span id="dayBookingsDateLabel">Date</span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body p-0">
+                            <div class="table-responsive">
+                              <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                  <tr>
+                                    <th>Time</th>
+                                    <th>Patient</th>
+                                    <th>Procedure</th>
+                                    <th>Doctor</th>
+                                    <th>Status</th>
+                                    <th class="text-end" style="width: 1%"> </th>
+                                  </tr>
+                                </thead>
+                                <tbody id="dayBookingsRows">
+                                  <tr>
+                                    <td colspan="6" class="text-secondary text-center py-4">No bookings.</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    @if ($appointmentsByDate->isEmpty())
+                      <div class="card mb-25">
+                        <div class="card-body text-secondary text-center py-4">
+                          No scheduled appointments for {{ $monthCursor->format('F Y') }} with the current filters.
+                        </div>
+                      </div>
+                    @endif
+
+                    @push('scripts')
+                      <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                          const modalEl = document.getElementById('dayBookingsModal');
+                          const rowsEl = document.getElementById('dayBookingsRows');
+                          const dateLabelEl = document.getElementById('dayBookingsDateLabel');
+                          if (!modalEl || !rowsEl || !dateLabelEl) return;
+
+                          const modal = new bootstrap.Modal(modalEl);
+
+                          function escapeHtml(value) {
+                            return String(value)
+                              .replaceAll('&', '&amp;')
+                              .replaceAll('<', '&lt;')
+                              .replaceAll('>', '&gt;')
+                              .replaceAll('"', '&quot;')
+                              .replaceAll("'", '&#039;');
+                          }
+
+                          function renderRows(appointments) {
+                            if (!appointments || appointments.length === 0) {
+                              rowsEl.innerHTML = '<tr><td colspan="6" class="text-secondary text-center py-4">No bookings.</td></tr>';
+                              return;
+                            }
+
+                            rowsEl.innerHTML = appointments.map(function (row) {
+                              return `
+              <tr>
+                <td class="font-monospace">${escapeHtml(row.time || '—')}</td>
+                <td>${escapeHtml(row.patient || '—')}</td>
+                <td>${escapeHtml(row.procedure || '—')}</td>
+                <td>${escapeHtml(row.doctor || '—')}</td>
+                <td><span class="badge ${escapeHtml(row.badge || 'bg-secondary')}">${escapeHtml(row.status || '—')}</span></td>
+                <td class="text-end"><a href="${escapeHtml(row.showUrl || '#')}" class="btn btn-sm btn-primary">View</a></td>
+              </tr>
+            `;
+                            }).join('');
+                          }
+
+                          document.querySelectorAll('.js-open-day-bookings').forEach(function (button) {
+                            button.addEventListener('click', function () {
+                              const date = button.getAttribute('data-date') || 'Date';
+                              const payload = button.getAttribute('data-appointments') || '[]';
+                              let appointments = [];
+                              try {
+                                appointments = JSON.parse(payload);
+                              } catch (e) {
+                                appointments = [];
+                              }
+
+                              dateLabelEl.textContent = date;
+                              renderRows(appointments);
+                              modal.show();
+                            });
+                          });
+                        });
+                      </script>
+                    @endpush
                   @elseif ($viewMode === 'timeline')
                     <div class="card mb-25">
                       <div class="card-header d-flex justify-content-between align-items-center">

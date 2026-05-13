@@ -26,7 +26,7 @@
    
     <link rel="stylesheet" href="{{ $pd('css/main.css') }}?v=6.0" />
     <link rel="stylesheet" href="{{ $pd('css/patient-mobile-drawer.css') }}?v=1.3" />
-    <link rel="stylesheet" href="{{ $pd('css/bgs-portal-mobile-content.css') }}?v=1.1" />
+    <link rel="stylesheet" href="{{ $pd('css/bgs-portal-mobile-content.css') }}?v=1.2" />
 </head>
 
 <body>

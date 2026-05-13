@@ -26,7 +26,7 @@ class DoctorAppointmentController extends Controller
         $status = $request->string('status')->toString();
         $search = trim($request->string('search')->toString());
         $customDate = $request->string('custom_date')->toString();
-        $viewMode = $request->string('view')->toString() ?: 'table';
+        $viewMode = $request->string('view')->toString() ?: 'calendar';
 
         $baseQuery = Appointment::query()
             ->with(['patient:id,name', 'service:id,name', 'note', 'doctor:id,name']);
@@ -63,28 +63,45 @@ class DoctorAppointmentController extends Controller
             default => Carbon::today(),
         };
 
-        $weekStart = $anchorDate->copy()->startOfWeek(Carbon::MONDAY);
-        $weekEnd = $anchorDate->copy()->endOfWeek(Carbon::SUNDAY);
+        $monthCursor = null;
+        $appointmentsByDate = null;
+        $prevMonth = null;
+        $nextMonth = null;
 
-        $weeklyAppointments = (clone $baseQuery)
-            ->whereBetween('appointment_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->orderBy('appointment_date')
-            ->orderBy('appointment_time')
-            ->get();
+        if ($viewMode === 'calendar') {
+            $defaultMonth = match ($dateFilter) {
+                'tomorrow' => now()->addDay()->format('Y-m'),
+                'custom' => filled($customDate) ? Carbon::parse($customDate)->format('Y-m') : now()->format('Y-m'),
+                default => now()->format('Y-m'),
+            };
+            $monthInput = (string) $request->input('month', $defaultMonth);
+            try {
+                $monthCursor = Carbon::createFromFormat('Y-m', $monthInput)->startOfMonth();
+            } catch (\Throwable) {
+                $monthCursor = now()->startOfMonth();
+            }
 
-        $calendarDays = collect(range(0, 6))->map(function (int $offset) use ($weekStart, $weeklyAppointments) {
-            $date = $weekStart->copy()->addDays($offset);
-            $dateKey = $date->toDateString();
+            $rangeStart = $monthCursor->copy()->startOfMonth();
+            $rangeEnd = $monthCursor->copy()->endOfMonth();
 
-            return [
-                'date' => $date,
-                'appointments' => $weeklyAppointments
-                    ->filter(function ($appointment) use ($dateKey) {
-                        return optional($appointment->appointment_date)->toDateString() === $dateKey;
-                    })
-                    ->values(),
-            ];
-        });
+            $calendarAppointments = (clone $baseQuery)
+                ->whereBetween('appointment_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+                ->orderBy('appointment_date')
+                ->orderBy('appointment_time')
+                ->get();
+
+            $appointmentsByDate = $calendarAppointments
+                ->groupBy(static function (Appointment $a): string {
+                    if (empty($a->appointment_date)) {
+                        return '';
+                    }
+
+                    return Carbon::parse((string) $a->appointment_date)->toDateString();
+                });
+
+            $prevMonth = $monthCursor->copy()->subMonth()->format('Y-m');
+            $nextMonth = $monthCursor->copy()->addMonth()->format('Y-m');
+        }
 
         $timelineDate = $anchorDate->toDateString();
         $timelineAppointments = (clone $baseQuery)
@@ -109,9 +126,10 @@ class DoctorAppointmentController extends Controller
             'customDate',
             'statusOptions',
             'viewMode',
-            'calendarDays',
-            'weekStart',
-            'weekEnd',
+            'monthCursor',
+            'appointmentsByDate',
+            'prevMonth',
+            'nextMonth',
             'timelineAppointments',
             'timelineHours',
             'timelineDate',

@@ -122,3 +122,24 @@
     justify-content: center;
   }
 }
+
+/*
+ * Patient & doctor portals: top public nav scrolls with the page (not fixed/sticky).
+ * main.js adds .stick to .sticky-bar after ~200px and forces position:fixed — neutralize that here.
+ */
+header.bgs-portal-scroll-header .sticky-bar,
+header.bgs-portal-scroll-header .sticky-bar.stick {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  z-index: auto !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+header.bgs-portal-scroll-header .sticky-bar.stick {
+  background-color: var(--colorPrimary) !important;
+}

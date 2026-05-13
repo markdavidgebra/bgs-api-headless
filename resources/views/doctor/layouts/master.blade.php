@@ -26,7 +26,7 @@
    
     <link rel="stylesheet" href="{{ $pd('css/main.css') }}?v=6.0" />
     <link rel="stylesheet" href="{{ $pd('css/patient-mobile-drawer.css') }}?v=1.3" />
-    <link rel="stylesheet" href="{{ $pd('css/bgs-portal-mobile-content.css') }}?v=1.1" />
+    <link rel="stylesheet" href="{{ $pd('css/bgs-portal-mobile-content.css') }}?v=1.2" />
 </head>
 
 <body>
@@ -75,6 +75,7 @@
     <!-- Template  JS -->
     <script src="{{ $pd('js/main.js') }}?v=6.0"></script>
     <script src="{{ $pd('js/shop.js') }}?v=6.0"></script>
+    @stack('scripts')
 </body>
 
 </html>
