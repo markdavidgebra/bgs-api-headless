@@ -33,6 +33,14 @@
     <!-- Navbar -->
     @include('admin.layouts.header')
     <div class="page-wrapper">
+      @if (session('warning'))
+        <div class="container-xl pt-3">
+          <div class="alert alert-warning alert-dismissible" role="alert">
+            {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('Close') }}"></button>
+          </div>
+        </div>
+      @endif
       @yield('content')
       <!-- Footer -->
       @include('admin.layouts.footer')

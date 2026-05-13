@@ -29,6 +29,22 @@
                   @if (session('success'))
                     <div class="alert alert-success mb-20">{{ session('success') }}</div>
                   @endif
+                  @if (session('info'))
+                    <div class="alert alert-info mb-20">{{ session('info') }}</div>
+                  @endif
+
+                  @php
+                    $apptStatus = strtolower((string) ($appointment->status ?? ''));
+                    $canStartSession = in_array($apptStatus, ['pending', 'rescheduled'], true);
+                  @endphp
+                  @if ($canStartSession)
+                    <div class="mb-20">
+                      <form method="POST" action="{{ route('doctor.appointments.start-session', $appointment) }}" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-primary">{{ __('Start session') }}</button>
+                      </form>
+                    </div>
+                  @endif
 
                   <div class="card mb-20">
                     <div class="card-body">
@@ -36,6 +52,7 @@
                         <div class="col-md-6 mb-2"><strong>Date:</strong> {{ $appointment->date_display }}</div>
                         <div class="col-md-6 mb-2"><strong>Time:</strong> {{ $appointment->time_display }}</div>
                         <div class="col-md-6 mb-2"><strong>Patient:</strong> {{ $appointment->patient_name }}</div>
+                        <div class="col-md-6 mb-2"><strong>Clinician:</strong> {{ $appointment->doctor_name }}</div>
                         <div class="col-md-6 mb-2"><strong>Service:</strong> {{ $appointment->service_name }}</div>
                         <div class="col-md-6 mb-2"><strong>Status:</strong> {{ $appointment->status_label }}</div>
                         <div class="col-md-6 mb-2">

@@ -226,7 +226,7 @@
             <a class="dropdown-item {{ request()->routeIs('admin.page-headers.about*') ? 'active' : '' }}" href="{{ route('admin.page-headers.about') }}">About</a>
             <a class="dropdown-item {{ request()->routeIs('admin.page-headers.appointment*') ? 'active' : '' }}" href="{{ route('admin.page-headers.appointment') }}">Appointment</a>
             <a class="dropdown-item {{ request()->routeIs('admin.page-headers.contact*') ? 'active' : '' }}" href="{{ route('admin.page-headers.contact') }}">Contact</a>
-            <a class="dropdown-item {{ request()->routeIs(['admin.page-headers.doctor', 'admin.page-headers.doctor.update', 'admin.page-headers.doctor.reset']) ? 'active' : '' }}" href="{{ route('admin.page-headers.doctor') }}">Doctors</a>
+            <a class="dropdown-item {{ request()->routeIs(['admin.page-headers.doctor', 'admin.page-headers.doctor.update', 'admin.page-headers.doctor.reset']) ? 'active' : '' }}" href="{{ route('admin.page-headers.doctor') }}">Clinical Staff</a>
             <a class="dropdown-item {{ request()->routeIs(['admin.page-headers.doctor-details', 'admin.page-headers.doctor-details.update', 'admin.page-headers.doctor-details.reset']) ? 'active' : '' }}" href="{{ route('admin.page-headers.doctor-details') }}">Doctor details</a>
             <a class="dropdown-item {{ request()->routeIs(['admin.page-headers.faq', 'admin.page-headers.faq.update', 'admin.page-headers.faq.reset']) ? 'active' : '' }}" href="{{ route('admin.page-headers.faq') }}">FAQ</a>
             <a class="dropdown-item {{ request()->routeIs(['admin.page-headers.pricing', 'admin.page-headers.pricing.update', 'admin.page-headers.pricing.reset']) ? 'active' : '' }}" href="{{ route('admin.page-headers.pricing') }}">Pricing</a>
@@ -286,23 +286,29 @@
             <span class="nav-link-icon d-md-none d-lg-inline-block">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z" /><path d="M17 11a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z" /><path d="M9 21v-2a4 4 0 0 1 4 -4h2" /><path d="M17 21v-2a4 4 0 0 0 -4 -4h-2" /></svg>
             </span>
-            <span class="nav-link-title">Staff</span>
+            <span class="nav-link-title">Admin Staff</span>
           </a>
         </li>
         @endif
         @if ($can('doctors.manage'))
-        <li class="nav-item">
-            <a class="nav-link {{ request()->routeIs('admin.doctors') ? 'active' : '' }}" href="{{ route('admin.doctors') }}">
+        <li class="nav-item dropdown {{ request()->routeIs('admin.doctors*') || request()->routeIs('admin.doctor-roles*') ? 'active' : '' }}">
+          <a class="nav-link dropdown-toggle" href="#navbar-clinical-staff" data-bs-toggle="dropdown" data-bs-auto-close="false"
+            role="button" aria-expanded="false">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 0 -8a4 4 0 0 0 0 8z" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4" /></svg>
             </span>
-            <span class="nav-link-title">Doctors</span>
+            <span class="nav-link-title">Clinical Staff</span>
           </a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item {{ request()->routeIs('admin.doctors*') ? 'active' : '' }}" href="{{ route('admin.doctors') }}">All clinical staff</a>
+            <a class="dropdown-item {{ request()->routeIs('admin.doctor-roles.index') || request()->routeIs('admin.doctor-roles.edit') ? 'active' : '' }}" href="{{ route('admin.doctor-roles.index') }}">Clinical roles</a>
+            <a class="dropdown-item {{ request()->routeIs('admin.doctor-roles.create') ? 'active' : '' }}" href="{{ route('admin.doctor-roles.create') }}">Add clinical role</a>
+          </div>
         </li>
         @endif
         @if ($can('patients.view'))
         <li class="nav-item">
-          <a class="nav-link {{ request()->routeIs('admin.patients') ? 'active' : '' }}" href="{{ route('admin.patients') }}">
+          <a class="nav-link {{ request()->routeIs('admin.patients*') ? 'active' : '' }}" href="{{ route('admin.patients') }}">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
             </span>

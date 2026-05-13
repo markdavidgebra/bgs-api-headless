@@ -24,7 +24,7 @@
                   <div class="section-title">
                     <h3>Hello, {{ $doctor->name ?? 'Doctor' }}!</h3>
                     <p class="mb-15">
-                      Here is your daily dashboard overview.
+                      Overview of all clinic appointments and activity.
                     </p>
                   </div>
 
@@ -76,6 +76,7 @@
                                 <tr>
                                   <th>Time</th>
                                   <th>Patient</th>
+                                  <th>Clinician</th>
                                   <th>Service</th>
                                   <th>Status</th>
                                 </tr>
@@ -85,12 +86,13 @@
                                   <tr>
                                     <td>{{ $appointment->time_display }}</td>
                                     <td>{{ $appointment->patient_name }}</td>
+                                    <td>{{ $appointment->doctor_name }}</td>
                                     <td>{{ $appointment->service_name }}</td>
                                     <td><span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span></td>
                                   </tr>
                                 @empty
                                   <tr>
-                                    <td colspan="4" class="text-center text-secondary py-4">No appointments scheduled today.</td>
+                                    <td colspan="5" class="text-center text-secondary py-4">No appointments scheduled today.</td>
                                   </tr>
                                 @endforelse
                               </tbody>
@@ -134,7 +136,8 @@
                             <ul class="mb-0 ps-3">
                               @foreach ($upcomingAppointments as $appointment)
                                 <li class="mb-2">
-                                  {{ $appointment->date_display }} {{ $appointment->time_display }} - {{ $appointment->patient_name }}
+                                  {{ $appointment->date_display }} {{ $appointment->time_display }} — {{ $appointment->patient_name }}
+                                  <span class="text-muted">({{ $appointment->doctor_name }})</span>
                                 </li>
                               @endforeach
                             </ul>

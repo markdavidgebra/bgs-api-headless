@@ -34,6 +34,25 @@
 
   <div class="page-body">
     <div class="container-xl">
+      @if (session('status'))
+        <div class="alert alert-success">{{ session('status') }}</div>
+      @endif
+      @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+      @endif
+      @if (session('doctor_portal_credentials'))
+        @php
+          $cred = session('doctor_portal_credentials');
+        @endphp
+        <div class="alert alert-info alert-dismissible" role="alert">
+          <strong>{{ __('Share with the doctor (email did not deliver)') }}</strong>
+          <p class="mb-2 small text-secondary">{{ __('Copy these once; refresh clears this message.') }}</p>
+          <div class="mb-1"><strong>{{ __('Login URL') }}:</strong> <a href="{{ $cred['login_url'] ?? url('/login') }}">{{ $cred['login_url'] ?? url('/login') }}</a></div>
+          <div class="mb-1"><strong>{{ __('Email') }}:</strong> <code class="user-select-all">{{ $cred['email'] ?? '' }}</code></div>
+          <div class="mb-0"><strong>{{ __('Temporary password') }}:</strong> <code class="user-select-all">{{ $cred['password'] ?? '' }}</code></div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('Close') }}"></button>
+        </div>
+      @endif
       <div class="card">
         <div class="card-body">
           <form class="row g-3 align-items-end collapse show" id="doctor-filters" method="GET" action="">
@@ -49,7 +68,7 @@
                     <path d="M21 21l-6 -6" />
                   </svg>
                 </span>
-                <input id="search" type="text" class="form-control" name="search" placeholder="Name, email, phone, bio…"
+                <input id="search" type="text" class="form-control" name="search" placeholder="Name, email, phone…"
                   value="{{ request('search') }}">
               </div>
             </div>
@@ -81,9 +100,7 @@
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Specialty</th>
-                <th class="text-nowrap">Years exp.</th>
-                <th>Bio</th>
-                <th>Image</th>
+                <th>Role</th>
                 <th>Status</th>
                 <th class="w-1"></th>
               </tr>
@@ -124,17 +141,12 @@
                     @endif
                   </td>
                   <td>{{ $doctor->specialty ?? '—' }}</td>
-                  <td class="text-secondary">{{ $doctor->experience_years !== null ? $doctor->experience_years : '—' }}</td>
-                  <td>
-                    @if ($doctor->bio)
-                      <span class="text-secondary small d-inline-block text-truncate" style="max-width: 14rem;"
-                        title="{{ e($doctor->bio) }}">{{ \Illuminate\Support\Str::limit($doctor->bio, 90) }}</span>
+                  <td class="text-secondary">
+                    @if ($doctor->doctorRole)
+                      <span class="text-reset">{{ $doctor->doctorRole->name }}</span>
                     @else
-                      —
+                      <span class="text-muted" title="{{ __('No clinical role assigned; doctor portal uses full access.') }}">{{ __('Full access') }}</span>
                     @endif
-                  </td>
-                  <td class="small text-secondary font-monospace text-break" style="max-width: 10rem;">
-                    {{ $doctor->image_path ?? '—' }}
                   </td>
                   <td>
                     <form method="POST" action="{{ route('admin.doctors.status', $doctor->id) }}">
@@ -152,12 +164,21 @@
                     </form>
                   </td>
                   <td>
-                    <a href="{{ route('admin.doctors.show', $doctor->id) }}" class="btn btn-ghost-primary btn-sm">View</a>
+                    <div class="btn-list flex-nowrap">
+                      <a href="{{ route('admin.doctors.show', $doctor->id) }}" class="btn btn-ghost-primary btn-sm">{{ __('View') }}</a>
+                      <a href="{{ route('admin.doctors.edit', $doctor->id) }}" class="btn btn-ghost-secondary btn-sm">{{ __('Edit') }}</a>
+                      <form method="POST" action="{{ route('admin.doctors.destroy', $doctor->id) }}" class="d-inline"
+                        onsubmit="return confirm(@json(__('Delete this doctor? This cannot be undone.')));">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-ghost-danger btn-sm">Delete</button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               @empty
                 <tr>
-                  <td colspan="9" class="text-center text-secondary py-4">No doctors found.</td>
+                  <td colspan="7" class="text-center text-secondary py-4">No doctors found.</td>
                 </tr>
               @endforelse
             </tbody>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -28,6 +29,7 @@ class Doctor extends Authenticatable
         'social_links',
         'status',
         'approved_at',
+        'doctor_role_id',
     ];
 
     protected $hidden = [
@@ -124,5 +126,10 @@ class Doctor extends Authenticatable
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class, 'doctor_service')->withTimestamps();
+    }
+
+    public function doctorRole(): BelongsTo
+    {
+        return $this->belongsTo(DoctorRole::class, 'doctor_role_id');
     }
 }

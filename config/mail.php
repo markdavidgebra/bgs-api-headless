@@ -14,7 +14,8 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    // Use "failover" to try SMTP first, then write to the log if SMTP fails (avoids hard crashes on bad Gmail creds).
+    'default' => env('MAIL_MAILER', 'failover'),
 
     /*
     |--------------------------------------------------------------------------
@@ -39,12 +40,25 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            // Symfony EsmtpTransportFactory only accepts "smtp" or "smtps". Legacy MAIL_SCHEME=tls must map to "smtp" (STARTTLS on 587).
+            'scheme' => (static function (): ?string {
+                $raw = strtolower(trim((string) env('MAIL_SCHEME', '')));
+                $legacy = strtolower(trim((string) env('MAIL_ENCRYPTION', '')));
+
+                return match (true) {
+                    in_array($raw, ['smtps', 'ssl'], true) => 'smtps',
+                    in_array($raw, ['smtp'], true) => 'smtp',
+                    in_array($raw, ['tls', 'starttls'], true) => 'smtp',
+                    $legacy === 'ssl' => 'smtps',
+                    $legacy === 'tls' => 'smtp',
+                    default => null,
+                };
+            })(),
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
-            'username' => env('MAIL_USERNAME'),
-            'password' => env('MAIL_PASSWORD'),
+            'username' => filled(env('MAIL_USERNAME')) ? trim((string) env('MAIL_USERNAME')) : null,
+            'password' => filled(env('MAIL_PASSWORD')) ? trim((string) env('MAIL_PASSWORD')) : null,
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],

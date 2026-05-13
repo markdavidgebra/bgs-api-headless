@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class PatientsController extends Controller
@@ -58,6 +59,83 @@ class PatientsController extends Controller
         $canManagePatientRecords = AdminPermissions::canAccess(auth('admin')->user(), 'patients.manage');
 
         return view('admin.patients.index', compact('patients', 'canManageStatus', 'canManagePatientRecords'));
+    }
+
+    public function create(): View
+    {
+        $canManageStatus = $this->canManageStatus();
+
+        return view('admin.patients.create', compact('canManageStatus'));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $canManageStatus = $this->canManageStatus();
+
+        $rules = [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email'),
+                Rule::unique('doctors', 'email'),
+            ],
+            'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'birthdate' => ['nullable', 'date'],
+            'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
+            'address' => ['nullable', 'string', 'max:500'],
+            'emergency_contact' => ['nullable', 'string', 'max:255'],
+            'history_summary' => ['nullable', 'string'],
+        ];
+
+        if ($canManageStatus) {
+            $rules['status'] = ['required', 'string', Rule::in(['pending', 'active', 'inactive'])];
+        }
+
+        $validated = $request->validate($rules);
+
+        $status = $canManageStatus
+            ? strtolower((string) $validated['status'])
+            : 'active';
+
+        $plainPassword = (string) $validated['password'];
+
+        $payload = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'birthdate' => $validated['birthdate'] ?? null,
+            'gender' => $validated['gender'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'emergency_contact' => $validated['emergency_contact'] ?? null,
+            'history_summary' => $validated['history_summary'] ?? null,
+            'status' => $status,
+            'password' => $plainPassword,
+            'pending_password_plain' => $status === 'pending'
+                ? Crypt::encryptString($plainPassword)
+                : null,
+            'email_verified_at' => $status === 'active' ? now() : null,
+        ];
+
+        $patient = Patient::query()->create($payload);
+
+        if ($status === 'active') {
+            Mail::to($patient->email)->send(
+                new PatientRegistrationApprovedMail(
+                    name: (string) $patient->name,
+                    emailAddress: (string) $patient->email,
+                    plainPassword: $plainPassword
+                )
+            );
+        }
+
+        return redirect()
+            ->route('admin.patients.show', $patient->id)
+            ->with('status', __('Patient created.'));
     }
 
     public function show(int $id): View

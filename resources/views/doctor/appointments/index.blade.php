@@ -1,6 +1,6 @@
 @extends('doctor.layouts.master')
 
-@section('title', 'My Appointments')
+@section('title', 'Appointments')
 
 @section('content')
   <style>
@@ -158,8 +158,8 @@
               <div class="col-md-9">
                 <div class="account dashboard-content pl-50">
                   <div class="section-title mb-20">
-                    <h3>My Appointments</h3>
-                    <p class="mb-0">Filter and manage your appointment schedule.</p>
+                    <h3>Appointments</h3>
+                    <p class="mb-0">All clinic appointments. Use filters to narrow by date, status, or patient.</p>
                   </div>
 
                   @if (session('success'))
@@ -247,7 +247,7 @@
                               @forelse ($day['appointments'] as $appointment)
                                 <div class="calendar-item">
                                   <div><strong>{{ $appointment->time_display }}</strong> - {{ $appointment->patient_name }}</div>
-                                  <div class="text-muted">{{ $appointment->service_name }}</div>
+                                  <div class="text-muted">{{ $appointment->service_name }} · {{ $appointment->doctor_name }}</div>
                                 </div>
                               @empty
                                 <p class="small text-muted mb-0">No appointments</p>
@@ -277,7 +277,7 @@
                               @forelse ($slotAppointments as $appointment)
                                 <div class="calendar-item mb-2">
                                   <div><strong>{{ $appointment->time_display }}</strong> - {{ $appointment->patient_name }}</div>
-                                  <div class="text-muted">{{ $appointment->service_name }} · {{ $appointment->status_label }}</div>
+                                  <div class="text-muted">{{ $appointment->service_name }} · {{ $appointment->doctor_name }} · {{ $appointment->status_label }}</div>
                                 </div>
                               @empty
                                 <span class="small text-muted">No schedule</span>
@@ -302,6 +302,7 @@
                             <tr>
                               <th>Time</th>
                               <th>Patient</th>
+                              <th>Clinician</th>
                               <th>Service</th>
                               <th>Status</th>
                               <th>Notes</th>
@@ -321,6 +322,7 @@
                                   <small class="text-muted">{{ $appointment->date_display }}</small>
                                 </td>
                                 <td>{{ $appointment->patient_name }}</td>
+                                <td>{{ $appointment->doctor_name }}</td>
                                 <td>{{ $appointment->service_name }}</td>
                                 <td>
                                   <div class="status-cell {{ $appointment->status_badge }}">
@@ -371,7 +373,7 @@
                               </tr>
 
                               <tr id="notes-{{ $appointment->id }}" class="d-none">
-                                <td colspan="7">
+                                <td colspan="8">
                                   <form method="POST" action="{{ route('doctor.appointments.notes', $appointment) }}" class="row g-2 align-items-end">
                                     @csrf
                                     <div class="col-md-9">
@@ -387,7 +389,7 @@
                               </tr>
 
                               <tr id="reschedule-{{ $appointment->id }}" class="d-none">
-                                <td colspan="7">
+                                <td colspan="8">
                                   <form method="POST" action="{{ route('doctor.appointments.reschedule', $appointment) }}" class="row g-2 align-items-end">
                                     @csrf
                                     <div class="col-md-4">
@@ -408,7 +410,7 @@
                               </tr>
                             @empty
                               <tr>
-                                <td colspan="7" class="text-center text-secondary py-4">No appointments found for the
+                                <td colspan="8" class="text-center text-secondary py-4">No appointments found for the
                                   selected filters.</td>
                               </tr>
                             @endforelse

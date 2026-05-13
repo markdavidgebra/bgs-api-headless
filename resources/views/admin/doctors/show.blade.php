@@ -19,6 +19,27 @@
       </div>
     </div>
   @endif
+  @if (session('doctor_portal_credentials'))
+    @php($creds = session('doctor_portal_credentials'))
+    <div class="container-xl mb-3">
+      <div class="alert alert-warning" role="alert">
+        <strong>Portal login (copy now)</strong>
+        <div class="small mt-2 mb-1">Email: <code class="user-select-all">{{ $creds['email'] ?? '—' }}</code></div>
+        <div class="small mb-1">Password: <code class="user-select-all">{{ $creds['password'] ?? '—' }}</code></div>
+        @if (! empty($creds['login_url']))
+          <div class="small"><a href="{{ $creds['login_url'] }}" class="alert-link">Open login page</a></div>
+        @endif
+      </div>
+    </div>
+  @endif
+  @if (! empty($decryptedPendingPassword))
+    <div class="container-xl mb-3">
+      <div class="alert alert-info" role="alert">
+        <strong>Pending approval</strong> — provisional password (shown until this doctor is approved and the password is cleared):
+        <code class="user-select-all ms-1">{{ $decryptedPendingPassword }}</code>
+      </div>
+    </div>
+  @endif
 
   <div class="page-header d-print-none">
     <div class="container-xl">
@@ -40,8 +61,8 @@
         </div>
         <div class="col-auto ms-auto d-print-none">
           <div class="btn-list">
-            <a href="{{ route('admin.doctors') }}" class="btn">Back</a>
-            <a href="#" class="btn btn-primary disabled" aria-disabled="true">Edit</a>
+            <a href="{{ route('admin.doctors') }}" class="btn">{{ __('Back') }}</a>
+            <a href="{{ route('admin.doctors.edit', $doctor) }}" class="btn btn-primary">{{ __('Edit') }}</a>
           </div>
         </div>
       </div>
@@ -230,6 +251,31 @@
                   <div class="text-secondary small mt-2">
                     Links work once real email/phone values are stored.
                   </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <h3 class="card-title">Clinical portal role</h3>
+                  <p class="text-secondary small mb-3">
+                    Optional: restrict what this person sees in the doctor portal. Leave as full access when they should see every section.
+                    <a href="{{ route('admin.doctor-roles.index') }}">Clinical roles</a>
+                  </p>
+                  <form method="POST" action="{{ route('admin.doctors.role', $doctor->id) }}">
+                    @csrf
+                    <label class="form-label" for="doctor_role_id">Role</label>
+                    <select id="doctor_role_id" name="doctor_role_id" class="form-select @error('doctor_role_id') is-invalid @enderror">
+                      <option value="" @selected(old('doctor_role_id', $doctor->doctor_role_id) === null || old('doctor_role_id', $doctor->doctor_role_id) === '')>Full portal access</option>
+                      @foreach ($doctorRoles as $r)
+                        <option value="{{ $r->id }}" @selected((string) old('doctor_role_id', $doctor->doctor_role_id) === (string) $r->id)>{{ $r->name }}</option>
+                      @endforeach
+                    </select>
+                    @error('doctor_role_id')
+                      <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Save portal role</button>
+                  </form>
                 </div>
               </div>
             </div>

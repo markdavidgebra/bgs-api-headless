@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\DoctorAccountCreatedMail;
 use App\Mail\NewDoctorPendingAdminMail;
+use App\Models\Appointment;
 use App\Models\Doctor;
+use App\Models\DoctorRole;
 use App\Support\AdminNotificationRecipients;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -19,7 +23,7 @@ class DoctorsController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Doctor::query()->orderBy('name');
+        $query = Doctor::query()->with('doctorRole')->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -27,8 +31,7 @@ class DoctorsController extends Controller
                 $q->where('name', 'like', "%{$term}%")
                     ->orWhere('email', 'like', "%{$term}%")
                     ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('specialty', 'like', "%{$term}%")
-                    ->orWhere('bio', 'like', "%{$term}%");
+                    ->orWhere('specialty', 'like', "%{$term}%");
             });
         }
 
@@ -47,15 +50,22 @@ class DoctorsController extends Controller
 
     public function create(): View
     {
-        return view('admin.doctors.create');
+        $doctorRoles = DoctorRole::query()->orderBy('name')->get();
+
+        return view('admin.doctors.create', compact('doctorRoles'));
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'doctor_role_id' => $request->filled('doctor_role_id') ? $request->integer('doctor_role_id') : null,
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.Doctor::class],
             'phone' => ['nullable', 'string', 'max:32'],
+            'doctor_role_id' => ['nullable', 'integer', Rule::exists('doctor_roles', 'id')],
         ]);
 
         $plainPassword = Str::password(12);
@@ -64,6 +74,7 @@ class DoctorsController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
+            'doctor_role_id' => $validated['doctor_role_id'],
             'password' => Str::password(32),
             'pending_password_plain' => Crypt::encryptString($plainPassword),
             'status' => 'pending',
@@ -74,13 +85,89 @@ class DoctorsController extends Controller
             AdminNotificationRecipients::emailsForPermission('doctors.manage'),
             AdminNotificationRecipients::superAdminEmails(),
         )));
+        $redirect = redirect()
+            ->route('admin.doctors.show', $doctor)
+            ->with('status', __('Doctor created and saved as pending approval.'));
+
         if ($notifyEmails !== []) {
-            Mail::to($notifyEmails)->send(new NewDoctorPendingAdminMail($doctor));
+            try {
+                Mail::to($notifyEmails)->send(new NewDoctorPendingAdminMail($doctor));
+            } catch (\Throwable $e) {
+                report($e);
+                try {
+                    Mail::mailer('log')->to($notifyEmails)->send(new NewDoctorPendingAdminMail($doctor));
+                } catch (\Throwable $e2) {
+                    report($e2);
+                }
+
+                return $redirect->with(
+                    'warning',
+                    __('Doctor was saved, but admin notification email failed (SMTP). A copy may be in :path if the log mailer worked. Fix MAIL_* or use a Gmail App Password.', ['path' => 'storage/logs/laravel.log'])
+                );
+            }
         }
+
+        return $redirect;
+    }
+
+    public function edit(int $id): View
+    {
+        $doctor = Doctor::query()->with('doctorRole')->findOrFail($id);
+        $doctorRoles = DoctorRole::query()->orderBy('name')->get();
+
+        return view('admin.doctors.edit', compact('doctor', 'doctorRoles'));
+    }
+
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        $doctor = Doctor::query()->findOrFail($id);
+
+        $request->merge([
+            'doctor_role_id' => $request->filled('doctor_role_id') ? $request->integer('doctor_role_id') : null,
+            'experience_years' => $request->filled('experience_years') ? $request->integer('experience_years') : null,
+        ]);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('doctors', 'email')->ignore($doctor->id)],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'specialty' => ['nullable', 'string', 'max:255'],
+            'license_no' => ['nullable', 'string', 'max:255'],
+            'experience_years' => ['nullable', 'integer', 'min:0', 'max:80'],
+            'bio' => ['nullable', 'string', 'max:5000'],
+            'doctor_role_id' => ['nullable', 'integer', Rule::exists('doctor_roles', 'id')],
+            'photo' => ['nullable', 'image', 'max:2048'],
+            'remove_photo' => ['nullable', 'boolean'],
+        ]);
+
+        $data = collect($validated)->except(['photo', 'remove_photo'])->all();
+
+        if ($request->boolean('remove_photo')) {
+            $this->removeStoredDoctorImage($doctor->image_path);
+            $data['image_path'] = null;
+        }
+
+        if ($request->hasFile('photo')) {
+            $this->removeStoredDoctorImage($doctor->image_path);
+
+            $dir = public_path('uploads/doctors');
+            if (! is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            $file = $request->file('photo');
+            $ext = $file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'jpg';
+            $filename = $doctor->id.'_'.uniqid('', true).'.'.$ext;
+            $file->move($dir, $filename);
+
+            $data['image_path'] = 'uploads/doctors/'.$filename;
+        }
+
+        $doctor->update($data);
 
         return redirect()
             ->route('admin.doctors.show', $doctor)
-            ->with('status', __('Doctor created and saved as pending approval.'));
+            ->with('status', __('Doctor updated.'));
     }
 
     public function updateStatus(Request $request, int $id): RedirectResponse
@@ -90,13 +177,14 @@ class DoctorsController extends Controller
             'status' => ['required', 'string', Rule::in(['pending', 'active', 'inactive'])],
         ]);
         $targetStatus = strtolower(trim($validated['status']));
+        $previousStatus = strtolower((string) ($doctor->status ?? 'pending'));
         $payload = [
             'status' => $targetStatus,
         ];
         $approvalPassword = null;
 
         if ($targetStatus === 'active') {
-            if (($doctor->status ?? 'pending') !== 'active') {
+            if ($previousStatus !== 'active') {
                 $payload['approved_at'] = now();
             }
 
@@ -121,34 +209,159 @@ class DoctorsController extends Controller
 
         $doctor->update($payload);
 
-        if ($targetStatus === 'active' && $doctor->wasChanged('status')) {
-            Mail::to($doctor->email)->send(new DoctorAccountCreatedMail($doctor->fresh(), (string) $approvalPassword));
+        $redirect = redirect()->route('admin.doctors')->with('status', __('Doctor status updated.'));
+
+        // Send welcome email when moving into "active", not only when wasChanged() reports it (avoids missed sends).
+        if ($targetStatus === 'active' && $previousStatus !== 'active') {
+            $email = trim((string) $doctor->email);
+            if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return $redirect->with('warning', __('Doctor approved, but no valid email is on file, so the welcome message was not sent.'));
+            }
+
+            try {
+                Mail::to($email)->send(
+                    new DoctorAccountCreatedMail($doctor->fresh(), (string) $approvalPassword)
+                );
+            } catch (\Throwable $e) {
+                report($e);
+
+                $loggedToFile = false;
+                try {
+                    Mail::mailer('log')->to($email)->send(
+                        new DoctorAccountCreatedMail($doctor->fresh(), (string) $approvalPassword)
+                    );
+                    $loggedToFile = true;
+                } catch (\Throwable $e2) {
+                    report($e2);
+                }
+
+                $warning = $loggedToFile
+                    ? __('Doctor approved. Inbox email failed (usually wrong Gmail password—use an App Password, not your normal login). The same message was written to :path. Share login details with the doctor manually below.', ['path' => 'storage/logs/laravel.log'])
+                    : __('Doctor approved, but the welcome email could not be sent or logged. Fix MAIL_* in .env (Gmail: App Password + smtp.gmail.com:587 + MAIL_SCHEME=tls). Full error is in the application log.');
+
+                return $redirect
+                    ->with('warning', $warning)
+                    ->with('doctor_portal_credentials', [
+                        'email' => $email,
+                        'password' => (string) $approvalPassword,
+                        'login_url' => url('/login'),
+                    ]);
+            }
         }
+
+        return $redirect;
+    }
+
+    public function destroy(int $id): RedirectResponse
+    {
+        $doctor = Doctor::query()->findOrFail($id);
+
+        if (Appointment::query()->where('doctor_id', $doctor->id)->exists()) {
+            return redirect()
+                ->route('admin.doctors')
+                ->with('error', __('This doctor cannot be deleted while they have appointments. Reassign or remove those appointments first.'));
+        }
+
+        DB::transaction(function () use ($doctor) {
+            DB::table('treatment_doctor_package')->where('doctor_id', $doctor->id)->delete();
+            $doctor->services()->detach();
+            $doctor->delete();
+        });
 
         return redirect()
             ->route('admin.doctors')
-            ->with('status', __('Doctor status updated.'));
+            ->with('status', __('Doctor deleted.'));
+    }
+
+    public function updateRole(Request $request, int $id): RedirectResponse
+    {
+        $doctor = Doctor::query()->findOrFail($id);
+
+        $request->merge([
+            'doctor_role_id' => $request->filled('doctor_role_id') ? $request->integer('doctor_role_id') : null,
+        ]);
+
+        $validated = $request->validate([
+            'doctor_role_id' => ['nullable', 'integer', Rule::exists('doctor_roles', 'id')],
+        ]);
+
+        $doctor->update([
+            'doctor_role_id' => $validated['doctor_role_id'],
+        ]);
+
+        return redirect()
+            ->route('admin.doctors.show', $doctor)
+            ->with('status', __('Clinical portal role updated.'));
     }
 
     public function show(int $id): View
     {
         $doctor = Doctor::query()
-            ->with('weeklySchedules')
+            ->with(['weeklySchedules', 'services', 'doctorRole'])
             ->findOrFail($id);
 
-        // Example: Use real relationships when implemented.
-        // For now, mock relationship data for the view
-        $doctor->assigned_services = [
-            'Facial Treatment',
-            'Chemical peel',
-            'Laser',
-        ];
+        $doctor->assigned_services = $doctor->services->pluck('name')->all();
 
-        $doctor->recent_appointments_sample = [
-            ['code' => 'APT-0012', 'patient' => 'Maria Santos', 'date' => '2026-03-20', 'time' => '14:00', 'status' => 'Pending'],
-            ['code' => 'APT-0010', 'patient' => 'Ana Reyes', 'date' => '2026-03-18', 'time' => '10:30', 'status' => 'Completed'],
-        ];
+        $doctor->recent_appointments_sample = Appointment::query()
+            ->where('doctor_id', $doctor->id)
+            ->with('patient:id,name')
+            ->orderByDesc('appointment_date')
+            ->orderByDesc('appointment_time')
+            ->limit(25)
+            ->get()
+            ->map(static fn (Appointment $a): array => [
+                'code' => $a->appointment_no ?? '—',
+                'patient' => $a->patient?->name ?? '—',
+                'date' => $a->date_display,
+                'time' => $a->time_display,
+                'status' => $a->status_label,
+            ])
+            ->all();
 
-        return view('admin.doctors.show', compact('doctor'));
+        $doctorRoles = DoctorRole::query()->orderBy('name')->get();
+
+        $decryptedPendingPassword = null;
+        if (! empty($doctor->pending_password_plain)) {
+            try {
+                $decryptedPendingPassword = Crypt::decryptString($doctor->pending_password_plain);
+            } catch (\Throwable) {
+                $decryptedPendingPassword = null;
+            }
+        }
+
+        return view('admin.doctors.show', compact('doctor', 'doctorRoles', 'decryptedPendingPassword'));
+    }
+
+    private function removeStoredDoctorImage(?string $path): void
+    {
+        if ($path === null || $path === '') {
+            return;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return;
+        }
+
+        $normalized = ltrim($path, '/');
+
+        if (str_starts_with($normalized, 'uploads/doctors/')) {
+            $fullPath = public_path($normalized);
+            if (is_file($fullPath)) {
+                unlink($fullPath);
+            }
+
+            return;
+        }
+
+        if (str_starts_with($normalized, 'doctor/profile/')) {
+            $fullPath = public_path($normalized);
+            if (is_file($fullPath)) {
+                unlink($fullPath);
+            }
+
+            return;
+        }
+
+        Storage::disk('public')->delete($normalized);
     }
 }

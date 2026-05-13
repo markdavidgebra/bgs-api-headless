@@ -10,6 +10,16 @@
         </div>
         <div class="col-auto ms-auto d-print-none">
           <div class="btn-list">
+            @if ($canManagePatientRecords)
+              <a href="{{ route('admin.patients.create') }}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M12 5l0 14" />
+                  <path d="M5 12l14 0" />
+                </svg>
+                Add patient
+              </a>
+            @endif
             <a class="btn" data-bs-toggle="collapse" href="#patient-filters" role="button" aria-expanded="true"
               aria-controls="patient-filters">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24"

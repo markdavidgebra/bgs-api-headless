@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Admin\Auth\VerifyEmailController;
 use App\Http\Controllers\Admin\BlogsController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DoctorRolesController;
 use App\Http\Controllers\Admin\DoctorsController;
 use App\Http\Controllers\Admin\FaqsController;
 use App\Http\Controllers\Admin\FooterSettingsController;
@@ -112,17 +113,28 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::post('staff/{id}/status', [StaffsController::class, 'updateStatus'])->name('staffs.status');
     });
     Route::middleware('admin_permission:doctors.manage')->group(function () {
+        Route::get('doctor-roles', [DoctorRolesController::class, 'index'])->name('doctor-roles.index');
+        Route::get('doctor-roles/create', [DoctorRolesController::class, 'create'])->name('doctor-roles.create');
+        Route::post('doctor-roles', [DoctorRolesController::class, 'store'])->name('doctor-roles.store');
+        Route::get('doctor-roles/{id}/edit', [DoctorRolesController::class, 'edit'])->name('doctor-roles.edit');
+        Route::put('doctor-roles/{id}', [DoctorRolesController::class, 'update'])->name('doctor-roles.update');
+
+        Route::post('doctors/{id}/role', [DoctorsController::class, 'updateRole'])->name('doctors.role');
         Route::get('doctors', [DoctorsController::class, 'index'])->name('doctors');
         Route::get('doctors/create', [DoctorsController::class, 'create'])->name('doctors.create');
         Route::post('doctors', [DoctorsController::class, 'store'])->name('doctors.store');
+        Route::get('doctors/{id}/edit', [DoctorsController::class, 'edit'])->name('doctors.edit');
+        Route::put('doctors/{id}', [DoctorsController::class, 'update'])->name('doctors.update');
         Route::post('doctors/{id}/status', [DoctorsController::class, 'updateStatus'])->name('doctors.status');
+        Route::delete('doctors/{id}', [DoctorsController::class, 'destroy'])->name('doctors.destroy');
         Route::get('doctors/{id}', [DoctorsController::class, 'show'])->name('doctors.show');
     });
     Route::middleware('admin_permission:patients.view,patients.manage')->group(function () {
         Route::get('patients', [PatientsController::class, 'index'])->name('patients');
-        Route::get('patients/{id}', [PatientsController::class, 'show'])->name('patients.show');
     });
     Route::middleware('admin_permission:patients.manage')->group(function () {
+        Route::get('patients/create', [PatientsController::class, 'create'])->name('patients.create');
+        Route::post('patients', [PatientsController::class, 'store'])->name('patients.store');
         Route::get('patients/{id}/edit', [PatientsController::class, 'edit'])->name('patients.edit');
         Route::put('patients/{id}', [PatientsController::class, 'update'])->name('patients.update');
         Route::post('patients/{id}/status', [PatientsController::class, 'updateStatus'])->name('patients.status');
@@ -131,6 +143,9 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::put('patients/{patient}/appointments/{appointment}/appointment-notes', [PatientsController::class, 'upsertAppointmentNote'])->name('patients.appointments.appointment-notes.update');
         Route::delete('patients/{patient}/appointments/{appointment}/appointment-notes/field/{field}', [PatientsController::class, 'clearAppointmentNoteField'])->name('patients.appointments.appointment-notes.field.destroy')->where('field', 'patient_concern|doctor_notes|instructions|alerts|appointment_remarks|admin_notes');
         Route::delete('patients/{patient}/appointments/{appointment}/appointment-notes', [PatientsController::class, 'destroyAppointmentNote'])->name('patients.appointments.appointment-notes.destroy');
+    });
+    Route::middleware('admin_permission:patients.view,patients.manage')->group(function () {
+        Route::get('patients/{id}', [PatientsController::class, 'show'])->name('patients.show');
     });
     Route::middleware('admin_permission:roles.manage')->group(function () {
         Route::get('roles', [AdminRolesController::class, 'index'])->name('roles.index');

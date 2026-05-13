@@ -20,7 +20,6 @@ class DoctorAppointmentController extends Controller
 {
     public function index(Request $request): View
     {
-        $doctor = auth('doctor')->user();
         $today = now()->toDateString();
 
         $dateFilter = $request->string('date_filter')->toString() ?: 'today';
@@ -30,8 +29,7 @@ class DoctorAppointmentController extends Controller
         $viewMode = $request->string('view')->toString() ?: 'table';
 
         $baseQuery = Appointment::query()
-            ->with(['patient:id,name', 'service:id,name', 'note'])
-            ->where('doctor_id', $doctor?->id);
+            ->with(['patient:id,name', 'service:id,name', 'note', 'doctor:id,name']);
 
         if ($status) {
             $baseQuery->where('status', $status);
@@ -122,7 +120,7 @@ class DoctorAppointmentController extends Controller
 
     public function show(Appointment $appointment): View
     {
-        $appointment = $this->ownedAppointment($appointment)->load(['patient', 'service', 'note', 'timelines', 'prescribedProducts']);
+        $appointment = $appointment->load(['patient', 'service', 'note', 'timelines', 'prescribedProducts', 'doctor:id,name']);
         $patientPackages = TreatmentPatientPackage::query()
             ->where('patient_id', $appointment->patient_id)
             ->with('treatmentPackage:id,name')
@@ -178,7 +176,7 @@ class DoctorAppointmentController extends Controller
 
     public function createNotes(Appointment $appointment): View
     {
-        $appointment = $this->ownedAppointment($appointment)->load(['patient', 'service', 'note', 'prescribedProducts']);
+        $appointment = $appointment->load(['patient', 'service', 'note', 'prescribedProducts', 'doctor:id,name']);
         $appointmentNote = $appointment->note;
 
         $products = Product::query()
@@ -198,9 +196,13 @@ class DoctorAppointmentController extends Controller
         return view('doctor.appointments.create', compact('appointment', 'appointmentNote', 'products'));
     }
 
-    public function startSession(Appointment $appointment): RedirectResponse
+    public function startSession(Request $request, Appointment $appointment): RedirectResponse
     {
-        $appointment = $this->ownedAppointment($appointment);
+        if ($request->isMethod('get')) {
+            return redirect()
+                ->route('doctor.appointments.show', $appointment)
+                ->with('info', __('Opening this link in the browser does not start the session. Use the “Start session” button below or on the appointments list.'));
+        }
 
         if ($appointment->status === 'pending' || $appointment->status === 'rescheduled') {
             $appointment->update(['status' => 'confirmed']);
@@ -211,7 +213,6 @@ class DoctorAppointmentController extends Controller
 
     public function markCompleted(Appointment $appointment): RedirectResponse
     {
-        $appointment = $this->ownedAppointment($appointment);
         $appointment->update(['status' => 'completed']);
 
         return back()->with('success', 'Appointment marked as completed.');
@@ -219,7 +220,6 @@ class DoctorAppointmentController extends Controller
 
     public function updateSessionDone(Request $request, Appointment $appointment): RedirectResponse
     {
-        $appointment = $this->ownedAppointment($appointment);
         $validated = $request->validate([
             'session_done' => ['nullable', 'in:1'],
         ]);
@@ -238,7 +238,6 @@ class DoctorAppointmentController extends Controller
 
     public function markNoShow(Appointment $appointment): RedirectResponse
     {
-        $appointment = $this->ownedAppointment($appointment);
         $appointment->update(['status' => 'cancelled']);
 
         return back()->with('success', 'Appointment marked as no-show.');
@@ -246,7 +245,6 @@ class DoctorAppointmentController extends Controller
 
     public function updateTreatmentProgress(Request $request, Appointment $appointment): RedirectResponse
     {
-        $appointment = $this->ownedAppointment($appointment);
         $patientPackage = $this->resolvePatientPackageForAppointment($appointment);
 
         if ($patientPackage === null) {
@@ -354,8 +352,6 @@ class DoctorAppointmentController extends Controller
 
     public function addNotes(Request $request, Appointment $appointment): RedirectResponse
     {
-        $appointment = $this->ownedAppointment($appointment);
-
         $validated = $request->validate([
             'patient_concern' => ['nullable', 'string', 'max:2000'],
             'appointment_remarks' => ['nullable', 'string', 'max:2000'],
@@ -437,8 +433,6 @@ class DoctorAppointmentController extends Controller
 
     public function reschedule(Request $request, Appointment $appointment): RedirectResponse
     {
-        $appointment = $this->ownedAppointment($appointment);
-
         $validated = $request->validate([
             'appointment_date' => ['required', 'date'],
             'appointment_time' => ['required', 'date_format:H:i'],
@@ -457,13 +451,6 @@ class DoctorAppointmentController extends Controller
         }
 
         return back()->with('success', 'Appointment rescheduled successfully.');
-    }
-
-    private function ownedAppointment(Appointment $appointment): Appointment
-    {
-        abort_unless((int) $appointment->doctor_id === (int) auth('doctor')->id(), 403);
-
-        return $appointment;
     }
 
     private function resolvePatientPackageForAppointment(Appointment $appointment): ?TreatmentPatientPackage

@@ -82,6 +82,24 @@
                       <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                   </div>
+                  <div class="col-12">
+                    <label class="form-label" for="doctor_role_id">Clinical portal role</label>
+                    <select id="doctor_role_id" name="doctor_role_id"
+                      class="form-select @error('doctor_role_id') is-invalid @enderror"
+                      aria-describedby="doctor_role_id_hint">
+                      <option value="" @selected(old('doctor_role_id', '') === '' || old('doctor_role_id', '') === null)>{{ __('Full portal access (default)') }}</option>
+                      @foreach ($doctorRoles as $role)
+                        <option value="{{ $role->id }}" @selected((string) old('doctor_role_id') === (string) $role->id)>{{ $role->name }}</option>
+                      @endforeach
+                    </select>
+                    <small id="doctor_role_id_hint" class="form-hint">
+                      {{ __('Optional. Limits what this person sees in the doctor portal after approval.') }}
+                      <a href="{{ route('admin.doctor-roles.index') }}">{{ __('Manage clinical roles') }}</a>
+                    </small>
+                    @error('doctor_role_id')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
                 </div>
               </div>
             </div>
@@ -95,6 +113,7 @@
               <ul class="text-secondary mb-0 ps-3">
                 <li>Name and email are required.</li>
                 <li>Password is generated automatically on save.</li>
+                <li>Clinical portal role is optional; leave as full access unless you need a restricted role.</li>
                 <li>The doctor will receive an email with username and password only after approval.</li>
               </ul>
             </div>

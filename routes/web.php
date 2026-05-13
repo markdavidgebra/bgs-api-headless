@@ -22,6 +22,7 @@ use App\Http\Controllers\Patient\PatientPaymentController;
 use App\Http\Controllers\Patient\PatientProfileController;
 use App\Http\Controllers\Patient\PatientPromotionController;
 use App\Http\Controllers\Patient\PatientTreatmentController;
+use App\Http\Middleware\EnsureDoctorPortalPermission;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -112,7 +113,7 @@ Route::group(['middleware' => ['prevent_cross_guard:web', 'auth:web', 'verified'
 *==========================
 */
 
-Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doctor_approved', 'verified'], 'prefix' => 'doctor', 'as' => 'doctor.'], function () {
+Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doctor_approved', EnsureDoctorPortalPermission::class, 'verified'], 'prefix' => 'doctor', 'as' => 'doctor.'], function () {
     Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
     Route::get('/products', [DoctorProductInventoryController::class, 'index'])->name('products');
     Route::get('/services', [DoctorServiceController::class, 'index'])->name('services');
@@ -141,7 +142,7 @@ Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doc
     Route::post('/availability/day/{weekday}/toggle', [DoctorAvailabilityController::class, 'toggleDay'])->name('availability.toggle')->whereNumber('weekday');
     Route::post('/availability/blocked-dates', [DoctorAvailabilityController::class, 'storeBlockedDate'])->name('availability.blocked.store');
     Route::delete('/availability/blocked-dates/{blockedDate}', [DoctorAvailabilityController::class, 'destroyBlockedDate'])->name('availability.blocked.destroy');
-    Route::post('/appointments/{appointment}/start-session', [DoctorAppointmentController::class, 'startSession'])->name('appointments.start-session');
+    Route::match(['get', 'post'], '/appointments/{appointment}/start-session', [DoctorAppointmentController::class, 'startSession'])->name('appointments.start-session');
     Route::post('/appointments/{appointment}/complete', [DoctorAppointmentController::class, 'markCompleted'])->name('appointments.complete');
     Route::post('/appointments/{appointment}/session-done', [DoctorAppointmentController::class, 'updateSessionDone'])->name('appointments.session-done');
     Route::post('/appointments/{appointment}/treatment-progress', [DoctorAppointmentController::class, 'updateTreatmentProgress'])->name('appointments.treatment-progress');

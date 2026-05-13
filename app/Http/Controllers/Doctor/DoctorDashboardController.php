@@ -15,8 +15,7 @@ class DoctorDashboardController extends Controller
         $today = now()->toDateString();
 
         $baseQuery = Appointment::query()
-            ->with(['patient:id,name', 'service:id,name', 'note'])
-            ->where('doctor_id', $doctor?->id);
+            ->with(['patient:id,name', 'service:id,name', 'note', 'doctor:id,name']);
 
         $todayAppointmentsCount = (clone $baseQuery)
             ->whereDate('appointment_date', $today)
@@ -33,7 +32,6 @@ class DoctorDashboardController extends Controller
             ->count('patient_id');
 
         $pendingNotesCount = Appointment::query()
-            ->where('doctor_id', $doctor?->id)
             ->whereDate('appointment_date', '<=', $today)
             ->where(function ($q) {
                 $q->whereDoesntHave('note')
@@ -68,7 +66,7 @@ class DoctorDashboardController extends Controller
             $notifications[] = $pendingTodayCount.' appointment request(s) are pending today.';
         }
         if ($pendingNotesCount > 0) {
-            $notifications[] = $pendingNotesCount.' appointment note(s) still need your update.';
+            $notifications[] = $pendingNotesCount.' appointment note(s) still need attention.';
         }
         if ($todayAppointmentsCount === 0) {
             $notifications[] = 'No appointments scheduled for today.';

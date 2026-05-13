@@ -65,7 +65,7 @@
                     <div class="fw-semibold mb-2">{{ $groupName }}</div>
                     <div class="row g-2">
                       @foreach ($permissions as $permission)
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                           <label class="form-check">
                             <input class="form-check-input" type="checkbox" name="permissions[]" value="{{ $permission['key'] }}"
                               @checked(in_array($permission['key'], $selectedPermissions, true))>
