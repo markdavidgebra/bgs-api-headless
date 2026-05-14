@@ -112,7 +112,7 @@
             <div class="row">
               @include('doctor.layouts.sidebar')
 
-              <div class="col-12 col-md-9">
+              <div class="col-12">
                 <div class="account dashboard-content pl-50">
                   <div class="section-title mb-20 d-flex flex-wrap flex-column flex-md-row align-items-md-center justify-content-md-between gap-3">
                     <div>

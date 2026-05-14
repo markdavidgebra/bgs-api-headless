@@ -216,7 +216,7 @@
                               </div>
                             </div>
                             <div class="datagrid-item">
-                              <div class="datagrid-title">Appointment remarks</div>
+                              <div class="datagrid-title">Post procedures</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->appointment_remarks ?: '—' }}
                                 @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'appointment_remarks', $appointment->patient, $appointment->doctor))
@@ -225,7 +225,7 @@
                               </div>
                             </div>
                             <div class="datagrid-item">
-                              <div class="datagrid-title">Admin notes</div>
+                              <div class="datagrid-title">Medical history</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->admin_notes ?: '—' }}
                                 @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'admin_notes', $appointment->patient, $appointment->doctor))
@@ -243,7 +243,7 @@
                               </div>
                             </div>
                             <div class="datagrid-item">
-                              <div class="datagrid-title">Instructions</div>
+                              <div class="datagrid-title">Take home medications</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->instructions ?: '—' }}
                                 @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'instructions', $appointment->patient, $appointment->doctor))
@@ -252,7 +252,7 @@
                               </div>
                             </div>
                             <div class="datagrid-item">
-                              <div class="datagrid-title">Alerts</div>
+                              <div class="datagrid-title">Allergy</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->alerts ?: '—' }}
                                 @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'alerts', $appointment->patient, $appointment->doctor))

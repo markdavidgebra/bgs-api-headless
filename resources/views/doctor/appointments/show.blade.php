@@ -19,11 +19,16 @@
           <div class="col-12">
             <div class="row">
               @include('doctor.layouts.sidebar')
-              <div class="col-12 col-md-9">
+              <div class="col-12">
                 <div class="account dashboard-content pl-50">
-                  <div class="section-title mb-20 d-flex justify-content-between align-items-center">
+                  <div class="section-title mb-20 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h3 class="mb-0">Appointment #{{ $appointment->appointment_no }}</h3>
-                    <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Back to list</a>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      @if ($appointment->patient_id)
+                        <a href="{{ route('doctor.patient-records.show', $appointment->patient_id) }}" class="btn btn-sm btn-outline-primary">Patient History</a>
+                      @endif
+                      <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Back to list</a>
+                    </div>
                   </div>
 
                   @if (session('success'))
@@ -164,7 +169,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                           <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
-                            <label class="form-label mb-0">Appointment remarks</label>
+                            <label class="form-label mb-0">Post procedures</label>
                             <a href="{{ $notesCreateUrl }}#appointment_remarks" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
                           </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
@@ -173,7 +178,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                           <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
-                            <label class="form-label mb-0">Admin notes</label>
+                            <label class="form-label mb-0">Medical history</label>
                             <a href="{{ $notesCreateUrl }}#admin_notes" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
                           </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
@@ -191,7 +196,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                           <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
-                            <label class="form-label mb-0">Instructions</label>
+                            <label class="form-label mb-0">Take home medications</label>
                             <a href="{{ $notesCreateUrl }}#instructions" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
                           </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
@@ -200,7 +205,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                           <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
-                            <label class="form-label mb-0">Alerts</label>
+                            <label class="form-label mb-0">Allergy</label>
                             <a href="{{ $notesCreateUrl }}#alerts" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
                           </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
@@ -216,6 +221,84 @@
                             {{ optional($appointment->note)->vitalSignsSummary() ?: '—' }}
                           </div>
                         </div>
+                        @if (optional($appointment->note)->hasBodyAnalyzerImagePath())
+                          <div class="col-12 col-md-4 mb-3 text-center">
+                            <label class="form-label mb-0 d-block">Body analyzer</label>
+                            @php($baShowUrl = $appointment->note->bodyAnalyzerImageUrl())
+                            @if ($baShowUrl)
+                              <div class="mt-2">
+                                <img src="{{ $baShowUrl }}" alt="{{ __('Body analyzer image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: min(100%, 360px); max-height: 400px; width: auto; height: auto; object-fit: contain;">
+                              </div>
+                            @else
+                              <p class="small text-warning mt-2 mb-0">{{ __('Body analyzer image is recorded but the file is missing on the server.') }}</p>
+                            @endif
+                          </div>
+                        @endif
+                        @if (optional($appointment->note)->hasBottleCitrusImagePath())
+                          <div class="col-12 col-md-4 mb-3 text-center">
+                            <label class="form-label mb-0 d-block">Bottle citrus</label>
+                            @php($bcShowUrl = $appointment->note->bottleCitrusImageUrl())
+                            @if ($bcShowUrl)
+                              <div class="mt-2">
+                                <img src="{{ $bcShowUrl }}" alt="{{ __('Bottle citrus image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: min(100%, 360px); max-height: 400px; width: auto; height: auto; object-fit: contain;">
+                              </div>
+                            @else
+                              <p class="small text-warning mt-2 mb-0">{{ __('Bottle citrus image is recorded but the file is missing on the server.') }}</p>
+                            @endif
+                          </div>
+                        @endif
+                        @if (optional($appointment->note)->hasLemonBottleImagePath())
+                          <div class="col-12 col-md-4 mb-3 text-center">
+                            <label class="form-label mb-0 d-block">Lemon bottle</label>
+                            @php($lbShowUrl = $appointment->note->lemonBottleImageUrl())
+                            @if ($lbShowUrl)
+                              <div class="mt-2">
+                                <img src="{{ $lbShowUrl }}" alt="{{ __('Lemon bottle image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: min(100%, 360px); max-height: 400px; width: auto; height: auto; object-fit: contain;">
+                              </div>
+                            @else
+                              <p class="small text-warning mt-2 mb-0">{{ __('Lemon bottle image is recorded but the file is missing on the server.') }}</p>
+                            @endif
+                          </div>
+                        @endif
+                        @if (optional($appointment->note)->hasAqualyxImagePath())
+                          <div class="col-12 col-md-4 mb-3 text-center">
+                            <label class="form-label mb-0 d-block">Aqualyx</label>
+                            @php($aqShowUrl = $appointment->note->aqualyxImageUrl())
+                            @if ($aqShowUrl)
+                              <div class="mt-2">
+                                <img src="{{ $aqShowUrl }}" alt="{{ __('Aqualyx image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: min(100%, 360px); max-height: 400px; width: auto; height: auto; object-fit: contain;">
+                              </div>
+                            @else
+                              <p class="small text-warning mt-2 mb-0">{{ __('Aqualyx image is recorded but the file is missing on the server.') }}</p>
+                            @endif
+                          </div>
+                        @endif
+                        @if (optional($appointment->note)->hasDripImagePath())
+                          <div class="col-12 col-md-4 mb-3 text-center">
+                            <label class="form-label mb-0 d-block">Drip</label>
+                            @php($dripShowUrl = $appointment->note->dripImageUrl())
+                            @if ($dripShowUrl)
+                              <div class="mt-2">
+                                <img src="{{ $dripShowUrl }}" alt="{{ __('Drip image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: min(100%, 360px); max-height: 400px; width: auto; height: auto; object-fit: contain;">
+                              </div>
+                            @else
+                              <p class="small text-warning mt-2 mb-0">{{ __('Drip image is recorded but the file is missing on the server.') }}</p>
+                            @endif
+                          </div>
+                        @endif
+                        @if (optional($appointment->note)->hasMicroNeedlingImagePath())
+                          <div class="col-12 col-md-4 mb-3 text-center">
+                            <label class="form-label mb-0 d-block">Micro needling</label>
+                            @php($mnShowUrl = $appointment->note->microNeedlingImageUrl())
+                            @if ($mnShowUrl)
+                              <div class="mt-2">
+                                <img src="{{ $mnShowUrl }}" alt="{{ __('Micro needling image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: min(100%, 360px); max-height: 400px; width: auto; height: auto; object-fit: contain;">
+                              </div>
+                            @else
+                              <p class="small text-warning mt-2 mb-0">{{ __('Micro needling image is recorded but the file is missing on the server.') }}</p>
+                            @endif
+                          </div>
+                        @endif
                       </div>
                     </div>
                   </div>

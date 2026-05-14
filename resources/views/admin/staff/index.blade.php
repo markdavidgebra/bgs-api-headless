@@ -19,6 +19,12 @@
 
   <div class="page-body">
     <div class="container-xl">
+      @if (session('status'))
+        <div class="alert alert-success">{{ session('status') }}</div>
+      @endif
+      @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+      @endif
       <div class="card">
         <div class="card-body">
           <form method="GET" action="{{ route('admin.staffs') }}" class="row g-3 align-items-end">
@@ -74,6 +80,15 @@
                     <div class="btn-list flex-nowrap">
                       <a href="{{ route('admin.staffs.show', $staff->id) }}" class="btn btn-sm btn-primary">View</a>
                       <a href="{{ route('admin.staffs.edit', $staff->id) }}" class="btn btn-sm">Edit</a>
+                      @unless (auth('admin')->id() === $staff->id)
+                        <form method="POST" action="{{ route('admin.staffs.destroy', $staff->id) }}"
+                          onsubmit="return confirm(@json(__('Delete this staff member? This cannot be undone.')));"
+                          class="d-inline">
+                          @csrf
+                          @method('DELETE')
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                      @endunless
                     </div>
                   </td>
                 </tr>

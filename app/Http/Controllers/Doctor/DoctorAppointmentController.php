@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class DoctorAppointmentController extends Controller
@@ -388,6 +389,12 @@ class DoctorAppointmentController extends Controller
             'vital_oxygen_saturation' => ['nullable', 'string', 'max:32'],
             'vital_weight' => ['nullable', 'string', 'max:32'],
             'vital_height' => ['nullable', 'string', 'max:32'],
+            'body_analyzer_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:400'],
+            'bottle_citrus_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:400'],
+            'lemon_bottle_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:400'],
+            'aqualyx_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:400'],
+            'drip_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:400'],
+            'micro_needling_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:400'],
             'prescribe' => ['nullable', 'array'],
             'qty' => ['nullable', 'array'],
             'qty.*' => ['nullable', 'integer', 'min:1', 'max:99999'],
@@ -422,9 +429,16 @@ class DoctorAppointmentController extends Controller
             $validated['vital_height'] ?? null,
         ])->contains(fn ($value) => filled($value));
 
+        $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('body_analyzer_image') || filled($existingNote?->body_analyzer_image_path);
+        $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('bottle_citrus_image') || filled($existingNote?->bottle_citrus_image_path);
+        $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('lemon_bottle_image') || filled($existingNote?->lemon_bottle_image_path);
+        $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('aqualyx_image') || filled($existingNote?->aqualyx_image_path);
+        $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('drip_image') || filled($existingNote?->drip_image_path);
+        $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('micro_needling_image') || filled($existingNote?->micro_needling_image_path);
+
         if (! $hasAnyNoteValue && $prescribeSync === []) {
             return back()
-                ->withErrors(['observations' => 'Please provide at least one treatment note field, vital sign, or prescribe a product.'])
+                ->withErrors(['observations' => __('Please provide at least one treatment note field, vital sign, prescribe a product, or an optional clinical image (body analyzer, bottle citrus, lemon bottle, Aqualyx, drip, or micro needling).')])
                 ->withInput();
         }
 
@@ -450,6 +464,78 @@ class DoctorAppointmentController extends Controller
             'vital_weight' => AppointmentNote::normalizeNoteValue($validated['vital_weight'] ?? null),
             'vital_height' => AppointmentNote::normalizeNoteValue($validated['vital_height'] ?? null),
         ];
+
+        $bodyAnalyzerPath = $existingNote?->body_analyzer_image_path;
+        if ($request->hasFile('body_analyzer_image')) {
+            if (filled($bodyAnalyzerPath)) {
+                Storage::disk('public')->delete($bodyAnalyzerPath);
+            }
+            $bodyAnalyzerPath = $request->file('body_analyzer_image')->store(
+                'appointment-notes/body-analyzer/'.$appointment->id,
+                'public'
+            );
+        }
+        $newPayload['body_analyzer_image_path'] = $bodyAnalyzerPath;
+
+        $bottleCitrusPath = $existingNote?->bottle_citrus_image_path;
+        if ($request->hasFile('bottle_citrus_image')) {
+            if (filled($bottleCitrusPath)) {
+                Storage::disk('public')->delete($bottleCitrusPath);
+            }
+            $bottleCitrusPath = $request->file('bottle_citrus_image')->store(
+                'appointment-notes/bottle-citrus/'.$appointment->id,
+                'public'
+            );
+        }
+        $newPayload['bottle_citrus_image_path'] = $bottleCitrusPath;
+
+        $lemonBottlePath = $existingNote?->lemon_bottle_image_path;
+        if ($request->hasFile('lemon_bottle_image')) {
+            if (filled($lemonBottlePath)) {
+                Storage::disk('public')->delete($lemonBottlePath);
+            }
+            $lemonBottlePath = $request->file('lemon_bottle_image')->store(
+                'appointment-notes/lemon-bottle/'.$appointment->id,
+                'public'
+            );
+        }
+        $newPayload['lemon_bottle_image_path'] = $lemonBottlePath;
+
+        $aqualyxPath = $existingNote?->aqualyx_image_path;
+        if ($request->hasFile('aqualyx_image')) {
+            if (filled($aqualyxPath)) {
+                Storage::disk('public')->delete($aqualyxPath);
+            }
+            $aqualyxPath = $request->file('aqualyx_image')->store(
+                'appointment-notes/aqualyx/'.$appointment->id,
+                'public'
+            );
+        }
+        $newPayload['aqualyx_image_path'] = $aqualyxPath;
+
+        $dripPath = $existingNote?->drip_image_path;
+        if ($request->hasFile('drip_image')) {
+            if (filled($dripPath)) {
+                Storage::disk('public')->delete($dripPath);
+            }
+            $dripPath = $request->file('drip_image')->store(
+                'appointment-notes/drip/'.$appointment->id,
+                'public'
+            );
+        }
+        $newPayload['drip_image_path'] = $dripPath;
+
+        $microNeedlingPath = $existingNote?->micro_needling_image_path;
+        if ($request->hasFile('micro_needling_image')) {
+            if (filled($microNeedlingPath)) {
+                Storage::disk('public')->delete($microNeedlingPath);
+            }
+            $microNeedlingPath = $request->file('micro_needling_image')->store(
+                'appointment-notes/micro-needling/'.$appointment->id,
+                'public'
+            );
+        }
+        $newPayload['micro_needling_image_path'] = $microNeedlingPath;
 
         $doctor = auth('doctor')->user();
         $newPayload['section_authors'] = AppointmentNote::mergeAuthorsOnFieldChanges(

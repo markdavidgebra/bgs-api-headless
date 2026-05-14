@@ -71,8 +71,15 @@
       line-height: 1;
     }
 
+    .doctor-appt-calendar .table-responsive {
+      -webkit-overflow-scrolling: touch;
+    }
+
     .doctor-appt-calendar table.calendar-grid {
       table-layout: fixed;
+      /* Prevent ultra-narrow columns (e.g. tablet + sidebar) from crushing text into a vertical strip */
+      min-width: 720px;
+      width: 100%;
     }
 
     .doctor-appt-calendar table.calendar-grid thead th {
@@ -84,18 +91,58 @@
       color: #6b7280;
       background: #f9fafb;
       border-color: #e5e7eb;
-      padding: 10px 6px;
+      padding: 8px 6px !important;
     }
 
     .doctor-appt-calendar table.calendar-grid td {
       border-color: #e5e7eb;
-      min-height: 110px;
+      min-height: 118px;
       width: 14.28%;
-      vertical-align: top;
+      vertical-align: top !important;
+      padding: 8px 6px !important;
+    }
+
+    .doctor-appt-calendar .calendar-day-cell-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      min-height: 102px;
+    }
+
+    .doctor-appt-calendar .calendar-day-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
     .doctor-appt-calendar .js-open-day-bookings {
       font-weight: 700;
+      display: block;
+      width: 100%;
+      white-space: normal !important;
+      writing-mode: horizontal-tb !important;
+      text-orientation: mixed !important;
+      line-height: 1.25;
+      font-size: 12px;
+      padding: 7px 6px !important;
+      text-align: center;
+      word-break: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .doctor-appt-calendar .calendar-day-preview {
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .doctor-appt-calendar .calendar-day-preview .calendar-day-preview-line {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
     }
 
     .calendar-item {
@@ -161,7 +208,7 @@
             <div class="row">
               @include('doctor.layouts.sidebar')
 
-              <div class="col-12 col-md-9">
+              <div class="col-12">
                 <div class="account dashboard-content pl-50">
                   <div class="section-title mb-20">
                     <h3>Appointments</h3>
@@ -326,34 +373,37 @@
                                       $btnClass = $dayCount > 0 ? 'btn-primary' : 'btn-outline-secondary';
                                     @endphp
                                     <td class="align-top p-2 {{ $day['isCurrentMonth'] ? '' : 'bg-light text-secondary' }}">
-                                      <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <strong class="{{ $isToday ? 'text-primary' : '' }}">{{ $day['date']->format('j') }}</strong>
-                                        @if ($isToday)
-                                          <span class="badge bg-primary">Today</span>
-                                        @endif
-                                      </div>
-
-                                      @if ($dayCount > 0)
-                                        <button
-                                          type="button"
-                                          class="btn btn-sm {{ $btnClass }} mb-2 w-100 js-open-day-bookings"
-                                          data-date="{{ $day['date']->format('l, M j, Y') }}"
-                                          data-appointments='@json($day['appointments'])'
-                                        >
-                                          {{ $dayCount }} booking{{ $dayCount > 1 ? 's' : '' }}
-                                        </button>
-
-                                        <div class="small">
-                                          @foreach ($day['appointments']->take(2) as $row)
-                                            <div class="text-truncate">{{ $row['time'] }} · {{ $row['patient'] }}</div>
-                                          @endforeach
-                                          @if ($dayCount > 2)
-                                            <div class="text-secondary">+{{ $dayCount - 2 }} more</div>
+                                      <div class="calendar-day-cell-inner">
+                                        <div class="calendar-day-header">
+                                          <strong class="{{ $isToday ? 'text-primary' : '' }}">{{ $day['date']->format('j') }}</strong>
+                                          @if ($isToday)
+                                            <span class="badge bg-primary">Today</span>
                                           @endif
                                         </div>
-                                      @else
-                                        <div class="text-secondary small">No bookings</div>
-                                      @endif
+
+                                        @if ($dayCount > 0)
+                                          <button
+                                            type="button"
+                                            class="btn btn-sm {{ $btnClass }} js-open-day-bookings"
+                                            data-date="{{ $day['date']->format('l, M j, Y') }}"
+                                            data-appointments='@json($day['appointments'])'
+                                            aria-label="{{ $dayCount }} booking{{ $dayCount > 1 ? 's' : '' }} for {{ $day['date']->format('M j') }}"
+                                          >
+                                            {{ $dayCount }} booking{{ $dayCount > 1 ? 's' : '' }}
+                                          </button>
+
+                                          <div class="calendar-day-preview text-secondary">
+                                            @foreach ($day['appointments']->take(2) as $row)
+                                              <div class="calendar-day-preview-line">{{ $row['time'] }} · {{ $row['patient'] }}</div>
+                                            @endforeach
+                                            @if ($dayCount > 2)
+                                              <div>+{{ $dayCount - 2 }} more</div>
+                                            @endif
+                                          </div>
+                                        @else
+                                          <div class="text-secondary small">No bookings</div>
+                                        @endif
+                                      </div>
                                     </td>
                                   @endforeach
                                 </tr>

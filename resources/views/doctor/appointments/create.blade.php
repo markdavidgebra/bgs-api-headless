@@ -20,9 +20,9 @@
             <div class="row">
               @include('doctor.layouts.sidebar')
 
-              <div class="col-12 col-md-9">
+              <div class="col-12">
                 <div class="account dashboard-content pl-50">
-                  <div class="section-title mb-20 d-flex justify-content-between align-items-center">
+                  <div class="section-title mb-20 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
                       <h3 class="mb-5">Treatment Notes</h3>
                       <p class="mb-0">
@@ -30,7 +30,12 @@
                         Patient: <strong>{{ $appointment->patient_name }}</strong>
                       </p>
                     </div>
-                    <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Back to Appointments</a>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      @if ($appointment->patient_id)
+                        <a href="{{ route('doctor.patient-records.show', $appointment->patient_id) }}" class="btn btn-sm btn-outline-primary">Patient History</a>
+                      @endif
+                      <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline">Back to appointment</a>
+                    </div>
                   </div>
 
                   @if (session('success'))
@@ -51,7 +56,7 @@
                     $prescribedMap = $appointment->prescribedProducts->keyBy('id');
                   @endphp
 
-                  <form method="POST" action="{{ route('doctor.appointments.notes', $appointment) }}">
+                  <form method="POST" action="{{ route('doctor.appointments.notes', $appointment) }}" enctype="multipart/form-data">
                     @csrf
 
                   <div class="card mb-25 shadow-sm border-0" style="border-radius: 12px;">
@@ -68,14 +73,14 @@
                               placeholder="Enter patient concern...">{{ old('patient_concern', optional($appointmentNote)->patient_concern) }}</textarea>
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label for="appointment_remarks" class="form-label">Appointment remarks</label>
+                            <label for="appointment_remarks" class="form-label">Post procedures</label>
                             <textarea id="appointment_remarks" name="appointment_remarks" rows="3" class="form-control"
-                              placeholder="Enter appointment remarks...">{{ old('appointment_remarks', optional($appointmentNote)->appointment_remarks) }}</textarea>
+                              placeholder="Enter post procedures...">{{ old('appointment_remarks', optional($appointmentNote)->appointment_remarks) }}</textarea>
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label for="admin_notes" class="form-label">Admin notes</label>
+                            <label for="admin_notes" class="form-label">Medical history</label>
                             <textarea id="admin_notes" name="admin_notes" rows="3" class="form-control"
-                              placeholder="Enter admin notes...">{{ old('admin_notes', optional($appointmentNote)->admin_notes) }}</textarea>
+                              placeholder="Enter medical history...">{{ old('admin_notes', optional($appointmentNote)->admin_notes) }}</textarea>
                           </div>
                           <div class="col-md-6 mb-3">
                             <label for="doctor_notes" class="form-label">Doctor notes</label>
@@ -83,14 +88,14 @@
                               placeholder="Enter doctor notes...">{{ old('doctor_notes', optional($appointmentNote)->doctor_notes) }}</textarea>
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label for="instructions" class="form-label">Instructions</label>
-                            <textarea id="instructions" name="instructions" rows="3" class="form-control"
-                              placeholder="Enter instructions...">{{ old('instructions', optional($appointmentNote)->instructions) }}</textarea>
+                            <label for="alerts" class="form-label">Allergy</label>
+                            <textarea id="alerts" name="alerts" rows="3" class="form-control"
+                              placeholder="Enter allergies...">{{ old('alerts', optional($appointmentNote)->alerts) }}</textarea>
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label for="alerts" class="form-label">Alerts</label>
-                            <textarea id="alerts" name="alerts" rows="3" class="form-control"
-                              placeholder="Enter alerts...">{{ old('alerts', optional($appointmentNote)->alerts) }}</textarea>
+                            <label for="instructions" class="form-label">Take home medications</label>
+                            <textarea id="instructions" name="instructions" rows="3" class="form-control"
+                              placeholder="Enter take home medications...">{{ old('instructions', optional($appointmentNote)->instructions) }}</textarea>
                           </div>
                         </div>
                     </div>
@@ -144,6 +149,170 @@
                           <input type="text" id="vital_height" name="vital_height" class="form-control"
                             placeholder="e.g. 170 cm" maxlength="32"
                             value="{{ old('vital_height', optional($appointmentNote)->vital_height) }}">
+                        </div>
+                      </div>
+
+                      <div class="row vital-signs-clinical-images g-3 mt-3 pt-3 border-top">
+                        <div class="col-12 col-md-4 d-flex">
+                          <div class="clinical-image-tile flex-grow-1 w-100 border rounded p-3 bg-light text-center body-analyzer-upload">
+                            <label for="body_analyzer_image" class="form-label d-block">Body analyzer image</label>
+                            <p class="text-muted font-sm mb-3">Optional. Upload a screenshot or export from your body composition analyzer (JPEG, PNG, GIF, or WebP — max 400&nbsp;KB).</p>
+                            @if (optional($appointmentNote)->hasBodyAnalyzerImagePath())
+                              @php
+                                $baPreviewUrl = $appointmentNote?->bodyAnalyzerImageUrl();
+                              @endphp
+                              <div class="mb-3">
+                                @if ($baPreviewUrl)
+                                  <img src="{{ $baPreviewUrl }}" alt="{{ __('Current body analyzer image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: 100%; max-height: 220px; width: auto; height: auto; object-fit: contain;" id="body-analyzer-preview-img">
+                                  <p id="body-analyzer-img-fallback" class="small text-warning mt-2 mb-0 d-none" role="status"></p>
+                                  <p class="small text-secondary mb-0 mt-2">{{ __('Upload a new file to replace this image.') }}</p>
+                                @else
+                                  <p class="small text-warning mb-2">{{ __('A saved image path exists, but the file was not found on the server. Upload a new file to replace it.') }}</p>
+                                @endif
+                              </div>
+                            @endif
+                            <div class="body-analyzer-file-wrap mx-auto text-start">
+                              <input type="file" id="body_analyzer_image" name="body_analyzer_image" class="form-control form-control-sm"
+                                accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+                                data-max-bytes="409600">
+                            </div>
+                            <p class="small text-danger mt-2 mb-0 d-none" id="body-analyzer-image-error" role="alert"></p>
+                          </div>
+                        </div>
+
+                        <div class="col-12 col-md-4 d-flex">
+                          <div class="clinical-image-tile flex-grow-1 w-100 border rounded p-3 bg-light text-center bottle-citrus-upload">
+                            <label for="bottle_citrus_image" class="form-label d-block">Bottle citrus</label>
+                            <p class="text-muted font-sm mb-3">Optional. Upload a photo of bottle citrus or related documentation (JPEG, PNG, GIF, or WebP — max 400&nbsp;KB).</p>
+                            @if (optional($appointmentNote)->hasBottleCitrusImagePath())
+                              @php
+                                $bcPreviewUrl = $appointmentNote?->bottleCitrusImageUrl();
+                              @endphp
+                              <div class="mb-3">
+                                @if ($bcPreviewUrl)
+                                  <img src="{{ $bcPreviewUrl }}" alt="{{ __('Current bottle citrus image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: 100%; max-height: 220px; width: auto; height: auto; object-fit: contain;" id="bottle-citrus-preview-img">
+                                  <p id="bottle-citrus-img-fallback" class="small text-warning mt-2 mb-0 d-none" role="status"></p>
+                                  <p class="small text-secondary mb-0 mt-2">{{ __('Upload a new file to replace this image.') }}</p>
+                                @else
+                                  <p class="small text-warning mb-2">{{ __('A saved image path exists, but the file was not found on the server. Upload a new file to replace it.') }}</p>
+                                @endif
+                              </div>
+                            @endif
+                            <div class="bottle-citrus-file-wrap mx-auto text-start">
+                              <input type="file" id="bottle_citrus_image" name="bottle_citrus_image" class="form-control form-control-sm"
+                                accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+                                data-max-bytes="409600">
+                            </div>
+                            <p class="small text-danger mt-2 mb-0 d-none" id="bottle-citrus-image-error" role="alert"></p>
+                          </div>
+                        </div>
+
+                        <div class="col-12 col-md-4 d-flex">
+                          <div class="clinical-image-tile flex-grow-1 w-100 border rounded p-3 bg-light text-center lemon-bottle-upload">
+                            <label for="lemon_bottle_image" class="form-label d-block">Lemon bottle</label>
+                            <p class="text-muted font-sm mb-3">Optional. Upload a photo of the lemon bottle or related documentation (JPEG, PNG, GIF, or WebP — max 400&nbsp;KB).</p>
+                            @if (optional($appointmentNote)->hasLemonBottleImagePath())
+                              @php
+                                $lbPreviewUrl = $appointmentNote?->lemonBottleImageUrl();
+                              @endphp
+                              <div class="mb-3">
+                                @if ($lbPreviewUrl)
+                                  <img src="{{ $lbPreviewUrl }}" alt="{{ __('Current lemon bottle image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: 100%; max-height: 220px; width: auto; height: auto; object-fit: contain;" id="lemon-bottle-preview-img">
+                                  <p id="lemon-bottle-img-fallback" class="small text-warning mt-2 mb-0 d-none" role="status"></p>
+                                  <p class="small text-secondary mb-0 mt-2">{{ __('Upload a new file to replace this image.') }}</p>
+                                @else
+                                  <p class="small text-warning mb-2">{{ __('A saved image path exists, but the file was not found on the server. Upload a new file to replace it.') }}</p>
+                                @endif
+                              </div>
+                            @endif
+                            <div class="lemon-bottle-file-wrap mx-auto text-start">
+                              <input type="file" id="lemon_bottle_image" name="lemon_bottle_image" class="form-control form-control-sm"
+                                accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+                                data-max-bytes="409600">
+                            </div>
+                            <p class="small text-danger mt-2 mb-0 d-none" id="lemon-bottle-image-error" role="alert"></p>
+                          </div>
+                        </div>
+
+                        <div class="col-12 col-md-4 d-flex">
+                          <div class="clinical-image-tile flex-grow-1 w-100 border rounded p-3 bg-light text-center aqualyx-upload">
+                            <label for="aqualyx_image" class="form-label d-block">Aqualyx</label>
+                            <p class="text-muted font-sm mb-3">Optional. Upload a photo of the Aqualyx product, vial, or related documentation (JPEG, PNG, GIF, or WebP — max 400&nbsp;KB).</p>
+                            @if (optional($appointmentNote)->hasAqualyxImagePath())
+                              @php
+                                $aqPreviewUrl = $appointmentNote?->aqualyxImageUrl();
+                              @endphp
+                              <div class="mb-3">
+                                @if ($aqPreviewUrl)
+                                  <img src="{{ $aqPreviewUrl }}" alt="{{ __('Current Aqualyx image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: 100%; max-height: 220px; width: auto; height: auto; object-fit: contain;" id="aqualyx-preview-img">
+                                  <p id="aqualyx-img-fallback" class="small text-warning mt-2 mb-0 d-none" role="status"></p>
+                                  <p class="small text-secondary mb-0 mt-2">{{ __('Upload a new file to replace this image.') }}</p>
+                                @else
+                                  <p class="small text-warning mb-2">{{ __('A saved image path exists, but the file was not found on the server. Upload a new file to replace it.') }}</p>
+                                @endif
+                              </div>
+                            @endif
+                            <div class="aqualyx-file-wrap mx-auto text-start">
+                              <input type="file" id="aqualyx_image" name="aqualyx_image" class="form-control form-control-sm"
+                                accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+                                data-max-bytes="409600">
+                            </div>
+                            <p class="small text-danger mt-2 mb-0 d-none" id="aqualyx-image-error" role="alert"></p>
+                          </div>
+                        </div>
+
+                        <div class="col-12 col-md-4 d-flex">
+                          <div class="clinical-image-tile flex-grow-1 w-100 border rounded p-3 bg-light text-center drip-upload">
+                            <label for="drip_image" class="form-label d-block">Drip</label>
+                            <p class="text-muted font-sm mb-3">Optional. Upload a photo of the IV drip setup, bag, line, or related documentation (JPEG, PNG, GIF, or WebP — max 400&nbsp;KB).</p>
+                            @if (optional($appointmentNote)->hasDripImagePath())
+                              @php
+                                $dripPreviewUrl = $appointmentNote?->dripImageUrl();
+                              @endphp
+                              <div class="mb-3">
+                                @if ($dripPreviewUrl)
+                                  <img src="{{ $dripPreviewUrl }}" alt="{{ __('Current drip image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: 100%; max-height: 220px; width: auto; height: auto; object-fit: contain;" id="drip-preview-img">
+                                  <p id="drip-img-fallback" class="small text-warning mt-2 mb-0 d-none" role="status"></p>
+                                  <p class="small text-secondary mb-0 mt-2">{{ __('Upload a new file to replace this image.') }}</p>
+                                @else
+                                  <p class="small text-warning mb-2">{{ __('A saved image path exists, but the file was not found on the server. Upload a new file to replace it.') }}</p>
+                                @endif
+                              </div>
+                            @endif
+                            <div class="drip-file-wrap mx-auto text-start">
+                              <input type="file" id="drip_image" name="drip_image" class="form-control form-control-sm"
+                                accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+                                data-max-bytes="409600">
+                            </div>
+                            <p class="small text-danger mt-2 mb-0 d-none" id="drip-image-error" role="alert"></p>
+                          </div>
+                        </div>
+
+                        <div class="col-12 col-md-4 d-flex">
+                          <div class="clinical-image-tile flex-grow-1 w-100 border rounded p-3 bg-light text-center micro-needling-upload">
+                            <label for="micro_needling_image" class="form-label d-block">Micro needling</label>
+                            <p class="text-muted font-sm mb-3">Optional. Upload a photo from the micro needling session, device, or related documentation (JPEG, PNG, GIF, or WebP — max 400&nbsp;KB).</p>
+                            @if (optional($appointmentNote)->hasMicroNeedlingImagePath())
+                              @php
+                                $mnPreviewUrl = $appointmentNote?->microNeedlingImageUrl();
+                              @endphp
+                              <div class="mb-3">
+                                @if ($mnPreviewUrl)
+                                  <img src="{{ $mnPreviewUrl }}" alt="{{ __('Current micro needling image') }}" class="img-thumbnail mx-auto d-block shadow-sm" style="max-width: 100%; max-height: 220px; width: auto; height: auto; object-fit: contain;" id="micro-needling-preview-img">
+                                  <p id="micro-needling-img-fallback" class="small text-warning mt-2 mb-0 d-none" role="status"></p>
+                                  <p class="small text-secondary mb-0 mt-2">{{ __('Upload a new file to replace this image.') }}</p>
+                                @else
+                                  <p class="small text-warning mb-2">{{ __('A saved image path exists, but the file was not found on the server. Upload a new file to replace it.') }}</p>
+                                @endif
+                              </div>
+                            @endif
+                            <div class="micro-needling-file-wrap mx-auto text-start">
+                              <input type="file" id="micro_needling_image" name="micro_needling_image" class="form-control form-control-sm"
+                                accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+                                data-max-bytes="409600">
+                            </div>
+                            <p class="small text-danger mt-2 mb-0 d-none" id="micro-needling-image-error" role="alert"></p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -209,7 +378,10 @@
                                       <div class="prescribe-card-hand-block">
                                         <div class="prescribe-card-label">On hand</div>
                                         <div class="font-monospace prescribe-card-stock">
-                                          <strong>{{ number_format($onHand) }}</strong>@if ($product->unit)<span class="prescribe-card-unit">{{ $product->unit }}</span>@endif
+                                          <strong>{{ number_format($onHand) }}</strong>
+                                          @if ($product->unit)
+                                            <span class="prescribe-card-unit">{{ $product->unit }}</span>
+                                          @endif
                                         </div>
                                       </div>
                                     </div>
@@ -248,6 +420,30 @@
     </div>
   </main>
   <style>
+    .vital-signs-clinical-images .body-analyzer-upload,
+    .vital-signs-clinical-images .bottle-citrus-upload,
+    .vital-signs-clinical-images .lemon-bottle-upload,
+    .vital-signs-clinical-images .aqualyx-upload,
+    .vital-signs-clinical-images .drip-upload,
+    .vital-signs-clinical-images .micro-needling-upload {
+      max-width: none;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .vital-signs-clinical-images .body-analyzer-file-wrap,
+    .vital-signs-clinical-images .bottle-citrus-file-wrap,
+    .vital-signs-clinical-images .lemon-bottle-file-wrap,
+    .vital-signs-clinical-images .aqualyx-file-wrap,
+    .vital-signs-clinical-images .drip-file-wrap,
+    .vital-signs-clinical-images .micro-needling-file-wrap {
+      max-width: 100%;
+    }
+
+    .clinical-image-tile .text-muted.font-sm {
+      line-height: 1.35;
+    }
+
     .prescribe-products-card .prescribe-product-grid {
       margin-bottom: 0;
     }
@@ -437,10 +633,49 @@
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         var id = (window.location.hash || '').replace(/^#/, '');
-        if (!id) return;
-        var el = document.getElementById(id);
-        if (!el || typeof el.focus !== 'function') return;
-        el.focus({ preventScroll: false });
+        if (id) {
+          var el = document.getElementById(id);
+          if (el && typeof el.focus === 'function') {
+            el.focus({ preventScroll: false });
+          }
+        }
+
+        function wireOptionalImageUpload(inputId, errId, previewImgId, previewFallbackId) {
+          var fileInput = document.getElementById(inputId);
+          var fileErr = document.getElementById(errId);
+          var maxBytes = fileInput && fileInput.getAttribute('data-max-bytes')
+            ? parseInt(fileInput.getAttribute('data-max-bytes'), 10)
+            : 409600;
+          var previewImg = previewImgId ? document.getElementById(previewImgId) : null;
+          var previewFallback = previewFallbackId ? document.getElementById(previewFallbackId) : null;
+          if (previewImg && previewFallback) {
+            previewImg.addEventListener('error', function () {
+              previewImg.classList.add('d-none');
+              previewFallback.textContent = '{{ __("Image could not be displayed. If uploads never show, run php artisan storage:link on the server, then refresh.") }}';
+              previewFallback.classList.remove('d-none');
+            });
+          }
+          if (fileInput && fileErr) {
+            fileInput.addEventListener('change', function () {
+              fileErr.classList.add('d-none');
+              fileErr.textContent = '';
+              if (!fileInput.files || !fileInput.files.length) return;
+              var f = fileInput.files[0];
+              if (f.size > maxBytes) {
+                fileErr.textContent = '{{ __("Please choose an image under 400 KB.") }}';
+                fileErr.classList.remove('d-none');
+                fileInput.value = '';
+              }
+            });
+          }
+        }
+
+        wireOptionalImageUpload('body_analyzer_image', 'body-analyzer-image-error', 'body-analyzer-preview-img', 'body-analyzer-img-fallback');
+        wireOptionalImageUpload('bottle_citrus_image', 'bottle-citrus-image-error', 'bottle-citrus-preview-img', 'bottle-citrus-img-fallback');
+        wireOptionalImageUpload('lemon_bottle_image', 'lemon-bottle-image-error', 'lemon-bottle-preview-img', 'lemon-bottle-img-fallback');
+        wireOptionalImageUpload('aqualyx_image', 'aqualyx-image-error', 'aqualyx-preview-img', 'aqualyx-img-fallback');
+        wireOptionalImageUpload('drip_image', 'drip-image-error', 'drip-preview-img', 'drip-img-fallback');
+        wireOptionalImageUpload('micro_needling_image', 'micro-needling-image-error', 'micro-needling-preview-img', 'micro-needling-img-fallback');
       });
     </script>
   @endpush

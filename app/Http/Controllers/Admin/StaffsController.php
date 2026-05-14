@@ -11,6 +11,7 @@ use App\Models\AdminRole;
 use App\Support\AdminNotificationRecipients;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -131,6 +132,23 @@ class StaffsController extends Controller
         return redirect()
             ->route('admin.staffs.show', $staff->id)
             ->with('status', __('Staff account updated.'));
+    }
+
+    public function destroy(int $id): RedirectResponse
+    {
+        $currentId = Auth::guard('admin')->id();
+        if ($currentId !== null && (int) $id === (int) $currentId) {
+            return redirect()
+                ->route('admin.staffs')
+                ->with('error', __('You cannot delete your own account.'));
+        }
+
+        $staff = Admin::query()->findOrFail($id);
+        $staff->delete();
+
+        return redirect()
+            ->route('admin.staffs')
+            ->with('status', __('Staff member deleted.'));
     }
 
     public function updateStatus(Request $request, int $id): RedirectResponse

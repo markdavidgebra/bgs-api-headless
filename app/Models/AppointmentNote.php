@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class AppointmentNote extends Model
 {
@@ -28,6 +29,12 @@ class AppointmentNote extends Model
         'vital_oxygen_saturation',
         'vital_weight',
         'vital_height',
+        'body_analyzer_image_path',
+        'bottle_citrus_image_path',
+        'lemon_bottle_image_path',
+        'aqualyx_image_path',
+        'drip_image_path',
+        'micro_needling_image_path',
         'section_authors',
     ];
 
@@ -44,6 +51,144 @@ class AppointmentNote extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    public function bodyAnalyzerImageUrl(): ?string
+    {
+        $path = $this->body_analyzer_image_path;
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    public function hasBodyAnalyzerImagePath(): bool
+    {
+        return filled($this->body_analyzer_image_path);
+    }
+
+    public function bottleCitrusImageUrl(): ?string
+    {
+        $path = $this->bottle_citrus_image_path;
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    public function hasBottleCitrusImagePath(): bool
+    {
+        return filled($this->bottle_citrus_image_path);
+    }
+
+    public function lemonBottleImageUrl(): ?string
+    {
+        $path = $this->lemon_bottle_image_path;
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    public function hasLemonBottleImagePath(): bool
+    {
+        return filled($this->lemon_bottle_image_path);
+    }
+
+    public function aqualyxImageUrl(): ?string
+    {
+        $path = $this->aqualyx_image_path;
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    public function hasAqualyxImagePath(): bool
+    {
+        return filled($this->aqualyx_image_path);
+    }
+
+    public function dripImageUrl(): ?string
+    {
+        $path = $this->drip_image_path;
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    public function hasDripImagePath(): bool
+    {
+        return filled($this->drip_image_path);
+    }
+
+    public function microNeedlingImageUrl(): ?string
+    {
+        $path = $this->micro_needling_image_path;
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    public function hasMicroNeedlingImagePath(): bool
+    {
+        return filled($this->micro_needling_image_path);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $note): void {
+            if (filled($note->body_analyzer_image_path)) {
+                Storage::disk('public')->delete($note->body_analyzer_image_path);
+            }
+            if (filled($note->bottle_citrus_image_path)) {
+                Storage::disk('public')->delete($note->bottle_citrus_image_path);
+            }
+            if (filled($note->lemon_bottle_image_path)) {
+                Storage::disk('public')->delete($note->lemon_bottle_image_path);
+            }
+            if (filled($note->aqualyx_image_path)) {
+                Storage::disk('public')->delete($note->aqualyx_image_path);
+            }
+            if (filled($note->drip_image_path)) {
+                Storage::disk('public')->delete($note->drip_image_path);
+            }
+            if (filled($note->micro_needling_image_path)) {
+                Storage::disk('public')->delete($note->micro_needling_image_path);
+            }
+        });
     }
 
     /**
@@ -68,6 +213,30 @@ class AppointmentNote extends Model
             }
         }
 
+        if (filled($note->body_analyzer_image_path)) {
+            return true;
+        }
+
+        if (filled($note->bottle_citrus_image_path)) {
+            return true;
+        }
+
+        if (filled($note->lemon_bottle_image_path)) {
+            return true;
+        }
+
+        if (filled($note->aqualyx_image_path)) {
+            return true;
+        }
+
+        if (filled($note->drip_image_path)) {
+            return true;
+        }
+
+        if (filled($note->micro_needling_image_path)) {
+            return true;
+        }
+
         return $note->vitalSignsSummary() !== '';
     }
 
@@ -80,6 +249,24 @@ class AppointmentNote extends Model
         $vitals = $this->vitalSignsSummary();
         if ($vitals !== '') {
             $chunks[] = 'Vitals: '.$vitals;
+        }
+        if (filled($this->body_analyzer_image_path)) {
+            $chunks[] = __('Body analyzer image');
+        }
+        if (filled($this->bottle_citrus_image_path)) {
+            $chunks[] = __('Bottle citrus');
+        }
+        if (filled($this->lemon_bottle_image_path)) {
+            $chunks[] = __('Lemon bottle');
+        }
+        if (filled($this->aqualyx_image_path)) {
+            $chunks[] = __('Aqualyx');
+        }
+        if (filled($this->drip_image_path)) {
+            $chunks[] = __('Drip');
+        }
+        if (filled($this->micro_needling_image_path)) {
+            $chunks[] = __('Micro needling');
         }
         foreach ([
             $this->doctor_notes,

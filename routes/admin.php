@@ -110,6 +110,7 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::get('staff/{id}', [StaffsController::class, 'show'])->name('staffs.show');
         Route::get('staff/{id}/edit', [StaffsController::class, 'edit'])->name('staffs.edit');
         Route::put('staff/{id}', [StaffsController::class, 'update'])->name('staffs.update');
+        Route::delete('staff/{id}', [StaffsController::class, 'destroy'])->name('staffs.destroy');
         Route::post('staff/{id}/status', [StaffsController::class, 'updateStatus'])->name('staffs.status');
     });
     Route::middleware('admin_permission:doctors.manage')->group(function () {

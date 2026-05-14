@@ -143,3 +143,214 @@ header.bgs-portal-scroll-header .sticky-bar.stick {
 header.bgs-portal-scroll-header .sticky-bar.stick {
   background-color: var(--colorPrimary) !important;
 }
+
+/*
+ * Doctor portal: center main column content (titles, cards, toolbars) at all breakpoints.
+ * Tables stay left-aligned for readability.
+ */
+body.doctor-portal .main.pages .page-header.breadcrumb-wrap .container {
+  text-align: center;
+}
+
+body.doctor-portal .main.pages .page-header.breadcrumb-wrap .breadcrumb {
+  display: inline-block;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content.pl-50 {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content {
+  text-align: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content > .section-title,
+body.doctor-portal .main.pages .account.dashboard-content > .section-title h1,
+body.doctor-portal .main.pages .account.dashboard-content > .section-title h3,
+body.doctor-portal .main.pages .account.dashboard-content > .section-title h4,
+body.doctor-portal .main.pages .account.dashboard-content > .section-title h5 {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content > .section-title p {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 40rem;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content > .section-title.d-flex {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center;
+  gap: 0.75rem !important;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content > .section-title .d-flex.flex-wrap {
+  justify-content: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content > .row {
+  justify-content: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .card .card-body > .row.g-3,
+body.doctor-portal .main.pages .account.dashboard-content .card .card-body > form > .row {
+  justify-content: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .card > .card-header h5,
+body.doctor-portal .main.pages .account.dashboard-content .card > .card-header h4 {
+  width: 100%;
+  text-align: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .card-header.d-flex {
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .card-header.d-flex > .small,
+body.doctor-portal .main.pages .account.dashboard-content .card-header.d-flex > span {
+  margin-left: 0 !important;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .alert {
+  text-align: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .pagination {
+  justify-content: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .d-flex.flex-wrap.align-items-center .ms-auto {
+  margin-left: 0 !important;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .d-flex.flex-wrap.align-items-center {
+  justify-content: center !important;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .view-switch {
+  justify-content: center;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .doctor-appt-calendar .d-flex.justify-content-between.gap-3 {
+  justify-content: center !important;
+  flex-wrap: wrap;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .table-responsive,
+body.doctor-portal .main.pages .account.dashboard-content .table-responsive th,
+body.doctor-portal .main.pages .account.dashboard-content .table-responsive td {
+  text-align: left !important;
+}
+
+body.doctor-portal .main.pages .account.dashboard-content .table-responsive .text-center {
+  text-align: center !important;
+}
+
+/* Doctor portal: horizontal top navigation (replaces left sidebar) */
+body.doctor-portal .doctor-portal-top-nav {
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid rgba(180, 120, 140, 0.22);
+  background: linear-gradient(165deg, #fff8fa 0%, #ffffff 55%, #fffafc 100%);
+  box-shadow: 0 8px 28px rgba(120, 40, 70, 0.06);
+  padding: 0.35rem 0.5rem;
+}
+
+body.doctor-portal .doctor-portal-top-nav-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(180, 120, 140, 0.45) transparent;
+  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+}
+
+body.doctor-portal .doctor-portal-top-nav-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+body.doctor-portal .doctor-portal-top-nav-scroll::-webkit-scrollbar-thumb {
+  background: rgba(180, 120, 140, 0.35);
+  border-radius: 999px;
+}
+
+body.doctor-portal ul.doctor-portal-nav-h {
+  gap: 0.4rem;
+  padding: 0.15rem 0.25rem;
+  min-height: 2.75rem;
+}
+
+body.doctor-portal .doctor-portal-nav-h-link {
+  display: inline-flex !important;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  padding: 0.55rem 0.95rem !important;
+  border-radius: 999px !important;
+  color: #5c5560 !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(200, 160, 175, 0.35) !important;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+}
+
+body.doctor-portal .doctor-portal-nav-h-link i {
+  font-size: 0.95rem;
+  opacity: 0.72;
+  margin-right: 0.35rem !important;
+}
+
+body.doctor-portal .doctor-portal-nav-h-link:hover {
+  color: #3d3840 !important;
+  border-color: rgba(180, 120, 140, 0.55) !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(120, 40, 70, 0.08);
+}
+
+body.doctor-portal .doctor-portal-nav-h-link.active {
+  color: #fff !important;
+  background-color: var(--colorSecondary) !important;
+  border-color: var(--colorSecondary) !important;
+  box-shadow: 0 4px 16px rgba(180, 60, 100, 0.25);
+}
+
+body.doctor-portal .doctor-portal-nav-h-link.active i {
+  color: #fff !important;
+  opacity: 1;
+}
+
+body.doctor-portal .doctor-portal-nav-h-logout form {
+  display: flex;
+  height: 100%;
+  align-items: center;
+}
+
+body.doctor-portal .doctor-portal-nav-h-link--logout {
+  cursor: pointer;
+  width: auto !important;
+  text-align: center !important;
+}
+
+body.doctor-portal .doctor-portal-nav-h-link--logout:hover {
+  color: #b4234a !important;
+  border-color: rgba(180, 60, 100, 0.45) !important;
+  background: #fff5f8 !important;
+}
+
+@media (min-width: 992px) {
+  body.doctor-portal .doctor-portal-top-nav-scroll {
+    mask-image: none;
+  }
+}

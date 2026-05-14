@@ -199,6 +199,162 @@ class DoctorPatientRecordController extends Controller
             })
             ->values();
 
+        $bodyAnalyzerImages = $appointments
+            ->filter(function ($appt) {
+                $url = $appt->note?->bodyAnalyzerImageUrl();
+
+                return filled($url);
+            })
+            ->sortBy(function ($appt) {
+                $date = $appt->appointment_date?->toDateString() ?? '1970-01-01';
+                $raw = $appt->appointment_time;
+                $timeSort = '00:00:00';
+                if ($raw !== null && $raw !== '') {
+                    $timeSort = is_string($raw) && strlen($raw) >= 8
+                        ? substr($raw, 0, 8)
+                        : \Illuminate\Support\Carbon::parse($raw)->format('H:i:s');
+                }
+
+                return $date.' '.$timeSort;
+            })
+            ->values()
+            ->map(function ($appt) {
+                return (object) [
+                    'appointment' => $appt,
+                    'url' => $appt->note->bodyAnalyzerImageUrl(),
+                ];
+            });
+
+        $bottleCitrusImages = $appointments
+            ->filter(function ($appt) {
+                $url = $appt->note?->bottleCitrusImageUrl();
+
+                return filled($url);
+            })
+            ->sortBy(function ($appt) {
+                $date = $appt->appointment_date?->toDateString() ?? '1970-01-01';
+                $raw = $appt->appointment_time;
+                $timeSort = '00:00:00';
+                if ($raw !== null && $raw !== '') {
+                    $timeSort = is_string($raw) && strlen($raw) >= 8
+                        ? substr($raw, 0, 8)
+                        : \Illuminate\Support\Carbon::parse($raw)->format('H:i:s');
+                }
+
+                return $date.' '.$timeSort;
+            })
+            ->values()
+            ->map(function ($appt) {
+                return (object) [
+                    'appointment' => $appt,
+                    'url' => $appt->note->bottleCitrusImageUrl(),
+                ];
+            });
+
+        $lemonBottleImages = $appointments
+            ->filter(function ($appt) {
+                $url = $appt->note?->lemonBottleImageUrl();
+
+                return filled($url);
+            })
+            ->sortBy(function ($appt) {
+                $date = $appt->appointment_date?->toDateString() ?? '1970-01-01';
+                $raw = $appt->appointment_time;
+                $timeSort = '00:00:00';
+                if ($raw !== null && $raw !== '') {
+                    $timeSort = is_string($raw) && strlen($raw) >= 8
+                        ? substr($raw, 0, 8)
+                        : \Illuminate\Support\Carbon::parse($raw)->format('H:i:s');
+                }
+
+                return $date.' '.$timeSort;
+            })
+            ->values()
+            ->map(function ($appt) {
+                return (object) [
+                    'appointment' => $appt,
+                    'url' => $appt->note->lemonBottleImageUrl(),
+                ];
+            });
+
+        $aqualyxImages = $appointments
+            ->filter(function ($appt) {
+                $url = $appt->note?->aqualyxImageUrl();
+
+                return filled($url);
+            })
+            ->sortBy(function ($appt) {
+                $date = $appt->appointment_date?->toDateString() ?? '1970-01-01';
+                $raw = $appt->appointment_time;
+                $timeSort = '00:00:00';
+                if ($raw !== null && $raw !== '') {
+                    $timeSort = is_string($raw) && strlen($raw) >= 8
+                        ? substr($raw, 0, 8)
+                        : \Illuminate\Support\Carbon::parse($raw)->format('H:i:s');
+                }
+
+                return $date.' '.$timeSort;
+            })
+            ->values()
+            ->map(function ($appt) {
+                return (object) [
+                    'appointment' => $appt,
+                    'url' => $appt->note->aqualyxImageUrl(),
+                ];
+            });
+
+        $dripImages = $appointments
+            ->filter(function ($appt) {
+                $url = $appt->note?->dripImageUrl();
+
+                return filled($url);
+            })
+            ->sortBy(function ($appt) {
+                $date = $appt->appointment_date?->toDateString() ?? '1970-01-01';
+                $raw = $appt->appointment_time;
+                $timeSort = '00:00:00';
+                if ($raw !== null && $raw !== '') {
+                    $timeSort = is_string($raw) && strlen($raw) >= 8
+                        ? substr($raw, 0, 8)
+                        : \Illuminate\Support\Carbon::parse($raw)->format('H:i:s');
+                }
+
+                return $date.' '.$timeSort;
+            })
+            ->values()
+            ->map(function ($appt) {
+                return (object) [
+                    'appointment' => $appt,
+                    'url' => $appt->note->dripImageUrl(),
+                ];
+            });
+
+        $microNeedlingImages = $appointments
+            ->filter(function ($appt) {
+                $url = $appt->note?->microNeedlingImageUrl();
+
+                return filled($url);
+            })
+            ->sortBy(function ($appt) {
+                $date = $appt->appointment_date?->toDateString() ?? '1970-01-01';
+                $raw = $appt->appointment_time;
+                $timeSort = '00:00:00';
+                if ($raw !== null && $raw !== '') {
+                    $timeSort = is_string($raw) && strlen($raw) >= 8
+                        ? substr($raw, 0, 8)
+                        : \Illuminate\Support\Carbon::parse($raw)->format('H:i:s');
+                }
+
+                return $date.' '.$timeSort;
+            })
+            ->values()
+            ->map(function ($appt) {
+                return (object) [
+                    'appointment' => $appt,
+                    'url' => $appt->note->microNeedlingImageUrl(),
+                ];
+            });
+
         return view('doctor.appointments.patient-record.show', compact(
             'patient',
             'appointments',
@@ -214,6 +370,12 @@ class DoctorPatientRecordController extends Controller
             'payments',
             'appointmentPayments',
             'notesHistory',
+            'bodyAnalyzerImages',
+            'bottleCitrusImages',
+            'lemonBottleImages',
+            'aqualyxImages',
+            'dripImages',
+            'microNeedlingImages',
         ));
     }
 

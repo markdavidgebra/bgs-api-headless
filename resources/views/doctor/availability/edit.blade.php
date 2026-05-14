@@ -19,7 +19,7 @@
           <div class="col-12">
             <div class="row">
               @include('doctor.layouts.sidebar')
-              <div class="col-12 col-md-9">
+              <div class="col-12">
                 <div class="account dashboard-content pl-50">
                   <div class="section-title mb-20 d-flex justify-content-between align-items-center">
                     <h3 class="mb-0">Edit {{ $schedule->day_label }}</h3>

@@ -19,7 +19,7 @@
           <div class="col-12">
             <div class="row">
               @include('doctor.layouts.sidebar')
-              <div class="col-12 col-md-9">
+              <div class="col-12">
                 <div class="account dashboard-content pl-50">
                   <div class="section-title">
                     <h3>Hello, {{ $doctor->name ?? 'Doctor' }}!</h3>

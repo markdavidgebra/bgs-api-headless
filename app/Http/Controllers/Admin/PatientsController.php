@@ -421,7 +421,10 @@ class PatientsController extends Controller
         $hasContent = collect($data)->contains(static fn ($v) => $v !== null && $v !== '');
 
         if (! $hasContent) {
-            AppointmentNote::query()->where('appointment_id', $appt->id)->delete();
+            $existingNote = AppointmentNote::query()->where('appointment_id', $appt->id)->first();
+            if ($existingNote) {
+                $existingNote->delete();
+            }
 
             return redirect()
                 ->route('admin.patients.show', $patient)
@@ -508,7 +511,10 @@ class PatientsController extends Controller
             ->where('patient_id', $patient)
             ->firstOrFail();
 
-        AppointmentNote::query()->where('appointment_id', $appt->id)->delete();
+        $note = AppointmentNote::query()->where('appointment_id', $appt->id)->first();
+        if ($note) {
+            $note->delete();
+        }
 
         return redirect()
             ->route('admin.patients.show', $patient)

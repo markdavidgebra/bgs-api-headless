@@ -126,10 +126,10 @@
                       $noteSectionLabels = [
                           'patient_concern' => 'Patient concern',
                           'doctor_notes' => 'Doctor notes',
-                          'instructions' => 'Instructions',
-                          'alerts' => 'Alerts',
-                          'appointment_remarks' => 'Appointment remarks',
-                          'admin_notes' => 'Admin notes',
+                          'instructions' => 'Take home medications',
+                          'alerts' => 'Allergy',
+                          'appointment_remarks' => 'Post procedures',
+                          'admin_notes' => 'Medical history',
                       ];
                       $initialNote = [
                           'patient_concern' => $noteField('patient_concern'),

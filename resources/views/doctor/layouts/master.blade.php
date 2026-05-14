@@ -26,10 +26,10 @@
    
     <link rel="stylesheet" href="{{ $pd('css/main.css') }}?v=6.0" />
     <link rel="stylesheet" href="{{ $pd('css/patient-mobile-drawer.css') }}?v=1.3" />
-    <link rel="stylesheet" href="{{ $pd('css/bgs-portal-mobile-content.css') }}?v=1.2" />
+    <link rel="stylesheet" href="{{ $pd('css/bgs-portal-mobile-content.css') }}?v=1.4" />
 </head>
 
-<body>
+<body class="doctor-portal">
     @include('doctor.layouts.header')
     @include('doctor.layouts.mobile-view')
     <!--End header-->

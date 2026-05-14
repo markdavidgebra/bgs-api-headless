@@ -67,7 +67,7 @@
             <div class="row">
               @include('doctor.layouts.sidebar')
 
-              <div class="col-12 col-md-9">
+              <div class="col-12">
                 <div class="account dashboard-content pl-50">
                   <div class="section-title mb-20 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
@@ -109,11 +109,11 @@
                           <div class="note-block">{{ $note->patient_concern ?: '—' }}</div>
                         </div>
                         <div class="col-md-6 mb-4">
-                          <div class="note-label">Appointment remarks</div>
+                          <div class="note-label">Post procedures</div>
                           <div class="note-block">{{ $note->appointment_remarks ?: '—' }}</div>
                         </div>
                         <div class="col-md-6 mb-4">
-                          <div class="note-label">Admin notes</div>
+                          <div class="note-label">Medical history</div>
                           <div class="note-block">{{ $note->admin_notes ?: '—' }}</div>
                         </div>
                         <div class="col-md-6 mb-4">
@@ -121,11 +121,11 @@
                           <div class="note-block">{{ $note->doctor_notes ?: '—' }}</div>
                         </div>
                         <div class="col-md-6 mb-4">
-                          <div class="note-label">Instructions (recommendation)</div>
+                          <div class="note-label">Take home medications</div>
                           <div class="note-block">{{ $note->instructions ?: '—' }}</div>
                         </div>
                         <div class="col-md-6 mb-4">
-                          <div class="note-label">Alerts (follow-up)</div>
+                          <div class="note-label">Allergy</div>
                           <div class="note-block">{{ $note->alerts ?: '—' }}</div>
                         </div>
                       </div>
