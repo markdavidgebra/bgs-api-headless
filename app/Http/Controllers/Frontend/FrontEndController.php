@@ -23,14 +23,7 @@ class FrontEndController extends Controller
 {
     public function about(): View
     {
-        $about = About::query()
-            ->published()
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->first();
-
         return view('frontend.pages.about.about', [
-            'about' => $about,
             'aboutPageHeaderBgUrl' => PageHeaderConfig::aboutBackgroundUrl(),
         ]);
     }
