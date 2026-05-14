@@ -331,24 +331,78 @@
                     <div class="card-header"><h5 class="mb-0">Packages / Memberships</h5></div>
                     <div class="card-body">
                       <h6 class="mb-10">Packages</h6>
-                      <div class="table-responsive mb-20">
-                        <table class="table mb-0">
-                          <thead>
-                            <tr><th>Plan Name</th><th>Sessions Used</th><th>Sessions Remaining</th><th>Expiry Date</th></tr>
-                          </thead>
-                          <tbody>
-                            @forelse ($packages as $package)
-                              <tr>
-                                <td>{{ $package->treatmentPackage->name ?? '—' }}</td>
-                                <td>{{ (int) $package->used_sessions }}</td>
-                                <td>{{ (int) $package->remaining_sessions }}</td>
-                                <td>{{ $package->end_date?->format('Y-m-d') ?? '—' }}</td>
-                              </tr>
-                            @empty
-                              <tr><td colspan="4" class="text-center text-secondary py-4">No package records.</td></tr>
-                            @endforelse
-                          </tbody>
-                        </table>
+                      <div class="mb-20">
+                        @forelse ($patientPackageProgress as $pp)
+                          @php
+                            $package = $pp->package;
+                            $pkgName = $package->treatmentPackage->name ?? '—';
+                            $pkgTotal = max(0, (int) $package->total_sessions);
+                            $pkgUsed = max(0, min($pkgTotal, (int) $package->used_sessions));
+                          @endphp
+                          <div class="border rounded p-3 mb-15">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                              <strong>{{ $pkgName }}</strong>
+                              <span class="text-secondary small">{{ $package->end_date?->format('Y-m-d') ?? '—' }}</span>
+                            </div>
+
+                            @if ($pp->has_breakdown)
+                              <form method="POST" action="{{ route('doctor.patient-records.packages.sessions.update', ['patient' => $patient, 'patientPackage' => $package]) }}" class="pkg-per-service-form">
+                                @csrf
+                                @method('PATCH')
+                                @foreach ($pp->rows->groupBy('service_id') as $serviceId => $sessionRows)
+                                  @php $serviceName = $sessionRows->first()['service_name']; @endphp
+                                  <div class="mb-3">
+                                    <div class="small fw-semibold text-muted mb-1">{{ $serviceName }}</div>
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                      <span class="small text-muted">{{ $sessionRows->where('is_done', true)->count() }}/{{ $sessionRows->count() }}</span>
+                                      <div class="d-flex flex-wrap gap-1 pt-1" role="group" aria-label="Sessions for {{ $serviceName }}">
+                                        @foreach ($sessionRows as $row)
+                                          <input type="checkbox"
+                                            name="checked_service_sessions[]"
+                                            value="{{ $row['key'] }}"
+                                            class="form-check-input m-0"
+                                            style="width: 1.1rem; height: 1.1rem; cursor: pointer;"
+                                            title="{{ __('Session :n', ['n' => $row['session_no']]) }}"
+                                            @checked($row['is_done'])>
+                                        @endforeach
+                                      </div>
+                                    </div>
+                                  </div>
+                                @endforeach
+                                @php
+                                  $doneAll = $pp->rows->where('is_done', true)->count();
+                                  $totalAll = $pp->rows->count();
+                                @endphp
+                                <div class="small text-muted mb-2">{{ $doneAll }}/{{ $totalAll }} {{ __('sessions overall') }}</div>
+                                <button type="submit" class="btn btn-sm btn-primary">{{ __('Save package progress') }}</button>
+                              </form>
+                            @elseif ($pkgTotal > 0)
+                              <form method="POST" action="{{ route('doctor.patient-records.packages.sessions.update', ['patient' => $patient, 'patientPackage' => $package]) }}" class="pkg-aggregate-form">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="used_sessions" value="{{ $pkgUsed }}" class="pkg-used-input">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                  <span class="small text-muted">{{ $pkgUsed }}/{{ $pkgTotal }}</span>
+                                  <div class="d-flex flex-wrap gap-1 pt-1" role="group" aria-label="Sessions completed">
+                                    @for ($i = 1; $i <= $pkgTotal; $i++)
+                                      <input type="checkbox"
+                                        class="form-check-input m-0 pkg-session-cb"
+                                        style="width: 1.1rem; height: 1.1rem; cursor: pointer;"
+                                        title="{{ __('Session :n', ['n' => $i]) }}"
+                                        data-index="{{ $i }}"
+                                        @checked($i <= $pkgUsed)>
+                                    @endfor
+                                  </div>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary mt-2">{{ __('Save package progress') }}</button>
+                              </form>
+                            @else
+                              <p class="text-secondary small mb-0">{{ __('No session slots configured for this package.') }}</p>
+                            @endif
+                          </div>
+                        @empty
+                          <p class="text-center text-secondary py-4 mb-0">{{ __('No package records.') }}</p>
+                        @endforelse
                       </div>
 
                       <h6 class="mb-10">Memberships</h6>
@@ -679,13 +733,27 @@
     document.addEventListener('DOMContentLoaded', function () {
       const buttons = document.querySelectorAll('#tabButtons .tab-btn');
       const panels = document.querySelectorAll('.tab-panel');
+
+      function activatePatientRecordTab(panelId) {
+        const panel = document.getElementById(panelId);
+        const btn = document.querySelector(`#tabButtons .tab-btn[data-target="${panelId}"]`);
+        if (!panel || !btn) {
+          return;
+        }
+        buttons.forEach((b) => b.classList.remove('active'));
+        panels.forEach((p) => p.classList.remove('active'));
+        btn.classList.add('active');
+        panel.classList.add('active');
+      }
+
+      const tabFromHash = window.location.hash.replace(/^#/, '');
+      if (tabFromHash) {
+        activatePatientRecordTab(tabFromHash);
+      }
+
       buttons.forEach((button) => {
         button.addEventListener('click', () => {
-          buttons.forEach((b) => b.classList.remove('active'));
-          panels.forEach((p) => p.classList.remove('active'));
-          button.classList.add('active');
-          const panel = document.getElementById(button.dataset.target);
-          if (panel) panel.classList.add('active');
+          activatePatientRecordTab(button.dataset.target);
         });
       });
 
@@ -928,6 +996,33 @@
         });
       });
       applyMicroNeedlingView('all');
+
+      document.querySelectorAll('.pkg-aggregate-form').forEach((form) => {
+        const hidden = form.querySelector('.pkg-used-input');
+        const boxes = Array.from(form.querySelectorAll('.pkg-session-cb'));
+        if (!hidden || boxes.length === 0) {
+          return;
+        }
+        boxes.forEach((cb) => {
+          cb.addEventListener('change', () => {
+            const idx = parseInt(cb.getAttribute('data-index'), 10);
+            if (Number.isNaN(idx)) {
+              return;
+            }
+            let used = parseInt(hidden.value, 10) || 0;
+            if (cb.checked) {
+              used = idx;
+            } else {
+              used = idx - 1;
+            }
+            used = Math.max(0, Math.min(boxes.length, used));
+            hidden.value = String(used);
+            boxes.forEach((b, j) => {
+              b.checked = (j + 1) <= used;
+            });
+          });
+        });
+      });
     });
   </script>
 @endsection

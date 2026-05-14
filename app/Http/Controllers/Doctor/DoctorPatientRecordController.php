@@ -9,9 +9,11 @@ use App\Models\AppointmentPayment;
 use App\Models\Patient;
 use App\Models\PatientSubscription;
 use App\Models\Payment;
+use App\Models\TreatmentPackageUsageHistory;
 use App\Models\TreatmentPatientPackage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DoctorPatientRecordController extends Controller
@@ -166,10 +168,47 @@ class DoctorPatientRecordController extends Controller
             ->get();
 
         $packages = TreatmentPatientPackage::query()
-            ->with('treatmentPackage:id,name')
+            ->with(['treatmentPackage.services'])
             ->where('patient_id', $patient->id)
             ->orderByDesc('start_date')
+            ->orderByDesc('id')
             ->get();
+
+        $patientPackageProgress = $packages->map(function (TreatmentPatientPackage $pkg) {
+            $pkg->loadMissing('treatmentPackage.services');
+            $completedByService = TreatmentPackageUsageHistory::query()
+                ->where('patient_package_id', $pkg->id)
+                ->where('status', 'completed')
+                ->selectRaw('service_id, COUNT(*) as total_done')
+                ->groupBy('service_id')
+                ->pluck('total_done', 'service_id')
+                ->map(static fn ($v): int => (int) $v)
+                ->all();
+
+            $rows = collect();
+            foreach ($pkg->treatmentPackage?->services ?? [] as $service) {
+                $serviceId = (int) $service->id;
+                $requiredSessions = max(1, (int) ($service->pivot->sessions ?? 1));
+                $doneSessions = min($requiredSessions, (int) ($completedByService[$serviceId] ?? 0));
+
+                for ($sessionNo = 1; $sessionNo <= $requiredSessions; $sessionNo++) {
+                    $rows->push([
+                        'key' => $serviceId.':'.$sessionNo,
+                        'service_id' => $serviceId,
+                        'service_name' => (string) $service->name,
+                        'session_no' => $sessionNo,
+                        'required_sessions' => $requiredSessions,
+                        'is_done' => $sessionNo <= $doneSessions,
+                    ]);
+                }
+            }
+
+            return (object) [
+                'package' => $pkg,
+                'rows' => $rows,
+                'has_breakdown' => $rows->isNotEmpty(),
+            ];
+        })->values();
 
         $payments = Payment::query()
             ->where('patient_id', $patient->id)
@@ -366,7 +405,7 @@ class DoctorPatientRecordController extends Controller
             'upcomingAppointments',
             'pastAppointments',
             'subscriptions',
-            'packages',
+            'patientPackageProgress',
             'payments',
             'appointmentPayments',
             'notesHistory',
@@ -440,5 +479,138 @@ class DoctorPatientRecordController extends Controller
         return redirect()
             ->route('doctor.patient-records.show', $patient)
             ->with('success', 'Treatment note saved successfully.');
+    }
+
+    public function updatePatientPackageSessions(Request $request, Patient $patient, TreatmentPatientPackage $patientPackage): RedirectResponse
+    {
+        if ((int) $patientPackage->patient_id !== (int) $patient->id) {
+            abort(404);
+        }
+
+        $patientPackage->loadMissing('treatmentPackage.services');
+        $requiredByService = [];
+        foreach ($patientPackage->treatmentPackage?->services ?? [] as $service) {
+            $requiredByService[(int) $service->id] = max(1, (int) ($service->pivot->sessions ?? 1));
+        }
+
+        if ($requiredByService !== []) {
+            $validated = $request->validate([
+                'checked_service_sessions' => ['nullable', 'array'],
+                'checked_service_sessions.*' => ['string', 'regex:/^(\d+):(\d+)$/'],
+            ]);
+
+            $desiredDoneByService = [];
+            foreach ($validated['checked_service_sessions'] ?? [] as $token) {
+                if (! is_string($token)) {
+                    continue;
+                }
+                [$serviceIdRaw, $sessionNoRaw] = array_pad(explode(':', $token, 2), 2, null);
+                $serviceId = (int) $serviceIdRaw;
+                $sessionNo = (int) $sessionNoRaw;
+
+                if ($serviceId < 1 || $sessionNo < 1 || ! isset($requiredByService[$serviceId])) {
+                    continue;
+                }
+
+                $required = $requiredByService[$serviceId];
+                if ($sessionNo > $required) {
+                    continue;
+                }
+
+                $desiredDoneByService[$serviceId] = max($desiredDoneByService[$serviceId] ?? 0, $sessionNo);
+            }
+
+            $expectedTotal = array_sum($requiredByService);
+            $totalSessions = max((int) ($patientPackage->total_sessions ?? 0), $expectedTotal);
+            $newUsedSessions = array_sum($desiredDoneByService);
+            $newRemainingSessions = max($totalSessions - $newUsedSessions, 0);
+            $newStatus = $newUsedSessions >= $totalSessions && $totalSessions > 0
+                ? 'completed'
+                : ($newUsedSessions > 0 ? 'ongoing' : 'pending');
+
+            DB::transaction(function () use ($patient, $patientPackage, $requiredByService, $desiredDoneByService, $newUsedSessions, $newRemainingSessions, $newStatus, $totalSessions): void {
+                $patientPackage->update([
+                    'total_sessions' => $totalSessions,
+                    'used_sessions' => $newUsedSessions,
+                    'remaining_sessions' => $newRemainingSessions,
+                    'status' => $newStatus,
+                ]);
+
+                $existingDoneByService = TreatmentPackageUsageHistory::query()
+                    ->where('patient_package_id', $patientPackage->id)
+                    ->where('status', 'completed')
+                    ->selectRaw('service_id, COUNT(*) as total_done')
+                    ->groupBy('service_id')
+                    ->pluck('total_done', 'service_id')
+                    ->map(static fn ($v): int => (int) $v)
+                    ->all();
+
+                foreach ($requiredByService as $serviceId => $requiredSessions) {
+                    $desired = min($requiredSessions, (int) ($desiredDoneByService[$serviceId] ?? 0));
+                    $existing = min($requiredSessions, (int) ($existingDoneByService[$serviceId] ?? 0));
+                    $diff = $desired - $existing;
+
+                    if ($diff > 0) {
+                        for ($i = 0; $i < $diff; $i++) {
+                            TreatmentPackageUsageHistory::query()->create([
+                                'patient_package_id' => $patientPackage->id,
+                                'patient_id' => $patient->id,
+                                'service_id' => $serviceId,
+                                'used_on' => now()->toDateString(),
+                                'session_change' => -1,
+                                'status' => 'completed',
+                                'notes' => 'Patient record — package progress',
+                            ]);
+                        }
+                    } elseif ($diff < 0) {
+                        $removeCount = abs($diff);
+                        $toDelete = TreatmentPackageUsageHistory::query()
+                            ->where('patient_package_id', $patientPackage->id)
+                            ->where('service_id', $serviceId)
+                            ->where('status', 'completed')
+                            ->orderByDesc('used_on')
+                            ->orderByDesc('id')
+                            ->limit($removeCount)
+                            ->pluck('id');
+
+                        if ($toDelete->isNotEmpty()) {
+                            TreatmentPackageUsageHistory::query()
+                                ->whereIn('id', $toDelete->all())
+                                ->delete();
+                        }
+                    }
+                }
+            });
+
+            return $this->redirectAfterPatientPackageSessionsSave($patient);
+        }
+
+        $validated = $request->validate([
+            'used_sessions' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $total = max(0, (int) $patientPackage->total_sessions);
+        $used = min($total, max(0, (int) $validated['used_sessions']));
+        $remaining = max(0, $total - $used);
+
+        $status = $total > 0 && $used >= $total
+            ? 'completed'
+            : ($used > 0 ? 'ongoing' : 'pending');
+
+        $patientPackage->update([
+            'used_sessions' => $used,
+            'remaining_sessions' => $remaining,
+            'status' => $status,
+        ]);
+
+        return $this->redirectAfterPatientPackageSessionsSave($patient);
+    }
+
+    private function redirectAfterPatientPackageSessionsSave(Patient $patient): RedirectResponse
+    {
+        return redirect()
+            ->route('doctor.patient-records.show', $patient)
+            ->with('success', 'Package session progress updated.')
+            ->withFragment('tab-packages');
     }
 }

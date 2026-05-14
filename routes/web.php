@@ -123,6 +123,7 @@ Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doc
     Route::get('/patient-records', [DoctorPatientRecordController::class, 'index'])->name('patient-records');
     Route::get('/patient-records/{patient}', [DoctorPatientRecordController::class, 'show'])->name('patient-records.show');
     Route::post('/patient-records/{patient}/notes', [DoctorPatientRecordController::class, 'storeNote'])->name('patient-records.notes.store');
+    Route::patch('/patient-records/{patient}/packages/{patientPackage}/sessions', [DoctorPatientRecordController::class, 'updatePatientPackageSessions'])->name('patient-records.packages.sessions.update');
     Route::get('/treatment-notes', [DoctorTreatmentNoteController::class, 'index'])->name('treatment-notes');
     Route::get('/treatment-notes/{appointment}', [DoctorTreatmentNoteController::class, 'show'])->name('treatment-notes.show');
     Route::get('/notifications', [DoctorNotificationController::class, 'index'])->name('notifications');

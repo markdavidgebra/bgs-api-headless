@@ -10,6 +10,7 @@ use App\Models\AppointmentPayment;
 use App\Models\Patient;
 use App\Models\PatientSubscription;
 use App\Models\Payment;
+use App\Models\TreatmentPackage;
 use App\Models\TreatmentPackageUsageHistory;
 use App\Models\TreatmentPatientPackage;
 use App\Notifications\Patient\PatientPasswordResetLinkSentNotification;
@@ -18,6 +19,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -236,7 +238,83 @@ class PatientsController extends Controller
         $patient = Patient::query()->findOrFail($id);
         $canManageStatus = $this->canManageStatus();
 
-        return view('admin.patients.edit', compact('patient', 'canManageStatus'));
+        $treatmentPackagesForAssign = TreatmentPackage::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'price', 'validity_type', 'validity_value']);
+
+        $patientPackages = TreatmentPatientPackage::query()
+            ->with('treatmentPackage:id,name')
+            ->where('patient_id', $patient->id)
+            ->orderByDesc('purchased_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('admin.patients.edit', compact(
+            'patient',
+            'canManageStatus',
+            'treatmentPackagesForAssign',
+            'patientPackages',
+        ));
+    }
+
+    public function storePatientTreatmentPackage(Request $request, int $id): RedirectResponse
+    {
+        $patient = Patient::query()->findOrFail($id);
+
+        $validated = $request->validate([
+            'treatment_package_id' => ['required', 'integer', 'exists:treatment_packages,id'],
+            'purchased_at' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date'],
+            'package_admin_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $package = TreatmentPackage::query()
+            ->where('status', 'active')
+            ->whereKey($validated['treatment_package_id'])
+            ->firstOrFail();
+
+        $purchasedAt = isset($validated['purchased_at'])
+            ? Carbon::parse($validated['purchased_at'])->startOfDay()
+            : now()->startOfDay();
+
+        $startDate = isset($validated['start_date'])
+            ? Carbon::parse($validated['start_date'])->startOfDay()
+            : $purchasedAt;
+
+        $endDate = null;
+        if (! empty($package->validity_value) && ! empty($package->validity_type)) {
+            $endDateCarbon = $package->validity_type === 'year'
+                ? $purchasedAt->copy()->addYears((int) $package->validity_value)
+                : $purchasedAt->copy()->addMonths((int) $package->validity_value);
+            $endDate = $endDateCarbon->toDateString();
+        }
+
+        $totalSessions = (int) DB::table('treatment_service_package')
+            ->where('treatment_package_id', $package->id)
+            ->sum('sessions');
+
+        $noteParts = ['Assigned from admin patient edit'];
+        if (! empty($validated['package_admin_notes'])) {
+            $noteParts[] = trim((string) $validated['package_admin_notes']);
+        }
+
+        TreatmentPatientPackage::query()->create([
+            'patient_id' => $patient->id,
+            'treatment_package_id' => $package->id,
+            'purchased_at' => $purchasedAt->toDateString(),
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate,
+            'status' => 'active',
+            'total_sessions' => max(0, $totalSessions),
+            'used_sessions' => 0,
+            'remaining_sessions' => max(0, $totalSessions),
+            'notes' => implode(' | ', $noteParts),
+        ]);
+
+        return redirect()
+            ->route('admin.patients.edit', $patient->id)
+            ->with('status', __('Treatment package added for this patient.'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
