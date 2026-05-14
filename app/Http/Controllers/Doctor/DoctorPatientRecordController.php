@@ -21,94 +21,98 @@ class DoctorPatientRecordController extends Controller
         $doctorId = auth('doctor')->id();
         $search = trim($request->string('search')->toString());
 
-        $appointments = Appointment::query()
-            ->with(['patient:id,name,email,phone,status'])
-            ->where('doctor_id', $doctorId)
-            ->orderByDesc('appointment_date')
-            ->orderByDesc('appointment_time')
-            ->get();
-
-        $records = $appointments
-            ->filter(fn ($appointment) => filled($appointment->patient_id) && $appointment->patient !== null)
-            ->groupBy('patient_id')
-            ->map(function ($rows) {
-                $patient = $rows->first()->patient;
-                $lastAppointment = $rows
-                    ->sortByDesc(fn ($row) => ($row->appointment_date?->toDateString() ?? '').' '.(string) $row->appointment_time)
-                    ->first();
-                $nextAppointment = $rows
-                    ->filter(fn ($row) => ($row->appointment_date?->toDateString() ?? '') >= now()->toDateString())
-                    ->sortBy(fn ($row) => ($row->appointment_date?->toDateString() ?? '').' '.(string) $row->appointment_time)
-                    ->first();
-
-                return (object) [
-                    'patient' => $patient,
-                    'total_appointments' => $rows->count(),
-                    'completed_appointments' => $rows->where('status', 'completed')->count(),
-                    'cancelled_appointments' => $rows->where('status', 'cancelled')->count(),
-                    'last_appointment' => $lastAppointment,
-                    'next_appointment' => $nextAppointment,
-                ];
+        $patientsPaginator = Patient::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $term = '%'.addcslashes($search, '%_\\').'%';
+                $query->where(function ($inner) use ($term) {
+                    $inner->where('name', 'like', $term)
+                        ->orWhere('email', 'like', $term)
+                        ->orWhere('phone', 'like', $term);
+                });
             })
-            ->values();
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
 
-        $patientIds = $records->pluck('patient.id')->filter()->unique()->values();
+        $patientIds = $patientsPaginator->getCollection()->pluck('id')->filter()->unique()->values();
         $today = now()->toDateString();
 
-        $activeMembershipByPatient = PatientSubscription::query()
-            ->with('membershipPlan:id,name')
-            ->whereIn('patient_id', $patientIds)
-            ->where('status', 'active')
-            ->where(function ($query) use ($today) {
-                $query->whereNull('end_date')
-                    ->orWhereDate('end_date', '>=', $today);
-            })
-            ->orderByDesc('start_date')
-            ->get()
-            ->groupBy('patient_id')
-            ->map(fn ($group) => $group->first());
+        $visitCounts = collect();
+        $lastAppointments = collect();
 
-        $activePackageByPatient = TreatmentPatientPackage::query()
-            ->with('treatmentPackage:id,name')
-            ->whereIn('patient_id', $patientIds)
-            ->where('status', 'active')
-            ->where(function ($query) use ($today) {
-                $query->whereNull('end_date')
-                    ->orWhereDate('end_date', '>=', $today);
-            })
-            ->orderByDesc('start_date')
-            ->get()
-            ->groupBy('patient_id')
-            ->map(fn ($group) => $group->first());
+        if ($patientIds->isNotEmpty()) {
+            $visitCounts = Appointment::query()
+                ->where('doctor_id', $doctorId)
+                ->whereIn('patient_id', $patientIds)
+                ->selectRaw('patient_id, COUNT(*) as visit_count')
+                ->groupBy('patient_id')
+                ->pluck('visit_count', 'patient_id');
 
-        $records = $records->map(function ($record) use ($activeMembershipByPatient, $activePackageByPatient) {
-            $patientId = $record->patient?->id;
+            $lastAppointments = Appointment::query()
+                ->where('doctor_id', $doctorId)
+                ->whereIn('patient_id', $patientIds)
+                ->orderByDesc('appointment_date')
+                ->orderByDesc('appointment_time')
+                ->get()
+                ->unique('patient_id')
+                ->keyBy('patient_id');
+        }
+
+        $activeMembershipByPatient = $patientIds->isEmpty()
+            ? collect()
+            : PatientSubscription::query()
+                ->with('membershipPlan:id,name')
+                ->whereIn('patient_id', $patientIds)
+                ->where('status', 'active')
+                ->where(function ($query) use ($today) {
+                    $query->whereNull('end_date')
+                        ->orWhereDate('end_date', '>=', $today);
+                })
+                ->orderByDesc('start_date')
+                ->get()
+                ->groupBy('patient_id')
+                ->map(fn ($group) => $group->first());
+
+        $activePackageByPatient = $patientIds->isEmpty()
+            ? collect()
+            : TreatmentPatientPackage::query()
+                ->with('treatmentPackage:id,name')
+                ->whereIn('patient_id', $patientIds)
+                ->where('status', 'active')
+                ->where(function ($query) use ($today) {
+                    $query->whereNull('end_date')
+                        ->orWhereDate('end_date', '>=', $today);
+                })
+                ->orderByDesc('start_date')
+                ->get()
+                ->groupBy('patient_id')
+                ->map(fn ($group) => $group->first());
+
+        $records = $patientsPaginator->through(function (Patient $patient) use (
+            $visitCounts,
+            $lastAppointments,
+            $activeMembershipByPatient,
+            $activePackageByPatient
+        ) {
+            $patientId = $patient->id;
             $activeMembership = $activeMembershipByPatient->get($patientId);
             $activePackage = $activePackageByPatient->get($patientId);
 
             if ($activeMembership?->membershipPlan?->name) {
-                $record->active_plan = 'Membership: '.$activeMembership->membershipPlan->name;
+                $activePlan = 'Membership: '.$activeMembership->membershipPlan->name;
             } elseif ($activePackage?->treatmentPackage?->name) {
-                $record->active_plan = 'Package: '.$activePackage->treatmentPackage->name;
+                $activePlan = 'Package: '.$activePackage->treatmentPackage->name;
             } else {
-                $record->active_plan = 'No active plan';
+                $activePlan = 'No active plan';
             }
 
-            return $record;
-        })->values();
-
-        if ($search !== '') {
-            $records = $records->filter(function ($record) use ($search) {
-                $patient = $record->patient;
-                $haystack = strtolower(implode(' ', [
-                    (string) ($patient->name ?? ''),
-                    (string) ($patient->email ?? ''),
-                    (string) ($patient->phone ?? ''),
-                ]));
-
-                return str_contains($haystack, strtolower($search));
-            })->values();
-        }
+            return (object) [
+                'patient' => $patient,
+                'total_appointments' => (int) ($visitCounts[$patientId] ?? 0),
+                'last_appointment' => $lastAppointments->get($patientId),
+                'active_plan' => $activePlan,
+            ];
+        });
 
         return view('doctor.patient-records.index', [
             'records' => $records,
@@ -120,7 +124,7 @@ class DoctorPatientRecordController extends Controller
     {
         $doctorId = auth('doctor')->id();
 
-        $appointments = Appointment::query()
+        $myAppointments = Appointment::query()
             ->with(['service:id,name', 'doctor:id,name', 'note'])
             ->where('doctor_id', $doctorId)
             ->where('patient_id', $patient->id)
@@ -128,14 +132,24 @@ class DoctorPatientRecordController extends Controller
             ->orderByDesc('appointment_time')
             ->get();
 
-        abort_if($appointments->isEmpty(), 404);
+        $appointments = Appointment::query()
+            ->with(['service:id,name', 'doctor:id,name', 'note'])
+            ->where('patient_id', $patient->id)
+            ->orderByDesc('appointment_date')
+            ->orderByDesc('appointment_time')
+            ->get();
 
-        $lastVisit = $appointments->first();
-        $totalVisits = $appointments->count();
-        $latestNote = $appointments->first(fn ($appt) => $appt->note !== null)?->note;
+        $lastVisit = $myAppointments->first();
+        $totalVisits = $myAppointments->count();
+
+        $latestNoteAppointment = $appointments->first(
+            fn ($appt) => AppointmentNote::hasClinicalContent($appt->note)
+        );
+        $latestNote = $latestNoteAppointment?->note;
         $latestAlerts = $appointments
             ->map(fn ($appt) => $appt->note?->alerts)
-            ->filter()
+            ->map(fn ($v) => is_string($v) ? trim($v) : '')
+            ->filter(fn ($v) => $v !== '')
             ->first();
 
         $upcomingAppointments = $appointments
@@ -176,7 +190,7 @@ class DoctorPatientRecordController extends Controller
             ->get();
 
         $notesHistory = $appointments
-            ->filter(fn ($appt) => $appt->note !== null)
+            ->filter(fn ($appt) => AppointmentNote::hasClinicalContent($appt->note))
             ->map(function ($appt) {
                 return (object) [
                     'appointment' => $appt,
@@ -188,6 +202,7 @@ class DoctorPatientRecordController extends Controller
         return view('doctor.appointments.patient-record.show', compact(
             'patient',
             'appointments',
+            'myAppointments',
             'lastVisit',
             'totalVisits',
             'latestNote',

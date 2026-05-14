@@ -143,46 +143,77 @@
                     </div>
                   </div>
 
+                  @php
+                    $notesCreateUrl = route('doctor.appointments.notes.create', $appointment);
+                  @endphp
                   <div class="card">
-                    <div class="card-header">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                       <h5 class="mb-0">Treatment Notes</h5>
+                      <a href="{{ $notesCreateUrl }}" class="btn btn-sm">Add notes</a>
                     </div>
                     <div class="card-body">
                       <div class="row">
                         <div class="col-md-6 mb-3">
-                          <label class="form-label mb-1">Patient concern</label>
+                          <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+                            <label class="form-label mb-0">Patient concern</label>
+                            <a href="{{ $notesCreateUrl }}#patient_concern" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                          </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
                             {{ optional($appointment->note)->patient_concern ?: '—' }}
                           </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                          <label class="form-label mb-1">Appointment remarks</label>
+                          <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+                            <label class="form-label mb-0">Appointment remarks</label>
+                            <a href="{{ $notesCreateUrl }}#appointment_remarks" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                          </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
                             {{ optional($appointment->note)->appointment_remarks ?: '—' }}
                           </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                          <label class="form-label mb-1">Admin notes</label>
+                          <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+                            <label class="form-label mb-0">Admin notes</label>
+                            <a href="{{ $notesCreateUrl }}#admin_notes" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                          </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
                             {{ optional($appointment->note)->admin_notes ?: '—' }}
                           </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                          <label class="form-label mb-1">Doctor notes</label>
+                          <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+                            <label class="form-label mb-0">Doctor notes</label>
+                            <a href="{{ $notesCreateUrl }}#doctor_notes" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                          </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
                             {{ optional($appointment->note)->doctor_notes ?: '—' }}
                           </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                          <label class="form-label mb-1">Instructions</label>
+                          <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+                            <label class="form-label mb-0">Instructions</label>
+                            <a href="{{ $notesCreateUrl }}#instructions" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                          </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
                             {{ optional($appointment->note)->instructions ?: '—' }}
                           </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                          <label class="form-label mb-1">Alerts</label>
+                          <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+                            <label class="form-label mb-0">Alerts</label>
+                            <a href="{{ $notesCreateUrl }}#alerts" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                          </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
                             {{ optional($appointment->note)->alerts ?: '—' }}
+                          </div>
+                        </div>
+                        <div class="col-12 mb-3">
+                          <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+                            <label class="form-label mb-0">Vital signs</label>
+                            <a href="{{ $notesCreateUrl }}#vital_blood_pressure" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                          </div>
+                          <div class="form-control bg-light" style="min-height: 44px;">
+                            {{ optional($appointment->note)->vitalSignsSummary() ?: '—' }}
                           </div>
                         </div>
                       </div>

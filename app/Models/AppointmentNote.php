@@ -21,6 +21,13 @@ class AppointmentNote extends Model
         'doctor_notes',
         'instructions',
         'alerts',
+        'vital_blood_pressure',
+        'vital_heart_rate',
+        'vital_temperature',
+        'vital_respiratory_rate',
+        'vital_oxygen_saturation',
+        'vital_weight',
+        'vital_height',
         'section_authors',
     ];
 
@@ -37,6 +44,84 @@ class AppointmentNote extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * Whether this row has any non-empty clinical or admin text.
+     */
+    public static function hasClinicalContent(?self $note): bool
+    {
+        if ($note === null) {
+            return false;
+        }
+
+        foreach ([
+            $note->doctor_notes,
+            $note->patient_concern,
+            $note->appointment_remarks,
+            $note->instructions,
+            $note->alerts,
+            $note->admin_notes,
+        ] as $value) {
+            if (self::normalizeNoteValue($value) !== null) {
+                return true;
+            }
+        }
+
+        return $note->vitalSignsSummary() !== '';
+    }
+
+    /**
+     * Compact text for tables (history list, previews).
+     */
+    public function treatmentSummarySnippet(int $limit = 120): string
+    {
+        $chunks = [];
+        $vitals = $this->vitalSignsSummary();
+        if ($vitals !== '') {
+            $chunks[] = 'Vitals: '.$vitals;
+        }
+        foreach ([
+            $this->doctor_notes,
+            $this->patient_concern,
+            $this->appointment_remarks,
+            $this->instructions,
+            $this->alerts,
+            $this->admin_notes,
+        ] as $value) {
+            $normalized = self::normalizeNoteValue($value);
+            if ($normalized !== null) {
+                $chunks[] = $normalized;
+            }
+        }
+
+        $text = implode(' · ', $chunks);
+
+        return $text === '' ? '' : (string) \Illuminate\Support\Str::limit($text, $limit);
+    }
+
+    /**
+     * Human-readable vital signs for tables and previews.
+     */
+    public function vitalSignsSummary(): string
+    {
+        $parts = [];
+        $push = static function (string $label, mixed $value) use (&$parts): void {
+            $n = self::normalizeNoteValue($value);
+            if ($n !== null) {
+                $parts[] = $label.' '.$n;
+            }
+        };
+
+        $push('BP', $this->vital_blood_pressure ?? null);
+        $push('HR', $this->vital_heart_rate ?? null);
+        $push('Temp', $this->vital_temperature ?? null);
+        $push('RR', $this->vital_respiratory_rate ?? null);
+        $push('SpO2', $this->vital_oxygen_saturation ?? null);
+        $push('Wt', $this->vital_weight ?? null);
+        $push('Ht', $this->vital_height ?? null);
+
+        return implode('; ', $parts);
     }
 
     public static function normalizeNoteValue(mixed $value): ?string

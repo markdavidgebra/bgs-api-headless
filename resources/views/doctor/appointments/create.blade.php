@@ -96,6 +96,59 @@
                     </div>
                   </div>
 
+                  <div class="card mb-25 shadow-sm border-0" style="border-radius: 12px;">
+                    <div class="card-header bg-white border-bottom py-3">
+                      <h5 class="mb-0">Vital signs</h5>
+                      <p class="text-muted font-sm mb-0 mt-5">Optional. Use the units your clinic prefers (e.g. BP mmHg, HR bpm, temp °C, RR /min, SpO2 %, weight kg, height cm).</p>
+                    </div>
+                    <div class="card-body pt-25">
+                      <div class="row">
+                        <div class="col-md-4 mb-3">
+                          <label for="vital_blood_pressure" class="form-label">Blood pressure</label>
+                          <input type="text" id="vital_blood_pressure" name="vital_blood_pressure" class="form-control"
+                            placeholder="e.g. 120/80" maxlength="50"
+                            value="{{ old('vital_blood_pressure', optional($appointmentNote)->vital_blood_pressure) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="vital_heart_rate" class="form-label">Heart rate (pulse)</label>
+                          <input type="text" id="vital_heart_rate" name="vital_heart_rate" class="form-control"
+                            placeholder="e.g. 72 bpm" maxlength="32"
+                            value="{{ old('vital_heart_rate', optional($appointmentNote)->vital_heart_rate) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="vital_temperature" class="form-label">Temperature</label>
+                          <input type="text" id="vital_temperature" name="vital_temperature" class="form-control"
+                            placeholder="e.g. 36.6 °C" maxlength="32"
+                            value="{{ old('vital_temperature', optional($appointmentNote)->vital_temperature) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="vital_respiratory_rate" class="form-label">Respiratory rate</label>
+                          <input type="text" id="vital_respiratory_rate" name="vital_respiratory_rate" class="form-control"
+                            placeholder="e.g. 16 /min" maxlength="32"
+                            value="{{ old('vital_respiratory_rate', optional($appointmentNote)->vital_respiratory_rate) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="vital_oxygen_saturation" class="form-label">Oxygen (SpO2)</label>
+                          <input type="text" id="vital_oxygen_saturation" name="vital_oxygen_saturation" class="form-control"
+                            placeholder="e.g. 98%" maxlength="32"
+                            value="{{ old('vital_oxygen_saturation', optional($appointmentNote)->vital_oxygen_saturation) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="vital_weight" class="form-label">Weight</label>
+                          <input type="text" id="vital_weight" name="vital_weight" class="form-control"
+                            placeholder="e.g. 65 kg" maxlength="32"
+                            value="{{ old('vital_weight', optional($appointmentNote)->vital_weight) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="vital_height" class="form-label">Height</label>
+                          <input type="text" id="vital_height" name="vital_height" class="form-control"
+                            placeholder="e.g. 170 cm" maxlength="32"
+                            value="{{ old('vital_height', optional($appointmentNote)->vital_height) }}">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="card mb-25 shadow-sm border-0 prescribe-products-card" style="border-radius: 12px;">
                     <div class="card-header bg-white border-bottom py-15 prescribe-products-card-header">
                       <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 w-100">
@@ -379,4 +432,16 @@
       })();
     </script>
   @endif
+
+  @push('scripts')
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var id = (window.location.hash || '').replace(/^#/, '');
+        if (!id) return;
+        var el = document.getElementById(id);
+        if (!el || typeof el.focus !== 'function') return;
+        el.focus({ preventScroll: false });
+      });
+    </script>
+  @endpush
 @endsection

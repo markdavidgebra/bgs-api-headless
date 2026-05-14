@@ -381,6 +381,13 @@ class DoctorAppointmentController extends Controller
             'procedure_done' => ['nullable', 'string', 'max:2000'],
             'recommendation' => ['nullable', 'string', 'max:2000'],
             'follow_up_needed' => ['nullable', 'string', 'max:1000'],
+            'vital_blood_pressure' => ['nullable', 'string', 'max:50'],
+            'vital_heart_rate' => ['nullable', 'string', 'max:32'],
+            'vital_temperature' => ['nullable', 'string', 'max:32'],
+            'vital_respiratory_rate' => ['nullable', 'string', 'max:32'],
+            'vital_oxygen_saturation' => ['nullable', 'string', 'max:32'],
+            'vital_weight' => ['nullable', 'string', 'max:32'],
+            'vital_height' => ['nullable', 'string', 'max:32'],
             'prescribe' => ['nullable', 'array'],
             'qty' => ['nullable', 'array'],
             'qty.*' => ['nullable', 'integer', 'min:1', 'max:99999'],
@@ -406,11 +413,18 @@ class DoctorAppointmentController extends Controller
             $validated['procedure_done'] ?? null,
             $validated['recommendation'] ?? null,
             $validated['follow_up_needed'] ?? null,
+            $validated['vital_blood_pressure'] ?? null,
+            $validated['vital_heart_rate'] ?? null,
+            $validated['vital_temperature'] ?? null,
+            $validated['vital_respiratory_rate'] ?? null,
+            $validated['vital_oxygen_saturation'] ?? null,
+            $validated['vital_weight'] ?? null,
+            $validated['vital_height'] ?? null,
         ])->contains(fn ($value) => filled($value));
 
         if (! $hasAnyNoteValue && $prescribeSync === []) {
             return back()
-                ->withErrors(['observations' => 'Please provide at least one treatment note field or prescribe a product.'])
+                ->withErrors(['observations' => 'Please provide at least one treatment note field, vital sign, or prescribe a product.'])
                 ->withInput();
         }
 
@@ -428,6 +442,13 @@ class DoctorAppointmentController extends Controller
             'doctor_notes' => $validated['doctor_notes'] ?? $validated['observations'] ?? $existingNote?->doctor_notes,
             'instructions' => $validated['instructions'] ?? $validated['recommendation'] ?? $existingNote?->instructions,
             'alerts' => $validated['alerts'] ?? $validated['follow_up_needed'] ?? $existingNote?->alerts,
+            'vital_blood_pressure' => AppointmentNote::normalizeNoteValue($validated['vital_blood_pressure'] ?? null),
+            'vital_heart_rate' => AppointmentNote::normalizeNoteValue($validated['vital_heart_rate'] ?? null),
+            'vital_temperature' => AppointmentNote::normalizeNoteValue($validated['vital_temperature'] ?? null),
+            'vital_respiratory_rate' => AppointmentNote::normalizeNoteValue($validated['vital_respiratory_rate'] ?? null),
+            'vital_oxygen_saturation' => AppointmentNote::normalizeNoteValue($validated['vital_oxygen_saturation'] ?? null),
+            'vital_weight' => AppointmentNote::normalizeNoteValue($validated['vital_weight'] ?? null),
+            'vital_height' => AppointmentNote::normalizeNoteValue($validated['vital_height'] ?? null),
         ];
 
         $doctor = auth('doctor')->user();

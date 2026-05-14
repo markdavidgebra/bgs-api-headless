@@ -82,7 +82,7 @@
                   <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                       <h5 class="mb-0">Patient List</h5>
-                      <span class="small text-muted">{{ $records->count() }} patient(s)</span>
+                      <span class="small text-muted">{{ $records->total() }} patient(s) total</span>
                     </div>
                     <div class="card-body p-0">
                       <div class="table-responsive">
@@ -100,7 +100,15 @@
                           <tbody>
                             @forelse ($records as $record)
                               <tr>
-                                <td>{{ $record->patient->name ?? '—' }}</td>
+                                <td>
+                                  <div class="font-weight-bold">{{ $record->patient->name ?? '—' }}</div>
+                                  @if (filled($record->patient->email ?? null))
+                                    <div class="small text-muted">{{ $record->patient->email }}</div>
+                                  @endif
+                                  @if (filled($record->patient->phone ?? null))
+                                    <div class="small text-muted">{{ $record->patient->phone }}</div>
+                                  @endif
+                                </td>
                                 <td>
                                   @if ($record->last_appointment)
                                     {{ $record->last_appointment->date_display }} {{ $record->last_appointment->time_display }}
@@ -113,7 +121,7 @@
                                 <td>{{ ucfirst((string) ($record->patient->status ?? 'active')) }}</td>
                                 <td>
                                   <a href="{{ route('doctor.patient-records.show', $record->patient->id) }}"
-                                    class="btn btn-xs record-btn record-btn-light">View Visits</a>
+                                    class="btn btn-xs record-btn record-btn-light">View profile</a>
                                 </td>
                               </tr>
                             @empty
@@ -123,6 +131,9 @@
                             @endforelse
                           </tbody>
                         </table>
+                      </div>
+                      <div class="card-footer d-flex justify-content-center">
+                        {{ $records->links() }}
                       </div>
                     </div>
                   </div>

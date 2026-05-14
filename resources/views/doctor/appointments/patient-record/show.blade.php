@@ -28,6 +28,12 @@
     .tab-panel.active {
       display: block;
     }
+
+    .vital-open-btn {
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.35;
+    }
   </style>
 
   <main class="main pages">
@@ -69,7 +75,6 @@
 
                   <div class="d-flex flex-wrap gap-2 mb-20" id="tabButtons">
                     <button type="button" class="tab-btn active" data-target="tab-overview">Overview</button>
-                    <button type="button" class="tab-btn" data-target="tab-history">Medical / Treatment History</button>
                     <button type="button" class="tab-btn" data-target="tab-notes">Treatment Notes</button>
                     <button type="button" class="tab-btn" data-target="tab-appointments">Appointments</button>
                     <button type="button" class="tab-btn" data-target="tab-packages">Packages / Memberships</button>
@@ -83,43 +88,24 @@
                         <div class="col-md-6 mb-2"><strong>Patient:</strong> {{ $patient->name }}</div>
                         <div class="col-md-6 mb-2"><strong>Email:</strong> {{ $patient->email ?? '—' }}</div>
                         <div class="col-md-6 mb-2"><strong>Contact:</strong> {{ $patient->phone ?? '—' }}</div>
+                        <div class="col-md-6 mb-2"><strong>Birthdate:</strong> {{ $patient->birthdate?->format('Y-m-d') ?? '—' }}</div>
+                        <div class="col-md-6 mb-2"><strong>Gender:</strong> {{ $patient->gender ?? '—' }}</div>
+                        <div class="col-md-6 mb-2"><strong>Address:</strong> {{ $patient->address ?? '—' }}</div>
                         <div class="col-md-6 mb-2"><strong>Status:</strong> {{ ucfirst((string) ($patient->status ?? 'active')) }}</div>
-                        <div class="col-md-6 mb-2"><strong>Last Visit:</strong> {{ $lastVisit?->date_display }} {{ $lastVisit?->time_display }}</div>
-                        <div class="col-md-6 mb-2"><strong>Total Visits:</strong> {{ $totalVisits }}</div>
-                        <div class="col-12 mt-2"><strong>Notes Summary:</strong> {{ \Illuminate\Support\Str::limit((string) ($latestNote?->doctor_notes ?? 'No notes yet.'), 180) }}</div>
+                        <div class="col-md-6 mb-2"><strong>Last visit (with you):</strong>
+                          @if ($lastVisit)
+                            {{ $lastVisit->date_display }} {{ $lastVisit->time_display }}
+                          @else
+                            —
+                          @endif
+                        </div>
+                        <div class="col-md-6 mb-2"><strong>Total visits (with you):</strong> {{ $totalVisits }}</div>
+                        <div class="col-12 mt-2"><strong>Notes summary (clinic):</strong>
+                          @php
+                            $summary = $latestNote ? $latestNote->treatmentSummarySnippet(180) : '';
+                          @endphp
+                          {{ $summary !== '' ? $summary : 'No notes yet.' }}</div>
                         <div class="col-12 mt-2"><strong>Alerts:</strong> {{ $latestAlerts ?: 'No alerts' }}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="card tab-panel" id="tab-history">
-                    <div class="card-header"><h5 class="mb-0">Medical / Treatment History</h5></div>
-                    <div class="card-body p-0">
-                      <div class="table-responsive">
-                        <table class="table mb-0">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Service</th>
-                              <th>Doctor</th>
-                              <th>Notes</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @forelse ($appointments as $appointment)
-                              <tr>
-                                <td>{{ $appointment->date_display }} {{ $appointment->time_display }}</td>
-                                <td>{{ $appointment->service_name }}</td>
-                                <td>{{ $appointment->doctor_name }}</td>
-                                <td>{{ \Illuminate\Support\Str::limit((string) optional($appointment->note)->doctor_notes, 80) ?: '—' }}</td>
-                                <td>{{ $appointment->status_label }}</td>
-                              </tr>
-                            @empty
-                              <tr><td colspan="5" class="text-center text-secondary py-4">No history found.</td></tr>
-                            @endforelse
-                          </tbody>
-                        </table>
                       </div>
                     </div>
                   </div>
@@ -133,6 +119,8 @@
                           <thead>
                             <tr>
                               <th>Date</th>
+                              <th>Doctor</th>
+                              <th>Vitals</th>
                               <th>Observation</th>
                               <th>Procedure Done</th>
                               <th>Recommendation</th>
@@ -143,51 +131,78 @@
                             @forelse ($notesHistory as $row)
                               <tr>
                                 <td>{{ $row->appointment->date_display }} {{ $row->appointment->time_display }}</td>
-                                <td>{{ $row->note->doctor_notes ?: '—' }}</td>
+                                <td>{{ $row->appointment->doctor_name }}</td>
+                                <td class="small">
+                                  @php
+                                    $vitalLine = $row->note->vitalSignsSummary();
+                                  @endphp
+                                  @if ($vitalLine !== '')
+                                    <button type="button"
+                                      class="btn btn-sm btn-outline-primary vital-open-btn"
+                                      aria-label="View vital signs: {{ $vitalLine }}"
+                                      data-vital-bp="{{ $row->note->vital_blood_pressure }}"
+                                      data-vital-hr="{{ $row->note->vital_heart_rate }}"
+                                      data-vital-temp="{{ $row->note->vital_temperature }}"
+                                      data-vital-rr="{{ $row->note->vital_respiratory_rate }}"
+                                      data-vital-spo2="{{ $row->note->vital_oxygen_saturation }}"
+                                      data-vital-wt="{{ $row->note->vital_weight }}"
+                                      data-vital-ht="{{ $row->note->vital_height }}"
+                                      data-vital-when="{{ $row->appointment->date_display }} {{ $row->appointment->time_display }} · {{ $row->appointment->doctor_name }}">
+                                      View
+                                    </button>
+                                  @else
+                                    —
+                                  @endif
+                                </td>
+                                <td>{{ $row->note->doctor_notes ?: $row->note->patient_concern ?: '—' }}</td>
                                 <td>{{ $row->note->appointment_remarks ?: '—' }}</td>
                                 <td>{{ $row->note->instructions ?: '—' }}</td>
                                 <td>{{ $row->note->alerts ?: '—' }}</td>
                               </tr>
                             @empty
-                              <tr><td colspan="5" class="text-center text-secondary py-4">No notes yet.</td></tr>
+                              <tr><td colspan="7" class="text-center text-secondary py-4">No notes yet.</td></tr>
                             @endforelse
                           </tbody>
                         </table>
                       </div>
 
                       <h6 class="mb-10">Add New Note</h6>
-                      <form method="POST" action="{{ route('doctor.patient-records.notes.store', $patient) }}" class="row g-3">
-                        @csrf
-                        <div class="col-md-6">
-                          <label class="form-label">Appointment</label>
-                          <select name="appointment_id" class="form-control">
-                            @foreach ($appointments as $appointment)
-                              <option value="{{ $appointment->id }}">
-                                {{ $appointment->appointment_no }} - {{ $appointment->date_display }} {{ $appointment->time_display }}
-                              </option>
-                            @endforeach
-                          </select>
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label">Observation</label>
-                          <textarea name="observation" class="form-control" rows="2">{{ old('observation') }}</textarea>
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label">Procedure Done</label>
-                          <textarea name="procedure_done" class="form-control" rows="2">{{ old('procedure_done') }}</textarea>
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label">Recommendation</label>
-                          <textarea name="recommendation" class="form-control" rows="2">{{ old('recommendation') }}</textarea>
-                        </div>
-                        <div class="col-md-12">
-                          <label class="form-label">Follow-up</label>
-                          <textarea name="follow_up" class="form-control" rows="2">{{ old('follow_up') }}</textarea>
-                        </div>
-                        <div class="col-md-12">
-                          <button type="submit" class="btn btn-sm">Save Note</button>
-                        </div>
-                      </form>
+                      @if ($myAppointments->isEmpty())
+                        <p class="text-secondary mb-0">You do not have any appointments with this patient yet. Notes can be added once an appointment exists between you and this patient.</p>
+                      @else
+                        <form method="POST" action="{{ route('doctor.patient-records.notes.store', $patient) }}" class="row g-3">
+                          @csrf
+                          <div class="col-md-6">
+                            <label class="form-label">Appointment</label>
+                            <select name="appointment_id" class="form-control">
+                              @foreach ($myAppointments as $appointment)
+                                <option value="{{ $appointment->id }}">
+                                  {{ $appointment->appointment_no }} - {{ $appointment->date_display }} {{ $appointment->time_display }}
+                                </option>
+                              @endforeach
+                            </select>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Observation</label>
+                            <textarea name="observation" class="form-control" rows="2">{{ old('observation') }}</textarea>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Procedure Done</label>
+                            <textarea name="procedure_done" class="form-control" rows="2">{{ old('procedure_done') }}</textarea>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Recommendation</label>
+                            <textarea name="recommendation" class="form-control" rows="2">{{ old('recommendation') }}</textarea>
+                          </div>
+                          <div class="col-md-12">
+                            <label class="form-label">Follow-up</label>
+                            <textarea name="follow_up" class="form-control" rows="2">{{ old('follow_up') }}</textarea>
+                          </div>
+                          <div class="col-md-12">
+                            <button type="submit" class="btn btn-sm">Save Note</button>
+                          </div>
+                        </form>
+                      @endif
                     </div>
                   </div>
 
@@ -197,7 +212,7 @@
                       <h6 class="mb-10">Upcoming Appointments</h6>
                       <ul class="mb-20 ps-3">
                         @forelse ($upcomingAppointments as $appointment)
-                          <li class="mb-2">{{ $appointment->date_display }} {{ $appointment->time_display }} - {{ $appointment->service_name }} ({{ $appointment->status_label }})</li>
+                          <li class="mb-2">{{ $appointment->date_display }} {{ $appointment->time_display }} — {{ $appointment->doctor_name }} — {{ $appointment->service_name }} ({{ $appointment->status_label }})</li>
                         @empty
                           <li>No upcoming appointments.</li>
                         @endforelse
@@ -206,7 +221,7 @@
                       <h6 class="mb-10">Past Appointments</h6>
                       <ul class="mb-0 ps-3">
                         @forelse ($pastAppointments as $appointment)
-                          <li class="mb-2">{{ $appointment->date_display }} {{ $appointment->time_display }} - {{ $appointment->service_name }} ({{ $appointment->status_label }})</li>
+                          <li class="mb-2">{{ $appointment->date_display }} {{ $appointment->time_display }} — {{ $appointment->doctor_name }} — {{ $appointment->service_name }} ({{ $appointment->status_label }})</li>
                         @empty
                           <li>No past appointments.</li>
                         @endforelse
@@ -316,6 +331,28 @@
     </div>
   </main>
 
+  <div class="modal fade" id="vitalSignsModal" tabindex="-1" aria-labelledby="vitalSignsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-0" id="vitalSignsModalLabel">Vital signs</h5>
+            <div class="small text-muted mt-5" id="vitalSignsModalWhen"></div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0">
+          <table class="table table-striped mb-0" id="vitalSignsModalTable">
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const buttons = document.querySelectorAll('#tabButtons .tab-btn');
@@ -329,6 +366,54 @@
           if (panel) panel.classList.add('active');
         });
       });
+
+      const vitalModalEl = document.getElementById('vitalSignsModal');
+      const vitalModalWhen = document.getElementById('vitalSignsModalWhen');
+      const vitalModalTbody = document.querySelector('#vitalSignsModalTable tbody');
+      if (vitalModalEl && vitalModalWhen && vitalModalTbody && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        let vitalModalInstance = null;
+        function getVitalModalInstance() {
+          if (!vitalModalInstance) {
+            vitalModalInstance = bootstrap.Modal.getInstance(vitalModalEl);
+            if (!vitalModalInstance) {
+              vitalModalInstance = new bootstrap.Modal(vitalModalEl);
+            }
+          }
+          return vitalModalInstance;
+        }
+        const rows = [
+          ['Blood pressure', 'vitalBp'],
+          ['Heart rate (pulse)', 'vitalHr'],
+          ['Temperature', 'vitalTemp'],
+          ['Respiratory rate', 'vitalRr'],
+          ['Oxygen (SpO2)', 'vitalSpo2'],
+          ['Weight', 'vitalWt'],
+          ['Height', 'vitalHt'],
+        ];
+        document.querySelectorAll('.vital-open-btn').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const d = this.dataset;
+            vitalModalWhen.textContent = d.vitalWhen || '';
+            vitalModalTbody.innerHTML = '';
+            rows.forEach(([label, key]) => {
+              const raw = d[key];
+              const val = raw && String(raw).trim() !== '' ? String(raw).trim() : '—';
+              const tr = document.createElement('tr');
+              const th = document.createElement('th');
+              th.className = 'ps-4 py-2';
+              th.scope = 'row';
+              th.textContent = label;
+              const td = document.createElement('td');
+              td.className = 'py-2 pe-4';
+              td.textContent = val;
+              tr.appendChild(th);
+              tr.appendChild(td);
+              vitalModalTbody.appendChild(tr);
+            });
+            getVitalModalInstance().show();
+          });
+        });
+      }
     });
   </script>
 @endsection
