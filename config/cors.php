@@ -19,12 +19,19 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://localhost:5173', 
-        'http://localhost:3000', 
-        'https://catalog.bioglowsolutions.com',
-        'https://pos.bioglowsolutions.com',
+    'allowed_origins' => array_values(array_unique(array_filter(array_merge(
+        [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'https://catalog.bioglowsolutions.com',
+            'https://pos.bioglowsolutions.com',
+            'https://inventory.bioglowsolutions.com',
         ],
+        array_map(
+            static fn (string $origin): string => trim($origin),
+            explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))
+        )
+    )))),
 
     'allowed_origins_patterns' => [],
 
