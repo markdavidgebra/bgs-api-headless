@@ -1,12 +1,17 @@
 @extends('admin.layouts.master')
 
 @php
+  /** @var \App\Models\AffiliateCode $affiliateCode */
   /** @var \Illuminate\Support\Collection $services */
   /** @var \Illuminate\Support\Collection $treatmentPackages */
   /** @var \Illuminate\Support\Collection $products */
-  $oldServiceIds = collect(old('service_ids', []))->map(fn ($v) => (string) $v)->all();
-  $oldPackageIds = collect(old('treatment_package_ids', []))->map(fn ($v) => (string) $v)->all();
-  $oldProductIds = collect(old('product_ids', []))->map(fn ($v) => (string) $v)->all();
+  $oldServiceIds = collect(old('service_ids', $affiliateCode->services->pluck('id')))->map(fn ($v) => (string) $v)->all();
+  $oldPackageIds = collect(old('treatment_package_ids', $affiliateCode->treatmentPackages->pluck('id')))->map(fn ($v) => (string) $v)->all();
+  $oldProductIds = collect(old('product_ids', $affiliateCode->products->pluck('id')))->map(fn ($v) => (string) $v)->all();
+  $effectivityMin = now()->toDateString();
+  if ($affiliateCode->effective_from && $affiliateCode->effective_from->toDateString() < $effectivityMin) {
+      $effectivityMin = $affiliateCode->effective_from->toDateString();
+  }
 @endphp
 
 @section('content')
@@ -15,13 +20,13 @@
       <div class="row g-3 align-items-center">
         <div class="col">
           <div class="page-pretitle text-secondary">Affiliate Code</div>
-          <h2 class="page-title">Create Affiliate Code</h2>
-          <div class="text-secondary small mt-1">Enter a manual code, set the discount, and choose which catalog items it applies to.</div>
+          <h2 class="page-title">Edit Affiliate Code</h2>
+          <div class="text-secondary small mt-1">Update code <span class="font-monospace fw-semibold">{{ $affiliateCode->code }}</span>, discount, and linked catalog items.</div>
         </div>
         <div class="col-auto ms-auto d-print-none">
           <div class="btn-list">
             <a href="{{ route('admin.affiliate-codes') }}" class="btn">Cancel</a>
-            <button type="submit" form="affiliate-code-create-form" class="btn btn-primary">Save code</button>
+            <button type="submit" form="affiliate-code-edit-form" class="btn btn-primary">Save changes</button>
           </div>
         </div>
       </div>
@@ -30,8 +35,9 @@
 
   <div class="page-body">
     <div class="container-xl">
-      <form id="affiliate-code-create-form" method="POST" action="{{ route('admin.affiliate-codes.store') }}">
+      <form id="affiliate-code-edit-form" method="POST" action="{{ route('admin.affiliate-codes.update', $affiliateCode) }}">
         @csrf
+        @method('PUT')
 
         <div class="row g-3">
           <div class="col-lg-8">
@@ -45,7 +51,7 @@
                     <label class="form-label required" for="code">Affiliate code</label>
                     <input id="code" name="code" type="text"
                       class="form-control font-monospace text-uppercase @error('code') is-invalid @enderror"
-                      value="{{ old('code') }}" required maxlength="64" placeholder="e.g. PARTNER2026"
+                      value="{{ old('code', $affiliateCode->code) }}" required maxlength="64" placeholder="e.g. PARTNER2026"
                       autocomplete="off" spellcheck="false">
                     <small class="form-hint">Letters, numbers, hyphens, and underscores only. Saved in uppercase.</small>
                     @error('code')
@@ -55,7 +61,7 @@
                   <div class="col-md-6">
                     <label class="form-label" for="label">Label</label>
                     <input id="label" name="label" type="text" class="form-control @error('label') is-invalid @enderror"
-                      value="{{ old('label') }}" maxlength="255" placeholder="Optional display name">
+                      value="{{ old('label', $affiliateCode->label) }}" maxlength="255" placeholder="Optional display name">
                     @error('label')
                       <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -64,8 +70,8 @@
                     <label class="form-label" for="effective_from">Effectivity from</label>
                     <input id="effective_from" name="effective_from" type="date"
                       class="form-control @error('effective_from') is-invalid @enderror"
-                      value="{{ old('effective_from') }}"
-                      min="{{ now()->toDateString() }}">
+                      value="{{ old('effective_from', $affiliateCode->effective_from?->toDateString()) }}"
+                      min="{{ $effectivityMin }}">
                     <small class="form-hint">Leave blank if the code is valid immediately. Sundays cannot be selected.</small>
                     @error('effective_from')
                       <div class="invalid-feedback">{{ $message }}</div>
@@ -75,8 +81,8 @@
                     <label class="form-label" for="effective_to">Effectivity to</label>
                     <input id="effective_to" name="effective_to" type="date"
                       class="form-control @error('effective_to') is-invalid @enderror"
-                      value="{{ old('effective_to') }}"
-                      min="{{ now()->toDateString() }}">
+                      value="{{ old('effective_to', $affiliateCode->effective_to?->toDateString()) }}"
+                      min="{{ $effectivityMin }}">
                     <small class="form-hint">Leave blank for no end date. Sundays cannot be selected.</small>
                     @error('effective_to')
                       <div class="invalid-feedback">{{ $message }}</div>
@@ -85,8 +91,8 @@
                   <div class="col-md-6">
                     <label class="form-label required" for="status">Status</label>
                     <select id="status" name="status" class="form-select @error('status') is-invalid @enderror" required>
-                      <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
-                      <option value="inactive" @selected(old('status') === 'inactive')>Inactive</option>
+                      <option value="active" @selected(old('status', $affiliateCode->status) === 'active')>Active</option>
+                      <option value="inactive" @selected(old('status', $affiliateCode->status) === 'inactive')>Inactive</option>
                     </select>
                     @error('status')
                       <div class="invalid-feedback">{{ $message }}</div>
@@ -95,7 +101,7 @@
                   <div class="col-12">
                     <label class="form-label" for="notes">Internal notes</label>
                     <textarea id="notes" name="notes" rows="2" class="form-control @error('notes') is-invalid @enderror"
-                      placeholder="Optional notes for staff">{{ old('notes') }}</textarea>
+                      placeholder="Optional notes for staff">{{ old('notes', $affiliateCode->notes) }}</textarea>
                     @error('notes')
                       <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -114,8 +120,8 @@
                     <label class="form-label required" for="discount_method">Discount type</label>
                     <select id="discount_method" name="discount_method"
                       class="form-select @error('discount_method') is-invalid @enderror" required>
-                      <option value="percentage" @selected(old('discount_method', 'percentage') === 'percentage')>Percentage (%)</option>
-                      <option value="fixed" @selected(old('discount_method') === 'fixed')>Fixed amount (₱)</option>
+                      <option value="percentage" @selected(old('discount_method', $affiliateCode->discount_method) === 'percentage')>Percentage (%)</option>
+                      <option value="fixed" @selected(old('discount_method', $affiliateCode->discount_method) === 'fixed')>Fixed amount (₱)</option>
                     </select>
                     @error('discount_method')
                       <div class="invalid-feedback">{{ $message }}</div>
@@ -125,7 +131,7 @@
                     <label class="form-label required" for="discount_value">Discount value</label>
                     <input id="discount_value" name="discount_value" type="number" min="0.01" step="0.01"
                       class="form-control @error('discount_value') is-invalid @enderror"
-                      value="{{ old('discount_value') }}" required
+                      value="{{ old('discount_value', $affiliateCode->discount_value) }}" required
                       placeholder="e.g. 15">
                     <small id="discount_value_hint" class="form-hint">Enter the percentage off (1–100).</small>
                     @error('discount_value')
@@ -258,9 +264,12 @@
             <div class="card">
               <div class="card-body">
                 <h3 class="card-title mb-2">How it works</h3>
-                <p class="text-secondary small mb-0">
+                <p class="text-secondary small mb-2">
                   The code is entered manually with a percentage or fixed discount. Link it to any combination of
                   services, treatment packages, and products. Select at least one item before saving.
+                </p>
+                <p class="text-secondary small mb-0">
+                  Times used: <span class="font-monospace">{{ number_format((int) $affiliateCode->times_used) }}</span>
                 </p>
               </div>
             </div>

@@ -286,6 +286,9 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::get('affiliate-codes', [AffiliateCodesController::class, 'index'])->name('affiliate-codes');
         Route::get('affiliate-codes/create', [AffiliateCodesController::class, 'create'])->name('affiliate-codes.create');
         Route::post('affiliate-codes', [AffiliateCodesController::class, 'store'])->name('affiliate-codes.store');
+        Route::get('affiliate-codes/edit/{affiliateCode}', [AffiliateCodesController::class, 'edit'])->name('affiliate-codes.edit');
+        Route::put('affiliate-codes/{affiliateCode}', [AffiliateCodesController::class, 'update'])->name('affiliate-codes.update');
+        Route::delete('affiliate-codes/{affiliateCode}', [AffiliateCodesController::class, 'destroy'])->name('affiliate-codes.destroy');
     });
     Route::middleware('admin_permission:reports.view')->group(function () {
         Route::get('reports', [ReportsController::class, 'index'])->name('reports');

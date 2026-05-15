@@ -35,6 +35,7 @@
                 <th class="text-uppercase text-secondary small fw-bold text-end">Times used</th>
                 <th class="text-uppercase text-secondary small fw-bold">Status</th>
                 <th class="text-uppercase text-secondary small fw-bold">Created</th>
+                <th class="text-uppercase text-secondary small fw-bold w-1">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -68,10 +69,22 @@
                     <span class="badge {{ $affiliateCode->status_badge }}">{{ ucfirst($affiliateCode->status) }}</span>
                   </td>
                   <td class="text-secondary">{{ $affiliateCode->created_at?->format('M j, Y') }}</td>
+                  <td>
+                    <div class="btn-list flex-nowrap">
+                      <a href="{{ route('admin.affiliate-codes.edit', $affiliateCode) }}" class="btn btn-sm">Edit</a>
+                      <form method="POST" action="{{ route('admin.affiliate-codes.destroy', $affiliateCode) }}"
+                        onsubmit="return confirm('Delete affiliate code {{ $affiliateCode->code }}? This cannot be undone.');"
+                        class="d-inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               @empty
                 <tr>
-                  <td colspan="8" class="text-center text-secondary py-5">
+                  <td colspan="9" class="text-center text-secondary py-5">
                     No affiliate codes yet.
                     <a href="{{ route('admin.affiliate-codes.create') }}" class="ms-1">Create one</a>.
                   </td>
