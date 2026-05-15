@@ -19,6 +19,7 @@
     ];
     $referenceTypeOptions = [
         'appointment' => 'Appointment',
+        'service' => 'Service',
         'package' => 'Package',
         'membership' => 'Membership',
         'product' => 'Product',

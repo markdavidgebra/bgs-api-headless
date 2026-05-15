@@ -8,6 +8,7 @@ use App\Models\MembershipPlan;
 use App\Models\Patient;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\TreatmentPackage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -103,6 +104,7 @@ class PaymentsController extends Controller
             'package' => $payment->load('referencePackage:id,name'),
             'membership' => $payment->load('referenceMembership:id,name'),
             'product' => $payment->load('referenceProduct:id,name'),
+            'service' => $payment->load('referenceService:id,name'),
             default => null,
         };
 
@@ -152,7 +154,7 @@ class PaymentsController extends Controller
 
         $validated = $request->validate([
             'patient_id' => ['required', 'integer', 'exists:users,id'],
-            'reference_type' => ['required', 'string', 'in:appointment,package,membership,product'],
+            'reference_type' => ['required', 'string', 'in:appointment,service,package,membership,product'],
             'reference_id' => ['nullable', 'integer'],
             'amount' => ['required', 'numeric', 'min:0'],
             'payment_method' => ['required', 'string', 'in:cash,gcash,maya,card,bank_transfer'],
@@ -166,6 +168,7 @@ class PaymentsController extends Controller
         if ($referenceId !== null) {
             $exists = match ($validated['reference_type']) {
                 'appointment' => Appointment::query()->whereKey($referenceId)->exists(),
+                'service' => Service::query()->whereKey($referenceId)->exists(),
                 'package' => TreatmentPackage::query()->whereKey($referenceId)->exists(),
                 'membership' => MembershipPlan::query()->whereKey($referenceId)->exists(),
                 'product' => Product::query()->whereKey($referenceId)->exists(),

@@ -149,6 +149,7 @@
               <tr>
                 <th>Payment</th>
                 <th>Date</th>
+                <th>Time</th>
                 <th>Patient</th>
                 <th>Type</th>
                 <th>Reference</th>
@@ -159,12 +160,18 @@
             </thead>
             <tbody>
               @forelse ($payments as $payment)
+                @php
+                  $phRecorded = $payment->created_at?->timezone('Asia/Manila');
+                @endphp
                 <tr>
                   <td class="font-monospace">
                     <a href="{{ route('admin.payments.show', $payment->id) }}">{{ $payment->payment_id }}</a>
                   </td>
                   <td>
-                    {{ $payment->payment_date?->format('M d, Y') ?? '—' }}
+                    {{ $phRecorded?->format('M d, Y') ?? $payment->payment_date?->format('M d, Y') ?? '—' }}
+                  </td>
+                  <td class="text-secondary">
+                    {{ $phRecorded?->format('h:i A') ?? '—' }}
                   </td>
                   <td>{{ $payment->patient->name ?? '—' }}</td>
                   <td>{{ $payment->reference_type_label }}</td>
@@ -177,7 +184,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="8" class="text-center text-secondary py-4">No payments match the selected filters.</td>
+                  <td colspan="9" class="text-center text-secondary py-4">No payments match the selected filters.</td>
                 </tr>
               @endforelse
             </tbody>

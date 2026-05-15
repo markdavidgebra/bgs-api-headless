@@ -211,6 +211,13 @@ class DoctorPatientRecordController extends Controller
         })->values();
 
         $payments = Payment::query()
+            ->with([
+                'referenceProduct:id,name',
+                'referencePackage:id,name',
+                'referenceMembership:id,name',
+                'referenceService:id,name',
+                'referenceAppointment' => static fn ($q) => $q->with('service:id,name'),
+            ])
             ->where('patient_id', $patient->id)
             ->orderByDesc('payment_date')
             ->orderByDesc('id')

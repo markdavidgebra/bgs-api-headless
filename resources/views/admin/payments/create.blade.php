@@ -19,6 +19,7 @@
     ];
     $typeOptions = [
       'appointment' => 'Appointment',
+      'service' => 'Service',
       'package' => 'Treatment package',
       'membership' => 'Membership plan',
       'product' => 'Product',

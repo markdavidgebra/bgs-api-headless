@@ -67,6 +67,11 @@ class Payment extends Model
         return $this->belongsTo(Product::class, 'reference_id');
     }
 
+    public function referenceService(): BelongsTo
+    {
+        return $this->belongsTo(Service::class, 'reference_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Accessors / Derived Attributes
@@ -101,6 +106,7 @@ class Payment extends Model
     {
         return match ($this->reference_type) {
             'appointment' => 'Appointment',
+            'service' => 'Service',
             'package' => 'Package',
             'membership' => 'Membership',
             'product' => 'Product',
@@ -116,7 +122,8 @@ class Payment extends Model
     public function getReferenceNameAttribute(): ?string
     {
         return match ($this->reference_type) {
-            'appointment' => $this->appointment_reference_name,
+            'appointment' => $this->appointment_reference_name ?? $this->legacy_pos_service_reference_name,
+            'service' => $this->service_reference_name,
             'package' => $this->package_reference_name,
             'membership' => $this->membership_reference_name,
             'product' => $this->product_reference_name,
@@ -166,6 +173,27 @@ class Payment extends Model
         }
 
         return $this->referenceProduct?->name;
+    }
+
+    public function getServiceReferenceNameAttribute(): ?string
+    {
+        if ($this->reference_type !== 'service' || ! $this->reference_id) {
+            return null;
+        }
+
+        return $this->referenceService?->name;
+    }
+
+    /**
+     * Older POS checkouts stored walk-in services as appointment + service id.
+     */
+    public function getLegacyPosServiceReferenceNameAttribute(): ?string
+    {
+        if ($this->reference_type !== 'appointment' || ! $this->reference_id || $this->referenceAppointment) {
+            return null;
+        }
+
+        return $this->referenceService?->name;
     }
 
     public function getAssignedDoctorNameAttribute(): ?string

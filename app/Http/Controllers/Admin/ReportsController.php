@@ -147,27 +147,28 @@ class ReportsController extends Controller
 
         $totalRevenue = (float) (clone $base)->whereIn('payment_status', $paidStatuses)->sum('amount');
 
-        $today = now()->toDateString();
+        $nowPh = now('Asia/Manila');
+        $today = $nowPh->toDateString();
         $dailyRevenue = (float) (clone $base)->whereIn('payment_status', $paidStatuses)
             ->whereDate('payment_date', $today)
             ->sum('amount');
 
         $weeklyRevenue = (float) (clone $base)->whereIn('payment_status', $paidStatuses)
             ->whereBetween('payment_date', [
-                now()->copy()->startOfWeek()->toDateString(),
-                now()->copy()->endOfWeek()->toDateString(),
+                $nowPh->copy()->startOfWeek()->toDateString(),
+                $nowPh->copy()->endOfWeek()->toDateString(),
             ])
             ->sum('amount');
 
         $monthlyRevenue = (float) (clone $base)->whereIn('payment_status', $paidStatuses)
             ->whereBetween('payment_date', [
-                now()->copy()->startOfMonth()->toDateString(),
-                now()->copy()->endOfMonth()->toDateString(),
+                $nowPh->copy()->startOfMonth()->toDateString(),
+                $nowPh->copy()->endOfMonth()->toDateString(),
             ])
             ->sum('amount');
 
         $serviceRevenue = (float) (clone $base)->whereIn('payment_status', $paidStatuses)
-            ->where('reference_type', 'appointment')
+            ->whereIn('reference_type', ['appointment', 'service'])
             ->sum('amount');
 
         $packageRevenue = (float) (clone $base)->whereIn('payment_status', $paidStatuses)
@@ -211,6 +212,7 @@ class ReportsController extends Controller
 
         $typeOptions = [
             'appointment' => 'Appointment',
+            'service' => 'Service',
             'package' => 'Package',
             'membership' => 'Membership',
             'product' => 'Product',

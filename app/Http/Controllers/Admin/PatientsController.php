@@ -180,7 +180,13 @@ class PatientsController extends Controller
             ->get();
 
         $payments = Payment::query()
-            ->with('referenceProduct:id,name,sku')
+            ->with([
+                'referenceProduct:id,name,sku',
+                'referencePackage:id,name',
+                'referenceMembership:id,name',
+                'referenceService:id,name',
+                'referenceAppointment' => static fn ($q) => $q->with('service:id,name'),
+            ])
             ->where('patient_id', $patient->id)
             ->orderByDesc('payment_date')
             ->orderByDesc('id')

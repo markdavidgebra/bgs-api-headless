@@ -18,6 +18,7 @@
   $relatedRecordUrl = $payment->reference_id
     ? match ($payment->reference_type) {
         'appointment' => route('admin.appointments.show', $payment->reference_id),
+        'service' => route('admin.services.show', $payment->reference_id),
         'package' => route('admin.packages.show', $payment->reference_id),
         'membership' => route('admin.subscriptions.show', $payment->reference_id),
         'product' => route('admin.products.show', $payment->reference_id),

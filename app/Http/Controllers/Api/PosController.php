@@ -372,6 +372,14 @@ class PosController extends Controller
                     : 0.0;
                 $lineAmount = round(max(0, $lineSubtotal - $lineDiscount), 2);
 
+                $lineNotes = $checkoutNotes;
+                if ($type === 'service') {
+                    $serviceNote = 'POS service checkout';
+                    $lineNotes = $lineNotes
+                        ? trim($lineNotes).' | '.$serviceNote
+                        : $serviceNote;
+                }
+
                 $payment = Payment::query()->create([
                     'payment_id' => Payment::generatePaymentId(),
                     'patient_id' => $validated['patient_id'],
@@ -382,7 +390,7 @@ class PosController extends Controller
                     'payment_status' => $paymentStatus,
                     'payment_date' => $paymentDate,
                     'transaction_reference' => $cashierTxnRef,
-                    'notes' => $checkoutNotes,
+                    'notes' => $lineNotes,
                 ]);
 
                 if ($type === 'product') {
@@ -513,7 +521,7 @@ class PosController extends Controller
             ]);
         }
 
-        return [$service, 'appointment', (float) ($service->promo_price ?? $service->price ?? 0)];
+        return [$service, 'service', (float) ($service->promo_price ?? $service->price ?? 0)];
     }
 
     /**
