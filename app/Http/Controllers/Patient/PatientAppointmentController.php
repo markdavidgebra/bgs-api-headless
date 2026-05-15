@@ -10,6 +10,8 @@ use App\Models\Patient;
 use App\Models\Service;
 use App\Notifications\Patient\AppointmentBookedPatientNotification;
 use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
+use App\Rules\BookableAppointmentDate;
+use App\Support\AppointmentBookingRules;
 use App\Support\DoctorAppointmentAlerts;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -79,7 +81,7 @@ class PatientAppointmentController extends Controller
     public function doctorsForBookingDate(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'date' => ['required', 'date', 'after_or_equal:today'],
+            'date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
         ]);
 
@@ -94,7 +96,7 @@ class PatientAppointmentController extends Controller
         $data = $request->validate([
             'service_id' => ['required', 'exists:services,id'],
             'doctor_id' => ['required', 'exists:doctors,id'],
-            'appointment_date' => ['required', 'date', 'after_or_equal:today'],
+            'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
             'patient_concern' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -175,7 +177,7 @@ class PatientAppointmentController extends Controller
         $this->ensureCanChangeAppointment($appointment);
 
         $data = $request->validate([
-            'appointment_date' => ['required', 'date', 'after_or_equal:today'],
+            'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required'],
         ]);
 
@@ -246,6 +248,10 @@ class PatientAppointmentController extends Controller
 
         if ($appointmentDate === null || $appointmentDate === '') {
             return $q->orderBy('name');
+        }
+
+        if (AppointmentBookingRules::isClosedWeekday($appointmentDate)) {
+            return $q->whereRaw('1 = 0')->orderBy('name');
         }
 
         try {

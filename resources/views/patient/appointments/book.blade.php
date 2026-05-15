@@ -91,6 +91,7 @@
                               class="form-control @error('appointment_date') is-invalid @enderror"
                               required
                             />
+                            <p class="text-muted font-sm mt-5 mb-0">Sundays are not available for booking.</p>
                             @error('appointment_date')
                               <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -146,9 +147,11 @@
       </div>
     </div>
   </main>
+  @include('partials.block-sunday-date-input')
   <script>
     (function () {
       var dateInput = document.getElementById('appointment_date');
+      if (window.blockSundayDateInput) window.blockSundayDateInput(dateInput);
       var serviceWrap = document.getElementById('service-field-wrap');
       var doctorWrap = document.getElementById('doctor-field-wrap');
       var serviceSelect = document.getElementById('service_id');

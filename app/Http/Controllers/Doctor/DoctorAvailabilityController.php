@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Doctor;
 use App\Http\Controllers\Controller;
 use App\Models\DoctorBlockedDate;
 use App\Models\DoctorWeeklySchedule;
+use App\Support\AppointmentBookingRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,6 +34,7 @@ class DoctorAvailabilityController extends Controller
     {
         $doctorId = auth('doctor')->id();
         abort_unless($weekday >= 1 && $weekday <= 7, 404);
+        abort_if($weekday === AppointmentBookingRules::CLOSED_WEEKDAY, 404);
 
         $this->ensureDefaultWeeklySchedule($doctorId);
 
@@ -48,6 +50,12 @@ class DoctorAvailabilityController extends Controller
     {
         $doctorId = auth('doctor')->id();
         abort_unless($weekday >= 1 && $weekday <= 7, 404);
+
+        if ($weekday === AppointmentBookingRules::CLOSED_WEEKDAY && $request->boolean('is_active')) {
+            return redirect()
+                ->route('doctor.availability')
+                ->with('info', 'Sunday is closed for bookings and cannot be enabled.');
+        }
 
         $isActive = $request->boolean('is_active');
 
@@ -86,6 +94,12 @@ class DoctorAvailabilityController extends Controller
     {
         $doctorId = auth('doctor')->id();
         abort_unless($weekday >= 1 && $weekday <= 7, 404);
+
+        if ($weekday === AppointmentBookingRules::CLOSED_WEEKDAY && $request->boolean('is_active')) {
+            return redirect()
+                ->route('doctor.availability')
+                ->with('info', 'Sunday is closed for bookings and cannot be enabled.');
+        }
 
         $this->ensureDefaultWeeklySchedule($doctorId);
 
@@ -149,11 +163,11 @@ class DoctorAvailabilityController extends Controller
         }
 
         for ($d = 1; $d <= 7; $d++) {
-            $isWeekend = $d >= 6;
+            $isUnavailable = $d >= 6 || $d === AppointmentBookingRules::CLOSED_WEEKDAY;
             DoctorWeeklySchedule::query()->create([
                 'doctor_id' => $doctorId,
                 'weekday' => $d,
-                'is_active' => ! $isWeekend,
+                'is_active' => ! $isUnavailable,
                 'start_time' => $isWeekend ? null : '09:00:00',
                 'end_time' => $isWeekend ? null : '17:00:00',
             ]);

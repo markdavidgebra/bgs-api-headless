@@ -43,6 +43,7 @@
                           <div class="col-md-6 mb-15">
                             <label class="font-sm mb-5">Date</label>
                             <input
+                              id="appointment_date"
                               type="date"
                               name="appointment_date"
                               value="{{ old('appointment_date', optional($appointment->appointment_date)->format('Y-m-d')) }}"
@@ -50,6 +51,7 @@
                               min="{{ now()->toDateString() }}"
                               required
                             />
+                            <p class="text-muted font-sm mt-5 mb-0">Sundays are not available for booking.</p>
                             @error('appointment_date')
                               <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -89,5 +91,12 @@
       </div>
     </div>
   </main>
+  @include('partials.block-sunday-date-input')
+  <script>
+    (function () {
+      var dateInput = document.getElementById('appointment_date');
+      if (window.blockSundayDateInput) window.blockSundayDateInput(dateInput);
+    })();
+  </script>
 @endsection
 

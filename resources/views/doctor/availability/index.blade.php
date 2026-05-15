@@ -119,17 +119,27 @@
                       <div class="row g-3">
                         @foreach ($weeklySchedules as $schedule)
                           <div class="col-md-4 col-sm-6">
-                            <div class="d-flex align-items-center justify-content-between border rounded p-3">
-                              <span class="font-sm fw-bold">{{ $schedule->day_label }}</span>
-                              <form method="POST" action="{{ route('doctor.availability.toggle', $schedule->weekday) }}" class="m-0">
-                                @csrf
-                                <div class="form-check form-switch mb-0">
-                                  <input class="form-check-input" type="checkbox" name="is_active" value="1"
-                                    id="toggle-{{ $schedule->weekday }}"
-                                    {{ $schedule->is_active ? 'checked' : '' }}
-                                    onchange="this.form.submit()">
-                                </div>
-                              </form>
+                            <div class="d-flex align-items-center justify-content-between border rounded p-3 {{ ($schedule->weekday ?? 0) === \App\Support\AppointmentBookingRules::CLOSED_WEEKDAY ? 'bg-light' : '' }}">
+                              @php $isSunday = $schedule->weekday === \App\Support\AppointmentBookingRules::CLOSED_WEEKDAY; @endphp
+                              <span class="font-sm fw-bold">
+                                {{ $schedule->day_label }}
+                                @if ($isSunday)
+                                  <span class="badge bg-secondary ms-1">Closed</span>
+                                @endif
+                              </span>
+                              @if ($isSunday)
+                                <span class="text-muted small">No bookings</span>
+                              @else
+                                <form method="POST" action="{{ route('doctor.availability.toggle', $schedule->weekday) }}" class="m-0">
+                                  @csrf
+                                  <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" name="is_active" value="1"
+                                      id="toggle-{{ $schedule->weekday }}"
+                                      {{ $schedule->is_active ? 'checked' : '' }}
+                                      onchange="this.form.submit()">
+                                  </div>
+                                </form>
+                              @endif
                             </div>
                           </div>
                         @endforeach
@@ -159,18 +169,23 @@
                           </thead>
                           <tbody>
                             @foreach ($weeklySchedules as $schedule)
+                              @php $isSunday = $schedule->weekday === \App\Support\AppointmentBookingRules::CLOSED_WEEKDAY; @endphp
                               <tr>
                                 <td>{{ $schedule->day_label }}</td>
                                 <td>
-                                  @if ($schedule->is_active)
+                                  @if ($isSunday)
+                                    <span class="av-status-off">Closed</span>
+                                  @elseif ($schedule->is_active)
                                     <span class="av-status-active">Active</span>
                                   @else
                                     <span class="av-status-off">Off</span>
                                   @endif
                                 </td>
-                                <td>{{ $schedule->time_slot_label }}</td>
+                                <td>{{ $isSunday ? '—' : $schedule->time_slot_label }}</td>
                                 <td class="text-end">
-                                  <a href="{{ route('doctor.availability.day.edit', $schedule->weekday) }}" class="btn btn-xs av-btn av-btn-light">Edit</a>
+                                  @unless ($isSunday)
+                                    <a href="{{ route('doctor.availability.day.edit', $schedule->weekday) }}" class="btn btn-xs av-btn av-btn-light">Edit</a>
+                                  @endunless
                                 </td>
                               </tr>
                             @endforeach

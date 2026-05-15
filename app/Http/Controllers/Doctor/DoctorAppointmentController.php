@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\TreatmentPackageUsageHistory;
 use App\Models\TreatmentPatientPackage;
 use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
+use App\Rules\BookableAppointmentDate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -194,8 +195,12 @@ class DoctorAppointmentController extends Controller
         return view('doctor.appointments.show', compact('appointment', 'patientPackage', 'patientPackages', 'serviceChecklist', 'checkedServiceSessionKeys'));
     }
 
-    public function createNotes(Appointment $appointment): View
+    public function createNotes(Appointment $appointment): View|RedirectResponse
     {
+        if (in_array($appointment->status, ['pending', 'rescheduled'], true)) {
+            return back()->with('info', __('Please approve this appointment before adding a note.'));
+        }
+
         $appointment = $appointment->load(['patient', 'service', 'note', 'prescribedProducts', 'doctor:id,name']);
         $appointmentNote = $appointment->note;
 
@@ -457,7 +462,10 @@ class DoctorAppointmentController extends Controller
                 ->withInput();
         }
 
-        $noteFieldKeys = ['patient_concern', 'appointment_remarks', 'admin_notes', 'doctor_notes', 'instructions', 'alerts'];
+        $noteFieldKeys = array_merge(
+            ['patient_concern', 'appointment_remarks', 'admin_notes', 'doctor_notes', 'instructions', 'alerts'],
+            AppointmentNote::vitalSignFieldKeys(),
+        );
 
         $oldSnapshot = [];
         foreach ($noteFieldKeys as $key) {
@@ -595,7 +603,7 @@ class DoctorAppointmentController extends Controller
     public function reschedule(Request $request, Appointment $appointment): RedirectResponse
     {
         $validated = $request->validate([
-            'appointment_date' => ['required', 'date'],
+            'appointment_date' => ['required', 'date', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
         ]);
 

@@ -390,6 +390,49 @@ class AppointmentNote extends Model
         return implode('; ', $parts);
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function vitalSignFieldKeys(): array
+    {
+        return [
+            'vital_blood_pressure',
+            'vital_heart_rate',
+            'vital_temperature',
+            'vital_respiratory_rate',
+            'vital_oxygen_saturation',
+            'vital_weight',
+            'vital_height',
+        ];
+    }
+
+    /**
+     * Display name of whoever recorded vital signs (from section_authors), not the appointment doctor.
+     */
+    public function vitalSignsRecorderLabel(): ?string
+    {
+        $authors = is_array($this->section_authors) ? $this->section_authors : [];
+
+        foreach (self::vitalSignFieldKeys() as $key) {
+            $raw = $authors[$key] ?? null;
+            if (! is_array($raw)) {
+                continue;
+            }
+
+            $name = self::sectionAuthorDisplayName($raw);
+            if ($name !== null) {
+                return $name;
+            }
+
+            $label = self::formatSectionAuthorLabel($raw);
+            if ($label !== null) {
+                return $label;
+            }
+        }
+
+        return null;
+    }
+
     public static function normalizeNoteValue(mixed $value): ?string
     {
         if ($value === null) {
@@ -466,6 +509,22 @@ class AppointmentNote extends Model
         }
 
         return $authors;
+    }
+
+    /**
+     * @param  array{type?: string, first_name?: string, last_name?: string}|null  $author
+     */
+    public static function sectionAuthorDisplayName(?array $author): ?string
+    {
+        if ($author === null || $author === []) {
+            return null;
+        }
+
+        $first = trim((string) ($author['first_name'] ?? ''));
+        $last = trim((string) ($author['last_name'] ?? ''));
+        $name = trim($first.' '.$last);
+
+        return $name !== '' ? $name : null;
     }
 
     /**

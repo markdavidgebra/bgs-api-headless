@@ -331,6 +331,7 @@
                               'date' => $cursor->copy(),
                               'dateKey' => $dateKey,
                               'isCurrentMonth' => $cursor->month === $monthCursor->month && $cursor->year === $monthCursor->year,
+                              'isClosedDay' => \App\Support\AppointmentBookingRules::isClosedWeekday($cursor),
                               'appointments' => $dayAppointments,
                           ]);
                           $cursor->addDay();
@@ -371,10 +372,11 @@
                                   @foreach ($week as $day)
                                     @php
                                       $isToday = $day['dateKey'] === now()->toDateString();
+                                      $isClosedDay = $day['isClosedDay'] ?? false;
                                       $dayCount = $day['appointments']->count();
                                       $btnClass = $dayCount > 0 ? 'btn-primary' : 'btn-outline-secondary';
                                     @endphp
-                                    <td class="align-top p-2 {{ $day['isCurrentMonth'] ? '' : 'bg-light text-secondary' }}">
+                                    <td class="align-top p-2 {{ $isClosedDay ? 'bg-light' : '' }} {{ $day['isCurrentMonth'] ? '' : 'bg-light text-secondary' }}">
                                       <div class="calendar-day-cell-inner">
                                         <div class="calendar-day-header">
                                           <strong class="{{ $isToday ? 'text-primary' : '' }}">{{ $day['date']->format('j') }}</strong>
@@ -402,6 +404,8 @@
                                               <div>+{{ $dayCount - 2 }} more</div>
                                             @endif
                                           </div>
+                                        @elseif ($isClosedDay && $dayCount === 0)
+                                          <div class="text-secondary small">Closed</div>
                                         @else
                                           <div class="text-secondary small">No bookings</div>
                                         @endif
@@ -650,7 +654,7 @@
                                     @csrf
                                     <div class="col-md-4">
                                       <label class="form-label mb-1">New date</label>
-                                      <input type="date" name="appointment_date" class="form-control"
+                                      <input type="date" name="appointment_date" class="form-control js-appointment-date"
                                         value="{{ old('appointment_date', optional($appointment->appointment_date)->format('Y-m-d')) }}">
                                     </div>
                                     <div class="col-md-4">
@@ -687,4 +691,13 @@
       </div>
     </div>
   </main>
+  @include('partials.block-sunday-date-input')
+  <script>
+    (function () {
+      if (!window.blockSundayDateInput) return;
+      document.querySelectorAll('.js-appointment-date').forEach(function (input) {
+        window.blockSundayDateInput(input);
+      });
+    })();
+  </script>
 @endsection

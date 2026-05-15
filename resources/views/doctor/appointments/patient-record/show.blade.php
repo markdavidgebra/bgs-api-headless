@@ -49,6 +49,34 @@
       text-align: left !important;
     }
 
+    #addNoteApprovalModal .approval-modal-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff7ed;
+      color: #c2410c;
+      font-size: 1.35rem;
+      margin-bottom: 0.75rem;
+    }
+
+    #addNoteApprovalModal .modal-content {
+      border: 0;
+      border-radius: 12px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+    }
+
+    #addNoteApprovalModal .modal-body {
+      padding: 1.5rem 1.75rem 0.25rem;
+    }
+
+    #addNoteApprovalModal .modal-footer {
+      border-top: 0;
+      padding: 0.75rem 1.75rem 1.5rem;
+    }
+
     #tab-overview .patient-info-section {
       border-top: 1px solid #e5e7eb;
       padding-top: 1rem;
@@ -369,6 +397,11 @@
                                 <td class="small">
                                   @php
                                     $vitalLine = $row->note->vitalSignsSummary();
+                                    $vitalWhen = $row->appointment->date_display.' '.$row->appointment->time_display;
+                                    $vitalRecorder = $row->note->vitalSignsRecorderLabel();
+                                    if ($vitalRecorder) {
+                                        $vitalWhen .= ' · '.$vitalRecorder;
+                                    }
                                   @endphp
                                   @if ($vitalLine !== '')
                                     <button type="button"
@@ -381,7 +414,7 @@
                                       data-vital-spo2="{{ $row->note->vital_oxygen_saturation }}"
                                       data-vital-wt="{{ $row->note->vital_weight }}"
                                       data-vital-ht="{{ $row->note->vital_height }}"
-                                      data-vital-when="{{ $row->appointment->date_display }} {{ $row->appointment->time_display }} · {{ $row->appointment->doctor_name }}">
+                                      data-vital-when="{{ $vitalWhen }}">
                                       View
                                     </button>
                                   @else
@@ -476,9 +509,21 @@
                                   <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
                                 </td>
                                 <td class="text-nowrap">
+                                  @php
+                                    $appointmentNeedsApproval = in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true);
+                                  @endphp
                                   <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                  <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
-                                  @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
+                                  @if ($appointmentNeedsApproval)
+                                    <button
+                                      type="button"
+                                      class="btn btn-sm js-add-note-requires-approval"
+                                      data-appointment-label="{{ $appointment->appointment_no ?? __('this appointment') }}"
+                                      data-status-label="{{ $appointment->status_label }}"
+                                    >Add note</button>
+                                  @else
+                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                  @endif
+                                  @if ($appointmentNeedsApproval)
                                     <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
                                       @csrf
                                       <button type="submit" class="btn btn-sm btn-success">Approve</button>
@@ -521,9 +566,21 @@
                                   <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
                                 </td>
                                 <td class="text-nowrap">
+                                  @php
+                                    $appointmentNeedsApproval = in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true);
+                                  @endphp
                                   <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                  <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
-                                  @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
+                                  @if ($appointmentNeedsApproval)
+                                    <button
+                                      type="button"
+                                      class="btn btn-sm js-add-note-requires-approval"
+                                      data-appointment-label="{{ $appointment->appointment_no ?? __('this appointment') }}"
+                                      data-status-label="{{ $appointment->status_label }}"
+                                    >Add note</button>
+                                  @else
+                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                  @endif
+                                  @if ($appointmentNeedsApproval)
                                     <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
                                       @csrf
                                       <button type="submit" class="btn btn-sm btn-success">Approve</button>
@@ -922,6 +979,33 @@
     </div>
   </main>
 
+  <div class="modal fade" id="addNoteApprovalModal" tabindex="-1" aria-labelledby="addNoteApprovalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
+        </div>
+        <div class="modal-body text-center pt-0">
+          <div class="approval-modal-icon" aria-hidden="true">
+            <i class="fi-rs-time-check"></i>
+          </div>
+          <h5 class="modal-title mb-2" id="addNoteApprovalModalLabel">{{ __('Approval required') }}</h5>
+          <p class="text-secondary mb-3 small">
+            {{ __('Treatment notes can only be added after the appointment has been approved.') }}
+          </p>
+          <p class="mb-2 small fw-semibold text-dark" id="addNoteApprovalModalContext"></p>
+          <p class="mb-0">
+            <span class="badge bg-yellow-lt text-dark" id="addNoteApprovalModalStatus"></span>
+          </p>
+          <p class="text-muted mt-3 mb-0 small">{{ __('Use the Approve button on this row, then add your note.') }}</p>
+        </div>
+        <div class="modal-footer border-0 justify-content-center pt-0">
+          <button type="button" class="btn btn-sm px-4" data-bs-dismiss="modal">{{ __('Understood') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="vitalSignsModal" tabindex="-1" aria-labelledby="vitalSignsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -1211,6 +1295,40 @@
         });
       });
       applyMicroNeedlingView('all');
+
+      const addNoteApprovalModalEl = document.getElementById('addNoteApprovalModal');
+      const addNoteApprovalContext = document.getElementById('addNoteApprovalModalContext');
+      const addNoteApprovalStatus = document.getElementById('addNoteApprovalModalStatus');
+      const addNoteContextTemplate = @json(__('Appointment :appointment'));
+      const addNoteStatusTemplate = @json(__('Status: :status'));
+      if (addNoteApprovalModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        let addNoteApprovalModalInstance = null;
+        function getAddNoteApprovalModal() {
+          if (!addNoteApprovalModalInstance) {
+            addNoteApprovalModalInstance = bootstrap.Modal.getInstance(addNoteApprovalModalEl);
+            if (!addNoteApprovalModalInstance) {
+              addNoteApprovalModalInstance = new bootstrap.Modal(addNoteApprovalModalEl);
+            }
+          }
+          return addNoteApprovalModalInstance;
+        }
+        document.querySelectorAll('.js-add-note-requires-approval').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const label = this.dataset.appointmentLabel || @json(__('this appointment'));
+            const status = this.dataset.statusLabel || '';
+            if (addNoteApprovalContext) {
+              addNoteApprovalContext.textContent = addNoteContextTemplate.replace(':appointment', label);
+            }
+            if (addNoteApprovalStatus) {
+              addNoteApprovalStatus.textContent = status
+                ? addNoteStatusTemplate.replace(':status', status)
+                : '';
+              addNoteApprovalStatus.classList.toggle('d-none', !status);
+            }
+            getAddNoteApprovalModal().show();
+          });
+        });
+      }
 
       document.querySelectorAll('.pkg-aggregate-form').forEach((form) => {
         const hidden = form.querySelector('.pkg-used-input');
