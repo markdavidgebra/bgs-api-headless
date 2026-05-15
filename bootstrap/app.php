@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // by auth:admin + admin_role). Web route aliases under /pos/* stay listed explicitly.
         $middleware->validateCsrfTokens(except: [
             'api/pos/*',
+            'api/inventory/*',
             'pos/login',
             'pos/logout',
         ]);
