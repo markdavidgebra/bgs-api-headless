@@ -11,16 +11,27 @@ class AffiliateCode extends Model
         'code',
         'label',
         'status',
+        'effective_from',
+        'effective_to',
         'discount_method',
         'discount_value',
         'notes',
+        'times_used',
     ];
 
     protected function casts(): array
     {
         return [
+            'effective_from' => 'date',
+            'effective_to' => 'date',
             'discount_value' => 'decimal:2',
+            'times_used' => 'integer',
         ];
+    }
+
+    public function recordUsage(): void
+    {
+        $this->increment('times_used');
     }
 
     public function services(): BelongsToMany
@@ -57,5 +68,24 @@ class AffiliateCode extends Model
             'fixed' => '₱'.number_format((float) $this->discount_value, 2).' off',
             default => (string) $this->discount_value,
         };
+    }
+
+    protected function formatEffectivityDate(\Illuminate\Support\Carbon $date): string
+    {
+        $labels = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
+
+        return $labels[(int) $date->format('n') - 1].' '.$date->format('j').', '.$date->format('Y');
+    }
+
+    public function getEffectivityLabelAttribute(): string
+    {
+        if (! $this->effective_from && ! $this->effective_to) {
+            return '—';
+        }
+
+        $from = $this->effective_from ? $this->formatEffectivityDate($this->effective_from) : '—';
+        $to = $this->effective_to ? $this->formatEffectivityDate($this->effective_to) : '—';
+
+        return "{$from} – {$to}";
     }
 }

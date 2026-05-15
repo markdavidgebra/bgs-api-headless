@@ -61,6 +61,28 @@
                     @enderror
                   </div>
                   <div class="col-md-6">
+                    <label class="form-label" for="effective_from">Effectivity from</label>
+                    <input id="effective_from" name="effective_from" type="date"
+                      class="form-control @error('effective_from') is-invalid @enderror"
+                      value="{{ old('effective_from') }}"
+                      min="{{ now()->toDateString() }}">
+                    <small class="form-hint">Leave blank if the code is valid immediately. Sundays cannot be selected.</small>
+                    @error('effective_from')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="effective_to">Effectivity to</label>
+                    <input id="effective_to" name="effective_to" type="date"
+                      class="form-control @error('effective_to') is-invalid @enderror"
+                      value="{{ old('effective_to') }}"
+                      min="{{ now()->toDateString() }}">
+                    <small class="form-hint">Leave blank for no end date. Sundays cannot be selected.</small>
+                    @error('effective_to')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                  <div class="col-md-6">
                     <label class="form-label required" for="status">Status</label>
                     <select id="status" name="status" class="form-select @error('status') is-invalid @enderror" required>
                       <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
@@ -223,7 +245,35 @@
 @endsection
 
 @push('scripts')
+  @include('partials.block-sunday-date-input')
   <script>
+    (function () {
+      const today = @json(now()->toDateString());
+      const fromEl = document.getElementById('effective_from');
+      const toEl = document.getElementById('effective_to');
+
+      const datePickerOptions = { displayFormat: 'long' };
+
+      if (window.blockSundayDateInput) {
+        window.blockSundayDateInput(fromEl, datePickerOptions);
+        window.blockSundayDateInput(toEl, datePickerOptions);
+      }
+
+      function syncEffectivityMin() {
+        if (!toEl) return;
+        const fromVal = window.getBlockSundayDateInputValue
+          ? window.getBlockSundayDateInputValue(fromEl)
+          : fromEl?.value;
+        const minTo = fromVal && fromVal > today ? fromVal : today;
+        if (window.setBlockSundayDateInputMin) {
+          window.setBlockSundayDateInputMin(toEl, minTo);
+        }
+      }
+
+      (fromEl?._bgsBookableDateHidden || fromEl)?.addEventListener('change', syncEffectivityMin);
+      syncEffectivityMin();
+    })();
+
     (function () {
       const methodEl = document.getElementById('discount_method');
       const valueEl = document.getElementById('discount_value');

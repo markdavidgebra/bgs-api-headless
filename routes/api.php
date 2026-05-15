@@ -20,5 +20,6 @@ Route::middleware(['web', 'auth:admin', 'admin_role:admin,cashier'])
         Route::get('catalog', [PosController::class, 'catalog']);
         Route::get('patients', [PosController::class, 'patients']);
         Route::get('promotions', [PosController::class, 'promotions']);
+        Route::post('affiliate-codes/validate', [PosController::class, 'validateAffiliateCode']);
         Route::post('checkout', [PosController::class, 'checkout']);
     });

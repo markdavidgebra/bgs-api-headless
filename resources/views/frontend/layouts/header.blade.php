@@ -35,7 +35,7 @@
                         </div>
                         <div class="main-menu__right">
                             <div class="main-menu__thm-btn">
-                                <a href="{{ url('appointment') }}" class="thm-btn">Appoinment Now <span class="icon-plus"></span></a>
+                                <a href="{{ url('appointment') }}" class="thm-btn">Appointment Now <span class="icon-plus"></span></a>
                             </div>
                         </div>
                     </div>

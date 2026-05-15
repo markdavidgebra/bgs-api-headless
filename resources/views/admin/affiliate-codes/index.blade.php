@@ -30,7 +30,9 @@
                 <th class="text-uppercase text-secondary small fw-bold">Code</th>
                 <th class="text-uppercase text-secondary small fw-bold">Label</th>
                 <th class="text-uppercase text-secondary small fw-bold">Discount</th>
+                <th class="text-uppercase text-secondary small fw-bold">Effectivity</th>
                 <th class="text-uppercase text-secondary small fw-bold">Applies to</th>
+                <th class="text-uppercase text-secondary small fw-bold text-end">Times used</th>
                 <th class="text-uppercase text-secondary small fw-bold">Status</th>
                 <th class="text-uppercase text-secondary small fw-bold">Created</th>
               </tr>
@@ -55,8 +57,12 @@
                   </td>
                   <td class="text-secondary">{{ $affiliateCode->label ?: '—' }}</td>
                   <td class="font-monospace">{{ $affiliateCode->discount_label }}</td>
+                  <td class="text-secondary small">{{ $affiliateCode->effectivity_label }}</td>
                   <td class="text-secondary small">
                     {{ $scopeParts !== [] ? implode(' · ', $scopeParts) : '—' }}
+                  </td>
+                  <td class="text-end font-monospace">
+                    {{ number_format((int) $affiliateCode->times_used) }}
                   </td>
                   <td>
                     <span class="badge {{ $affiliateCode->status_badge }}">{{ ucfirst($affiliateCode->status) }}</span>
@@ -65,7 +71,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="6" class="text-center text-secondary py-5">
+                  <td colspan="8" class="text-center text-secondary py-5">
                     No affiliate codes yet.
                     <a href="{{ route('admin.affiliate-codes.create') }}" class="ms-1">Create one</a>.
                   </td>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AffiliateCode;
 use App\Models\MembershipPlan;
 use App\Models\Patient;
 use App\Models\PatientSubscription;
@@ -13,6 +14,7 @@ use App\Models\Service;
 use App\Models\StockMovement;
 use App\Models\TreatmentPackage;
 use App\Models\TreatmentPatientPackage;
+use App\Services\PosAffiliateCodeService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,10 @@ use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
 {
+    public function __construct(
+        private readonly PosAffiliateCodeService $affiliateCodes,
+    ) {}
+
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -239,6 +245,40 @@ class PosController extends Controller
         ]);
     }
 
+    public function validateAffiliateCode(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:64'],
+            'items' => ['nullable', 'array'],
+            'items.*.type' => ['required_with:items', 'string', 'in:product,service,package'],
+            'items.*.id' => ['required_with:items', 'integer'],
+            'items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $cartItems = $validated['items'] ?? [];
+
+        $preview = $cartItems === []
+            ? $this->affiliateCodes->cartItemsForCode($validated['code'])
+            : $this->affiliateCodes->preview(
+                $validated['code'],
+                $cartItems,
+                fn (string $type, int $id): float => $this->resolveReferenceForPos($type, $id)[2],
+            );
+
+        if (! $preview['discount_applied'] && $cartItems !== []) {
+            throw ValidationException::withMessages([
+                'code' => ['This affiliate code does not apply to any items in the cart.'],
+            ]);
+        }
+
+        return response()->json([
+            'affiliate_code' => $this->affiliateCodes->formatAffiliateCodePayload($preview['affiliate_code']),
+            'items' => $preview['lines'],
+            'totals' => $preview['totals'],
+        ]);
+    }
+
     public function checkout(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -253,6 +293,7 @@ class PosController extends Controller
             'items.*.id' => ['required', 'integer'],
             'items.*.quantity' => ['nullable', 'integer', 'min:1'],
             'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'affiliate_code' => ['nullable', 'string', 'max:64'],
         ]);
 
         $paymentDate = $validated['payment_date'] ?? now()->toDateString();
@@ -266,12 +307,40 @@ class PosController extends Controller
             $items
         );
 
-        $created = DB::transaction(function () use ($validated, $items, $paymentDate, $paymentStatus, $cashierTxnRef, $notes) {
+        $affiliatePreview = null;
+        $affiliateCodeInput = trim((string) ($validated['affiliate_code'] ?? ''));
+        if ($affiliateCodeInput !== '') {
+            $affiliatePreview = $this->affiliateCodes->preview(
+                $affiliateCodeInput,
+                $items,
+                fn (string $type, int $id): float => $this->resolveReferenceForPos($type, $id)[2],
+            );
+
+            if (! $affiliatePreview['discount_applied']) {
+                throw ValidationException::withMessages([
+                    'affiliate_code' => ['This affiliate code does not apply to any items in the cart.'],
+                ]);
+            }
+        }
+
+        $created = DB::transaction(function () use ($validated, $items, $paymentDate, $paymentStatus, $cashierTxnRef, $notes, $affiliatePreview) {
             $payments = [];
             $totals = [
                 'subtotal' => 0.0,
+                'discount' => 0.0,
+                'total' => 0.0,
                 'total_items' => 0,
             ];
+
+            $checkoutNotes = $notes;
+            if ($affiliatePreview !== null) {
+                /** @var AffiliateCode $affiliateCode */
+                $affiliateCode = $affiliatePreview['affiliate_code'];
+                $affiliateNote = 'Affiliate code: '.$affiliateCode->code;
+                $checkoutNotes = $checkoutNotes
+                    ? trim($checkoutNotes).' | '.$affiliateNote
+                    : $affiliateNote;
+            }
 
             foreach ($items as $row) {
                 $type = $row['type'];
@@ -293,7 +362,15 @@ class PosController extends Controller
                     ? (float) $row['unit_price']
                     : $defaultUnitPrice;
 
-                $lineAmount = round($unitPrice * $quantity, 2);
+                $lineSubtotal = round($unitPrice * $quantity, 2);
+                $lineDiscount = $affiliatePreview !== null
+                    ? $this->affiliateCodes->lineDiscountFor(
+                        $affiliatePreview['lines'],
+                        $type,
+                        $recordId
+                    )
+                    : 0.0;
+                $lineAmount = round(max(0, $lineSubtotal - $lineDiscount), 2);
 
                 $payment = Payment::query()->create([
                     'payment_id' => Payment::generatePaymentId(),
@@ -305,7 +382,7 @@ class PosController extends Controller
                     'payment_status' => $paymentStatus,
                     'payment_date' => $paymentDate,
                     'transaction_reference' => $cashierTxnRef,
-                    'notes' => $notes,
+                    'notes' => $checkoutNotes,
                 ]);
 
                 if ($type === 'product') {
@@ -349,22 +426,37 @@ class PosController extends Controller
                     'reference_id' => $payment->reference_id,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
+                    'subtotal' => $lineSubtotal,
+                    'discount' => $lineDiscount,
                     'amount' => $lineAmount,
                 ];
 
-                $totals['subtotal'] += $lineAmount;
+                $totals['subtotal'] += $lineSubtotal;
+                $totals['discount'] += $lineDiscount;
+                $totals['total'] += $lineAmount;
                 $totals['total_items'] += $quantity;
             }
 
             $totals['subtotal'] = round($totals['subtotal'], 2);
+            $totals['discount'] = round($totals['discount'], 2);
+            $totals['total'] = round($totals['total'], 2);
 
-            return [$payments, $totals];
+            if ($affiliatePreview !== null) {
+                $affiliatePreview['affiliate_code']->recordUsage();
+            }
+
+            $affiliatePayload = $affiliatePreview !== null
+                ? $this->affiliateCodes->formatAffiliateCodePayload($affiliatePreview['affiliate_code'])
+                : null;
+
+            return [$payments, $totals, $affiliatePayload];
         });
 
         return response()->json([
             'message' => 'POS checkout completed.',
             'payments' => $created[0],
             'totals' => $created[1],
+            'affiliate_code' => $created[2],
         ], 201);
     }
 

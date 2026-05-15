@@ -7,6 +7,7 @@ use App\Models\AffiliateCode;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\TreatmentPackage;
+use App\Rules\BookableAppointmentDate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,8 @@ class AffiliateCodesController extends Controller
             'code' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('affiliate_codes', 'code')],
             'label' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'string', 'in:active,inactive'],
+            'effective_from' => ['nullable', 'date', 'after_or_equal:today', new BookableAppointmentDate],
+            'effective_to' => ['nullable', 'date', 'after_or_equal:today', 'after_or_equal:effective_from', new BookableAppointmentDate],
             'discount_method' => ['required', 'string', 'in:percentage,fixed'],
             'discount_value' => [
                 'required',
@@ -78,6 +81,8 @@ class AffiliateCodesController extends Controller
                 'code' => strtoupper(trim($validated['code'])),
                 'label' => $validated['label'] ?? null,
                 'status' => $validated['status'],
+                'effective_from' => $validated['effective_from'] ?? null,
+                'effective_to' => $validated['effective_to'] ?? null,
                 'discount_method' => $validated['discount_method'],
                 'discount_value' => $validated['discount_value'],
                 'notes' => $validated['notes'] ?? null,
