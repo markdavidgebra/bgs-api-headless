@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\PatientsController;
 use App\Http\Controllers\Admin\PaymentsController;
 use App\Http\Controllers\Admin\ProductsController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\AffiliateCodesController;
 use App\Http\Controllers\Admin\PromotionsController;
 use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Admin\ServicesController;
@@ -282,6 +283,9 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::put('promotions/{id}', [PromotionsController::class, 'update'])->name('promotions.update');
         Route::get('promotions/email', [PromotionsController::class, 'emailForm'])->name('promotions.email');
         Route::post('promotions/email', [PromotionsController::class, 'sendEmailBlast'])->name('promotions.email.send');
+        Route::get('affiliate-codes', [AffiliateCodesController::class, 'index'])->name('affiliate-codes');
+        Route::get('affiliate-codes/create', [AffiliateCodesController::class, 'create'])->name('affiliate-codes.create');
+        Route::post('affiliate-codes', [AffiliateCodesController::class, 'store'])->name('affiliate-codes.store');
     });
     Route::middleware('admin_permission:reports.view')->group(function () {
         Route::get('reports', [ReportsController::class, 'index'])->name('reports');

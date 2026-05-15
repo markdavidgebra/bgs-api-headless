@@ -463,7 +463,7 @@ class DoctorAppointmentController extends Controller
         }
 
         $noteFieldKeys = array_merge(
-            ['patient_concern', 'appointment_remarks', 'admin_notes', 'doctor_notes', 'instructions', 'alerts'],
+            ['patient_concern', 'appointment_remarks', 'admin_notes', 'doctor_notes', 'instructions', 'alerts', 'mobility'],
             AppointmentNote::vitalSignFieldKeys(),
         );
 
@@ -488,9 +488,9 @@ class DoctorAppointmentController extends Controller
             'vital_height' => AppointmentNote::normalizeNoteValue($validated['vital_height'] ?? null),
         ];
 
-        if ($request->has('mobility')) {
-            $newPayload['mobility'] = filled($validated['mobility'] ?? null) ? $validated['mobility'] : null;
-        }
+        $newPayload['mobility'] = $request->has('mobility')
+            ? (filled($validated['mobility'] ?? null) ? $validated['mobility'] : null)
+            : $existingNote?->mobility;
 
         $bodyAnalyzerPath = $existingNote?->body_analyzer_image_path;
         if ($request->hasFile('body_analyzer_image')) {
@@ -589,9 +589,23 @@ class DoctorAppointmentController extends Controller
             'mobility' => ['required', 'string', Rule::in(['ambulatory', 'with_assistive', 'wheelchair'])],
         ]);
 
+        $existingNote = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
+        $newMobility = $validated['mobility'];
+        $doctor = auth('doctor')->user();
+        $sectionAuthors = AppointmentNote::mergeAuthorsOnFieldChanges(
+            is_array($existingNote?->section_authors) ? $existingNote->section_authors : null,
+            ['mobility' => $existingNote?->mobility],
+            ['mobility' => $newMobility],
+            ['mobility'],
+            AppointmentNote::authorPayloadFromUserName('doctor', $doctor?->name),
+        );
+
         AppointmentNote::query()->updateOrCreate(
             ['appointment_id' => $appointment->id],
-            ['mobility' => $validated['mobility']]
+            [
+                'mobility' => $newMobility,
+                'section_authors' => $sectionAuthors,
+            ]
         );
 
         return redirect()

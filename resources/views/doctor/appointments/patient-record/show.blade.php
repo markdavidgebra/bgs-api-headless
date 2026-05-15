@@ -354,7 +354,26 @@
                                   <td>{{ $row->appointment->date_display }} {{ $row->appointment->time_display }}</td>
                                   <td>{{ $row->appointment->doctor_name }}</td>
                                   <td>{{ $row->appointment->service_name }}</td>
-                                  <td>{{ $row->mobility_label ?? '—' }}</td>
+                                  <td>
+                                    @if ($row->mobility_label)
+                                      @php
+                                        $mobilityWhen = $row->appointment->date_display.' '.$row->appointment->time_display;
+                                        $mobilityRecorder = $row->appointment->note?->mobilityRecorderLabel();
+                                        if ($mobilityRecorder) {
+                                            $mobilityWhen .= ' · '.$mobilityRecorder;
+                                        }
+                                      @endphp
+                                      <button type="button"
+                                        class="btn btn-sm btn-outline-primary mobility-open-btn"
+                                        aria-label="{{ __('View mobility: :label', ['label' => $row->mobility_label]) }}"
+                                        data-mobility-label="{{ $row->mobility_label }}"
+                                        data-mobility-when="{{ $mobilityWhen }}">
+                                        {{ __('View') }}
+                                      </button>
+                                    @else
+                                      —
+                                    @endif
+                                  </td>
                                   <td>
                                     @if ($row->can_edit)
                                       <a href="{{ route('doctor.appointments.show', $row->appointment) }}#clinical-notes-assessment" class="btn btn-sm btn-outline-primary">{{ $row->mobility_label ? __('Edit') : __('Record') }}</a>
@@ -1028,6 +1047,28 @@
     </div>
   </div>
 
+  <div class="modal fade" id="mobilityModal" tabindex="-1" aria-labelledby="mobilityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-0" id="mobilityModalLabel">{{ __('Mobility') }}</h5>
+            <div class="small text-muted mt-5" id="mobilityModalWhen"></div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
+        </div>
+        <div class="modal-body p-0">
+          <table class="table table-striped mb-0" id="mobilityModalTable">
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">{{ __('Close') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const buttons = document.querySelectorAll('#tabButtons .tab-btn');
@@ -1100,6 +1141,42 @@
               vitalModalTbody.appendChild(tr);
             });
             getVitalModalInstance().show();
+          });
+        });
+      }
+
+      const mobilityModalEl = document.getElementById('mobilityModal');
+      const mobilityModalWhen = document.getElementById('mobilityModalWhen');
+      const mobilityModalTbody = document.querySelector('#mobilityModalTable tbody');
+      if (mobilityModalEl && mobilityModalWhen && mobilityModalTbody && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        let mobilityModalInstance = null;
+        function getMobilityModalInstance() {
+          if (!mobilityModalInstance) {
+            mobilityModalInstance = bootstrap.Modal.getInstance(mobilityModalEl);
+            if (!mobilityModalInstance) {
+              mobilityModalInstance = new bootstrap.Modal(mobilityModalEl);
+            }
+          }
+          return mobilityModalInstance;
+        }
+        document.querySelectorAll('.mobility-open-btn').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const d = this.dataset;
+            mobilityModalWhen.textContent = d.mobilityWhen || '';
+            mobilityModalTbody.innerHTML = '';
+            const label = d.mobilityLabel && String(d.mobilityLabel).trim() !== '' ? String(d.mobilityLabel).trim() : '—';
+            const tr = document.createElement('tr');
+            const th = document.createElement('th');
+            th.className = 'ps-4 py-2';
+            th.scope = 'row';
+            th.textContent = @json(__('Mobility'));
+            const td = document.createElement('td');
+            td.className = 'py-2 pe-4';
+            td.textContent = label;
+            tr.appendChild(th);
+            tr.appendChild(td);
+            mobilityModalTbody.appendChild(tr);
+            getMobilityModalInstance().show();
           });
         });
       }

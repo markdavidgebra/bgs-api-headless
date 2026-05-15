@@ -190,6 +190,26 @@ class AppointmentNote extends Model
         return self::mobilityOptions()[$value] ?? $value;
     }
 
+    /**
+     * Display name of whoever recorded mobility (from section_authors), not the appointment doctor.
+     */
+    public function mobilityRecorderLabel(): ?string
+    {
+        $authors = is_array($this->section_authors) ? $this->section_authors : [];
+        $raw = $authors['mobility'] ?? null;
+
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $name = self::sectionAuthorDisplayName($raw);
+        if ($name !== null) {
+            return $name;
+        }
+
+        return self::formatSectionAuthorLabel($raw);
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (self $note): void {

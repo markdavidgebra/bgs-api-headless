@@ -385,6 +385,19 @@
         </li>
         @endif
         @if ($can('promotions.manage'))
+        <li class="nav-item dropdown {{ request()->routeIs('admin.affiliate-codes*') ? 'active' : '' }}">
+          <a class="nav-link dropdown-toggle" href="#navbar-affiliate-codes" data-bs-toggle="dropdown" data-bs-auto-close="false"
+            role="button" aria-expanded="false">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 15l6 -6" /><path d="M11 6l.463 -.536a5 5 0 0 1 7.072 0a5 5 0 0 1 0 7.072l-.536 .463" /><path d="M13 18l-.463 .536a5 5 0 0 1 -7.072 0a5 5 0 0 1 0 -7.072l.536 -.463" /></svg>
+            </span>
+            <span class="nav-link-title">Affiliate Code</span>
+          </a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item {{ request()->routeIs('admin.affiliate-codes') ? 'active' : '' }}" href="{{ route('admin.affiliate-codes') }}">All Codes</a>
+            <a class="dropdown-item {{ request()->routeIs('admin.affiliate-codes.create') ? 'active' : '' }}" href="{{ route('admin.affiliate-codes.create') }}">Create Affiliate Code</a>
+          </div>
+        </li>
         <li class="nav-item dropdown {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
           <a class="nav-link dropdown-toggle" href="#navbar-promotions" data-bs-toggle="dropdown" data-bs-auto-close="false"
             role="button" aria-expanded="false"> {{-- promotions --}}
