@@ -54,15 +54,10 @@
             }
         }
         .bgs-about-doc-header {
-            text-align: center;
+            text-align: left;
             margin-bottom: 2rem;
             padding-bottom: 1.75rem;
             border-bottom: 1px solid rgba(199, 129, 157, 0.18);
-        }
-        @media (min-width: 992px) {
-            .bgs-about-doc-header {
-                text-align: left;
-            }
         }
         .bgs-about-eyebrow {
             display: inline-block;
@@ -204,7 +199,7 @@
         .bgs-about-tagline {
             margin-top: 2.5rem;
             padding: 2rem 1.25rem 0;
-            text-align: center;
+            text-align: left;
             border-top: 1px solid rgba(228, 207, 228, 0.9);
         }
         .bgs-about-tagline .bgs-about-tagline-main {

@@ -49,6 +49,53 @@
       text-align: left !important;
     }
 
+    #tab-overview .patient-info-section {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    #tab-overview .patient-info-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 0.75rem;
+    }
+
+    #tab-overview .patient-info-field-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.25rem;
+    }
+
+    #tab-overview .patient-info-field-value {
+      font-size: 0.9375rem;
+      color: #1f2937;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #tab-overview .patient-info-allergy {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+    }
+
+    #tab-overview .patient-info-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
     #bottle-citrus-section .bottle-citrus-thumb {
       background-color: #f4f4f5;
     }
@@ -163,40 +210,136 @@
                   @endif
 
                   <div class="d-flex flex-wrap gap-2 mb-20" id="tabButtons">
-                    <button type="button" class="tab-btn active" data-target="tab-overview">Overview</button>
+                    <button type="button" class="tab-btn active" data-target="tab-appointments">Appointments</button>
+                    <button type="button" class="tab-btn" data-target="tab-overview">Patients Info</button>
+                    <button type="button" class="tab-btn" data-target="tab-assessment">{{ __('Assessment Checklist') }}</button>
                     <button type="button" class="tab-btn" data-target="tab-notes">Treatment Notes</button>
-                    <button type="button" class="tab-btn" data-target="tab-appointments">Appointments</button>
                     <button type="button" class="tab-btn" data-target="tab-packages">Packages / Memberships</button>
                     <button type="button" class="tab-btn" data-target="tab-payments">Payments</button>
                     <button type="button" class="tab-btn" data-target="tab-body-analyzer">Images</button>
                   </div>
 
-                  <div class="card tab-panel active" id="tab-overview">
-                    <div class="card-header"><h5 class="mb-0">Overview</h5></div>
+                  <div class="card tab-panel" id="tab-overview">
+                    <div class="card-header"><h5 class="mb-0">Patients Info</h5></div>
                     <div class="card-body">
-                      <div class="row">
-                        <div class="col-md-6 mb-2"><strong>Patient:</strong> {{ $patient->name }}</div>
-                        <div class="col-md-6 mb-2"><strong>Email:</strong> {{ $patient->email ?? '—' }}</div>
-                        <div class="col-md-6 mb-2"><strong>Contact:</strong> {{ $patient->phone ?? '—' }}</div>
-                        <div class="col-md-6 mb-2"><strong>Birthdate:</strong> {{ $patient->birthdate?->format('Y-m-d') ?? '—' }}</div>
-                        <div class="col-md-6 mb-2"><strong>Gender:</strong> {{ $patient->gender ?? '—' }}</div>
-                        <div class="col-md-6 mb-2"><strong>Address:</strong> {{ $patient->address ?? '—' }}</div>
-                        <div class="col-md-6 mb-2"><strong>Status:</strong> {{ ucfirst((string) ($patient->status ?? 'active')) }}</div>
-                        <div class="col-md-6 mb-2"><strong>Last visit (with you):</strong>
-                          @if ($lastVisit)
-                            {{ $lastVisit->date_display }} {{ $lastVisit->time_display }}
-                          @else
-                            —
-                          @endif
+                      <div class="patient-info-section pt-0 mt-0 border-0">
+                        <div class="patient-info-section-title">{{ __('Contact & profile') }}</div>
+                        <div class="row">
+                          <div class="col-md-6 mb-2"><strong>Patient:</strong> {{ $patient->name }}</div>
+                          <div class="col-md-6 mb-2"><strong>Email:</strong> {{ $patient->email ?? '—' }}</div>
+                          <div class="col-md-6 mb-2"><strong>Contact:</strong> {{ $patient->phone ?? '—' }}</div>
+                          <div class="col-md-6 mb-2"><strong>Birthdate:</strong> {{ $patient->birthdate?->format('Y-m-d') ?? '—' }}</div>
+                          <div class="col-md-6 mb-2"><strong>Gender:</strong> {{ $patient->gender ?? '—' }}</div>
+                          <div class="col-md-6 mb-2"><strong>Address:</strong> {{ $patient->address ?? '—' }}</div>
+                          <div class="col-md-6 mb-2"><strong>Status:</strong> {{ ucfirst((string) ($patient->status ?? 'active')) }}</div>
                         </div>
-                        <div class="col-md-6 mb-2"><strong>Total visits (with you):</strong> {{ $totalVisits }}</div>
-                        <div class="col-12 mt-2"><strong>Notes summary (clinic):</strong>
-                          @php
-                            $summary = $latestNote ? $latestNote->treatmentSummarySnippet(180) : '';
-                          @endphp
-                          {{ $summary !== '' ? $summary : 'No notes yet.' }}</div>
-                        <div class="col-12 mt-2"><strong>Allergy:</strong> {{ $latestAlerts ?: 'None' }}</div>
                       </div>
+
+                      <div class="patient-info-section">
+                        <div class="patient-info-section-title">{{ __('Visits with you') }}</div>
+                        <div class="row">
+                          <div class="col-md-6 mb-2"><strong>Last visit:</strong>
+                            @if ($lastVisit)
+                              {{ $lastVisit->date_display }} {{ $lastVisit->time_display }}
+                            @else
+                              —
+                            @endif
+                          </div>
+                          <div class="col-md-6 mb-2"><strong>Total visits:</strong> {{ $totalVisits }}</div>
+                        </div>
+                      </div>
+
+                      @php
+                        $clinicalFields = $latestNote ? $latestNote->patientInfoClinicalFields() : [];
+                        $imageAttachments = $latestNote ? $latestNote->patientInfoImageAttachments() : [];
+                        $hasClinicalOverview = $clinicalFields !== [] || $imageAttachments !== [];
+                      @endphp
+
+                      <div class="patient-info-section">
+                        <div class="patient-info-section-title">{{ __('Latest clinical notes') }}</div>
+                        @if ($latestNoteAppointment ?? null)
+                          <p class="small text-muted mb-3">
+                            {{ __('From visit') }}: {{ $latestNoteAppointment->date_display }} {{ $latestNoteAppointment->time_display }}
+                            @if ($latestNoteAppointment->service_name)
+                              · {{ $latestNoteAppointment->service_name }}
+                            @endif
+                          </p>
+                        @endif
+                        @if (! $hasClinicalOverview)
+                          <p class="text-secondary mb-0">{{ __('No clinical notes on file yet.') }}</p>
+                        @else
+                          @if ($clinicalFields !== [])
+                            <div class="row">
+                              @foreach ($clinicalFields as $field)
+                                <div class="col-md-6 mb-3">
+                                  <div class="patient-info-field-label">{{ $field['label'] }}</div>
+                                  <div class="patient-info-field-value">{{ $field['value'] }}</div>
+                                </div>
+                              @endforeach
+                            </div>
+                          @endif
+                          @if ($imageAttachments !== [])
+                            <div class="mt-1">
+                              <div class="patient-info-field-label mb-2">{{ __('Images on file') }}</div>
+                              <div class="d-flex flex-wrap gap-2">
+                                @foreach ($imageAttachments as $attachmentLabel)
+                                  <span class="patient-info-badge">{{ $attachmentLabel }}</span>
+                                @endforeach
+                              </div>
+                              <p class="small text-muted mt-2 mb-0">{{ __('Open the Images tab to view uploads.') }}</p>
+                            </div>
+                          @endif
+                        @endif
+                      </div>
+
+                      <div class="patient-info-section">
+                        <div class="patient-info-section-title">{{ __('Allergy & alerts') }}</div>
+                        <div class="patient-info-allergy">
+                          <div class="patient-info-field-label mb-1">{{ __('Allergy') }}</div>
+                          <div class="patient-info-field-value mb-0">{{ $latestAlerts ?: __('None recorded') }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card tab-panel" id="tab-assessment">
+                    <div class="card-header"><h5 class="mb-0">{{ __('Assessment Checklist') }}</h5></div>
+                    <div class="card-body">
+                      <p class="text-secondary small mb-3">{{ __('Mobility is saved per appointment. Use Record or Edit to open the appointment and update the checklist on the clinical notes tab.') }}</p>
+                      @if ($assessmentHistory->isEmpty())
+                        <p class="text-secondary mb-0">{{ __('No appointments on record.') }}</p>
+                      @else
+                        <div class="table-responsive">
+                          <table class="table mb-0">
+                            <thead>
+                              <tr>
+                                <th>{{ __('Date') }}</th>
+                                <th>{{ __('Doctor') }}</th>
+                                <th>{{ __('Service') }}</th>
+                                <th>{{ __('Mobility') }}</th>
+                                <th class="text-nowrap">{{ __('Actions') }}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @foreach ($assessmentHistory as $row)
+                                <tr>
+                                  <td>{{ $row->appointment->date_display }} {{ $row->appointment->time_display }}</td>
+                                  <td>{{ $row->appointment->doctor_name }}</td>
+                                  <td>{{ $row->appointment->service_name }}</td>
+                                  <td>{{ $row->mobility_label ?? '—' }}</td>
+                                  <td>
+                                    @if ($row->can_edit)
+                                      <a href="{{ route('doctor.appointments.show', $row->appointment) }}#clinical-notes-assessment" class="btn btn-sm btn-outline-primary">{{ $row->mobility_label ? __('Edit') : __('Record') }}</a>
+                                    @else
+                                      <span class="text-secondary small">—</span>
+                                    @endif
+                                  </td>
+                                </tr>
+                              @endforeach
+                            </tbody>
+                          </table>
+                        </div>
+                      @endif
                     </div>
                   </div>
 
@@ -304,26 +447,106 @@
                     </div>
                   </div>
 
-                  <div class="card tab-panel" id="tab-appointments">
+                  <div class="card tab-panel active" id="tab-appointments">
                     <div class="card-header"><h5 class="mb-0">Appointments</h5></div>
-                    <div class="card-body">
-                      <h6 class="mb-10">Upcoming Appointments</h6>
-                      <ul class="mb-20 ps-3">
-                        @forelse ($upcomingAppointments as $appointment)
-                          <li class="mb-2">{{ $appointment->date_display }} {{ $appointment->time_display }} — {{ $appointment->doctor_name }} — {{ $appointment->service_name }} ({{ $appointment->status_label }})</li>
-                        @empty
-                          <li>No upcoming appointments.</li>
-                        @endforelse
-                      </ul>
+                    <div class="card-body text-start">
+                      <h6 class="mb-10 text-start">Upcoming Appointments</h6>
+                      <div class="table-responsive mb-20">
+                        <table class="table table-striped mb-0">
+                          <thead>
+                            <tr>
+                              <th class="text-nowrap">Date</th>
+                              <th class="text-nowrap">Time</th>
+                              <th>Appointment</th>
+                              <th>Doctor</th>
+                              <th>Service</th>
+                              <th class="text-nowrap">Status</th>
+                              <th class="text-nowrap">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @forelse ($upcomingAppointments as $appointment)
+                              <tr>
+                                <td class="text-nowrap">{{ $appointment->date_display }}</td>
+                                <td class="text-nowrap">{{ $appointment->time_display }}</td>
+                                <td class="text-nowrap">{{ $appointment->appointment_no ?? '—' }}</td>
+                                <td>{{ $appointment->doctor_name }}</td>
+                                <td>{{ $appointment->service_name }}</td>
+                                <td class="text-nowrap">
+                                  <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
+                                </td>
+                                <td class="text-nowrap">
+                                  @if ((int) $appointment->doctor_id === (int) auth('doctor')->id())
+                                    <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                    @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
+                                      <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                      </form>
+                                    @endif
+                                  @else
+                                    —
+                                  @endif
+                                </td>
+                              </tr>
+                            @empty
+                              <tr>
+                                <td colspan="7" class="text-center text-secondary py-4">No upcoming appointments.</td>
+                              </tr>
+                            @endforelse
+                          </tbody>
+                        </table>
+                      </div>
 
-                      <h6 class="mb-10">Past Appointments</h6>
-                      <ul class="mb-0 ps-3">
-                        @forelse ($pastAppointments as $appointment)
-                          <li class="mb-2">{{ $appointment->date_display }} {{ $appointment->time_display }} — {{ $appointment->doctor_name }} — {{ $appointment->service_name }} ({{ $appointment->status_label }})</li>
-                        @empty
-                          <li>No past appointments.</li>
-                        @endforelse
-                      </ul>
+                      <h6 class="mb-10 text-start">Past Appointments</h6>
+                      <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                          <thead>
+                            <tr>
+                              <th class="text-nowrap">Date</th>
+                              <th class="text-nowrap">Time</th>
+                              <th>Appointment</th>
+                              <th>Doctor</th>
+                              <th>Service</th>
+                              <th class="text-nowrap">Status</th>
+                              <th class="text-nowrap">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @forelse ($pastAppointments as $appointment)
+                              <tr>
+                                <td class="text-nowrap">{{ $appointment->date_display }}</td>
+                                <td class="text-nowrap">{{ $appointment->time_display }}</td>
+                                <td class="text-nowrap">{{ $appointment->appointment_no ?? '—' }}</td>
+                                <td>{{ $appointment->doctor_name }}</td>
+                                <td>{{ $appointment->service_name }}</td>
+                                <td class="text-nowrap">
+                                  <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
+                                </td>
+                                <td class="text-nowrap">
+                                  @if ((int) $appointment->doctor_id === (int) auth('doctor')->id())
+                                    <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                    @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
+                                      <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                      </form>
+                                    @endif
+                                  @else
+                                    —
+                                  @endif
+                                </td>
+                              </tr>
+                            @empty
+                              <tr>
+                                <td colspan="7" class="text-center text-secondary py-4">No past appointments.</td>
+                              </tr>
+                            @endforelse
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
 

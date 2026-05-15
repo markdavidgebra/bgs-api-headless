@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DoctorAppointmentController extends Controller
@@ -215,6 +216,21 @@ class DoctorAppointmentController extends Controller
         return view('doctor.appointments.create', compact('appointment', 'appointmentNote', 'products'));
     }
 
+    public function approve(Appointment $appointment): RedirectResponse
+    {
+        if ((int) $appointment->doctor_id !== (int) auth('doctor')->id()) {
+            abort(403);
+        }
+
+        if (! in_array($appointment->status, ['pending', 'rescheduled'], true)) {
+            return back()->with('info', __('This appointment cannot be approved.'));
+        }
+
+        $appointment->update(['status' => 'confirmed']);
+
+        return back()->with('success', __('Appointment approved successfully.'));
+    }
+
     public function startSession(Request $request, Appointment $appointment): RedirectResponse
     {
         if ($request->isMethod('get')) {
@@ -398,6 +414,7 @@ class DoctorAppointmentController extends Controller
             'prescribe' => ['nullable', 'array'],
             'qty' => ['nullable', 'array'],
             'qty.*' => ['nullable', 'integer', 'min:1', 'max:99999'],
+            'mobility' => ['nullable', 'string', Rule::in(['ambulatory', 'with_assistive', 'wheelchair'])],
         ]);
 
         $existingNote = AppointmentNote::query()
@@ -428,6 +445,8 @@ class DoctorAppointmentController extends Controller
             $validated['vital_weight'] ?? null,
             $validated['vital_height'] ?? null,
         ])->contains(fn ($value) => filled($value));
+
+        $hasAnyNoteValue = $hasAnyNoteValue || $request->filled('mobility');
 
         $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('body_analyzer_image') || filled($existingNote?->body_analyzer_image_path);
         $hasAnyNoteValue = $hasAnyNoteValue || $request->hasFile('bottle_citrus_image') || filled($existingNote?->bottle_citrus_image_path);
@@ -464,6 +483,10 @@ class DoctorAppointmentController extends Controller
             'vital_weight' => AppointmentNote::normalizeNoteValue($validated['vital_weight'] ?? null),
             'vital_height' => AppointmentNote::normalizeNoteValue($validated['vital_height'] ?? null),
         ];
+
+        if ($request->has('mobility')) {
+            $newPayload['mobility'] = filled($validated['mobility'] ?? null) ? $validated['mobility'] : null;
+        }
 
         $bodyAnalyzerPath = $existingNote?->body_analyzer_image_path;
         if ($request->hasFile('body_analyzer_image')) {
@@ -554,6 +577,23 @@ class DoctorAppointmentController extends Controller
         $appointment->prescribedProducts()->sync($prescribeSync);
 
         return back()->with('success', 'Notes added successfully.');
+    }
+
+    public function updateAssessmentChecklist(Request $request, Appointment $appointment): RedirectResponse
+    {
+        $validated = $request->validate([
+            'mobility' => ['required', 'string', Rule::in(['ambulatory', 'with_assistive', 'wheelchair'])],
+        ]);
+
+        AppointmentNote::query()->updateOrCreate(
+            ['appointment_id' => $appointment->id],
+            ['mobility' => $validated['mobility']]
+        );
+
+        return redirect()
+            ->route('doctor.appointments.show', $appointment)
+            ->with('success', __('Assessment checklist saved.'))
+            ->withFragment('clinical-notes-assessment');
     }
 
     public function reschedule(Request $request, Appointment $appointment): RedirectResponse

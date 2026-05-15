@@ -320,7 +320,9 @@
                                       'doctor' => (string) ($appt->doctor?->name ?? '—'),
                                       'status' => ucfirst($status),
                                       'badge' => $badge,
-                                      'showUrl' => route('doctor.appointments.show', $appt->id),
+                                      'showUrl' => $appt->patient_id
+                                          ? route('doctor.patient-records.show', $appt->patient_id)
+                                          : route('doctor.appointments.show', $appt->id),
                                   ];
                               })
                               ->values();

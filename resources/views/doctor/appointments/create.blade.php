@@ -54,18 +54,24 @@
 
                   @php
                     $prescribedMap = $appointment->prescribedProducts->keyBy('id');
+                    $mobilityForm = old('mobility', optional($appointmentNote)->mobility);
                   @endphp
 
                   <form method="POST" action="{{ route('doctor.appointments.notes', $appointment) }}" enctype="multipart/form-data">
                     @csrf
 
-                  <div class="card mb-25 shadow-sm border-0" style="border-radius: 12px;">
+                  <div class="card mb-25 shadow-sm border-0" id="notes-create-doc" style="border-radius: 12px;"
+                    data-initial-notes-tab="{{ $errors->has('mobility') ? 'assessment' : 'clinical' }}">
                     <div class="card-header bg-white border-bottom py-3">
-                      <h5 class="mb-0">Clinical notes</h5>
-                      <p class="text-muted font-sm mb-0 mt-5">Document the encounter. You can save notes only, products only,
-                        or both.</p>
+                      <div class="d-flex flex-wrap align-items-center gap-2 mb-2" role="tablist" aria-label="{{ __('Encounter documentation') }}">
+                        <button type="button" class="notes-create-tab-btn active" data-notes-tab="clinical" id="notes-tab-clinical-btn" role="tab" aria-selected="true" aria-controls="notes-panel-clinical">{{ __('Clinical notes') }}</button>
+                        <button type="button" class="notes-create-tab-btn" data-notes-tab="assessment" id="notes-tab-assessment-btn" role="tab" aria-selected="false" aria-controls="notes-panel-assessment">{{ __('Assessment Checklist') }}</button>
+                      </div>
+                      <p class="text-muted font-sm mb-0 notes-create-tab-desc text-start" data-notes-desc="clinical">{{ __('Document the encounter. You can save notes only, products only, or both.') }}</p>
+                      <p class="text-muted font-sm mb-0 notes-create-tab-desc text-start d-none" data-notes-desc="assessment">{{ __('Record how the patient moves for this visit.') }}</p>
                     </div>
                     <div class="card-body pt-25">
+                      <div class="notes-create-tab-panel active" id="notes-panel-clinical" data-notes-panel="clinical" role="tabpanel" aria-labelledby="notes-tab-clinical-btn">
                         <div class="row">
                           <div class="col-md-6 mb-3">
                             <label for="patient_concern" class="form-label">Patient concern</label>
@@ -98,6 +104,27 @@
                               placeholder="Enter take home medications...">{{ old('instructions', optional($appointmentNote)->instructions) }}</textarea>
                           </div>
                         </div>
+                      </div>
+                      <div class="notes-create-tab-panel" id="notes-panel-assessment" data-notes-panel="assessment" role="tabpanel" aria-labelledby="notes-tab-assessment-btn">
+                        <label class="form-label d-block mb-2 text-start">{{ __('Mobility') }}</label>
+                        <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 gap-sm-3">
+                          <div class="form-check p-3 border rounded text-start" style="min-width: 140px;">
+                            <input class="form-check-input" type="radio" name="mobility" id="create-mob-ambulatory" value="ambulatory" @checked($mobilityForm === 'ambulatory')>
+                            <label class="form-check-label" for="create-mob-ambulatory">{{ __('Ambulatory') }}</label>
+                          </div>
+                          <div class="form-check p-3 border rounded text-start" style="min-width: 140px;">
+                            <input class="form-check-input" type="radio" name="mobility" id="create-mob-assistive" value="with_assistive" @checked($mobilityForm === 'with_assistive')>
+                            <label class="form-check-label" for="create-mob-assistive">{{ __('With assistive device') }}</label>
+                          </div>
+                          <div class="form-check p-3 border rounded text-start" style="min-width: 140px;">
+                            <input class="form-check-input" type="radio" name="mobility" id="create-mob-wheelchair" value="wheelchair" @checked($mobilityForm === 'wheelchair')>
+                            <label class="form-check-label" for="create-mob-wheelchair">{{ __('Wheelchair') }}</label>
+                          </div>
+                        </div>
+                        @error('mobility')
+                          <div class="text-danger small mt-2 text-start">{{ $message }}</div>
+                        @enderror
+                      </div>
                     </div>
                   </div>
 
@@ -420,6 +447,33 @@
     </div>
   </main>
   <style>
+    #notes-create-doc .notes-create-tab-btn {
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      border-radius: 8px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    #notes-create-doc .notes-create-tab-btn:hover {
+      border-color: #d1b8c8;
+      color: #111827;
+    }
+    #notes-create-doc .notes-create-tab-btn.active {
+      background: #c7819d;
+      border-color: #c7819d;
+      color: #fff;
+    }
+    #notes-create-doc .notes-create-tab-panel {
+      display: none;
+    }
+    #notes-create-doc .notes-create-tab-panel.active {
+      display: block;
+    }
+
     .vital-signs-clinical-images .body-analyzer-upload,
     .vital-signs-clinical-images .bottle-citrus-upload,
     .vital-signs-clinical-images .lemon-bottle-upload,
@@ -632,6 +686,40 @@
   @push('scripts')
     <script>
       document.addEventListener('DOMContentLoaded', function () {
+        (function () {
+          var root = document.getElementById('notes-create-doc');
+          if (!root) {
+            return;
+          }
+          var btns = root.querySelectorAll('[data-notes-tab]');
+          var panels = root.querySelectorAll('[data-notes-panel]');
+          var descs = root.querySelectorAll('[data-notes-desc]');
+          function show(tab) {
+            btns.forEach(function (b) {
+              var on = b.getAttribute('data-notes-tab') === tab;
+              b.classList.toggle('active', on);
+              b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            panels.forEach(function (p) {
+              p.classList.toggle('active', p.getAttribute('data-notes-panel') === tab);
+            });
+            descs.forEach(function (d) {
+              d.classList.toggle('d-none', d.getAttribute('data-notes-desc') !== tab);
+            });
+          }
+          btns.forEach(function (b) {
+            b.addEventListener('click', function () {
+              show(b.getAttribute('data-notes-tab') || 'clinical');
+            });
+          });
+          var init = root.getAttribute('data-initial-notes-tab') || 'clinical';
+          var h = (window.location.hash || '').replace(/^#/, '');
+          if (h === 'notes-create-assessment') {
+            init = 'assessment';
+          }
+          show(init);
+        })();
+
         var id = (window.location.hash || '').replace(/^#/, '');
         if (id) {
           var el = document.getElementById(id);

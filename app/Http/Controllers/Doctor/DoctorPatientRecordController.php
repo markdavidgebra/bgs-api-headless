@@ -394,6 +394,14 @@ class DoctorPatientRecordController extends Controller
                 ];
             });
 
+        $assessmentHistory = $appointments->map(function (Appointment $appt) use ($doctorId) {
+            return (object) [
+                'appointment' => $appt,
+                'mobility_label' => $appt->note?->mobilityLabel(),
+                'can_edit' => (int) $appt->doctor_id === (int) $doctorId,
+            ];
+        })->values();
+
         return view('doctor.appointments.patient-record.show', compact(
             'patient',
             'appointments',
@@ -401,6 +409,7 @@ class DoctorPatientRecordController extends Controller
             'lastVisit',
             'totalVisits',
             'latestNote',
+            'latestNoteAppointment',
             'latestAlerts',
             'upcomingAppointments',
             'pastAppointments',
@@ -415,6 +424,7 @@ class DoctorPatientRecordController extends Controller
             'aqualyxImages',
             'dripImages',
             'microNeedlingImages',
+            'assessmentHistory',
         ));
     }
 

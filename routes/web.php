@@ -143,11 +143,13 @@ Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doc
     Route::post('/availability/day/{weekday}/toggle', [DoctorAvailabilityController::class, 'toggleDay'])->name('availability.toggle')->whereNumber('weekday');
     Route::post('/availability/blocked-dates', [DoctorAvailabilityController::class, 'storeBlockedDate'])->name('availability.blocked.store');
     Route::delete('/availability/blocked-dates/{blockedDate}', [DoctorAvailabilityController::class, 'destroyBlockedDate'])->name('availability.blocked.destroy');
+    Route::post('/appointments/{appointment}/approve', [DoctorAppointmentController::class, 'approve'])->name('appointments.approve');
     Route::match(['get', 'post'], '/appointments/{appointment}/start-session', [DoctorAppointmentController::class, 'startSession'])->name('appointments.start-session');
     Route::post('/appointments/{appointment}/complete', [DoctorAppointmentController::class, 'markCompleted'])->name('appointments.complete');
     Route::post('/appointments/{appointment}/session-done', [DoctorAppointmentController::class, 'updateSessionDone'])->name('appointments.session-done');
     Route::post('/appointments/{appointment}/treatment-progress', [DoctorAppointmentController::class, 'updateTreatmentProgress'])->name('appointments.treatment-progress');
     Route::post('/appointments/{appointment}/notes', [DoctorAppointmentController::class, 'addNotes'])->name('appointments.notes');
+    Route::post('/appointments/{appointment}/notes/assessment', [DoctorAppointmentController::class, 'updateAssessmentChecklist'])->name('appointments.notes.assessment');
     Route::post('/appointments/{appointment}/reschedule', [DoctorAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::post('/appointments/{appointment}/mark-no-show', [DoctorAppointmentController::class, 'markNoShow'])->name('appointments.mark-no-show');
 });

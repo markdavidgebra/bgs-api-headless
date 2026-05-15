@@ -23,7 +23,7 @@
     </li>
 
     <li class="{{ Request::is('our-packages') ? 'current' : '' }}">
-        <a href="{{ route('our-packages') }}">Packages</a>
+        <a href="{{ route('our-packages') }}">Programs</a>
     </li>
 
     <li class="{{ Request::is('our-products') || Request::is('our-products/*') ? 'current' : '' }}">

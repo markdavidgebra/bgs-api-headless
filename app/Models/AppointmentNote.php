@@ -36,6 +36,7 @@ class AppointmentNote extends Model
         'drip_image_path',
         'micro_needling_image_path',
         'section_authors',
+        'mobility',
     ];
 
     /**
@@ -167,6 +168,28 @@ class AppointmentNote extends Model
         return filled($this->micro_needling_image_path);
     }
 
+    /**
+     * @return array<string, string> Stored value => display label
+     */
+    public static function mobilityOptions(): array
+    {
+        return [
+            'ambulatory' => __('Ambulatory'),
+            'with_assistive' => __('With assistive device'),
+            'wheelchair' => __('Wheelchair'),
+        ];
+    }
+
+    public function mobilityLabel(): ?string
+    {
+        $value = $this->mobility;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return self::mobilityOptions()[$value] ?? $value;
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (self $note): void {
@@ -285,6 +308,62 @@ class AppointmentNote extends Model
         $text = implode(' · ', $chunks);
 
         return $text === '' ? '' : (string) \Illuminate\Support\Str::limit($text, $limit);
+    }
+
+    /**
+     * Labeled clinical text fields for patient info (excludes vitals and allergy).
+     *
+     * @return list<array{label: string, value: string}>
+     */
+    public function patientInfoClinicalFields(): array
+    {
+        $fields = [
+            ['label' => __('Patient concern'), 'value' => $this->patient_concern],
+            ['label' => __('Post procedures'), 'value' => $this->appointment_remarks],
+            ['label' => __('Medical history'), 'value' => $this->admin_notes],
+            ['label' => __('Doctor notes'), 'value' => $this->doctor_notes],
+            ['label' => __('Take home medications'), 'value' => $this->instructions],
+        ];
+
+        $out = [];
+        foreach ($fields as $field) {
+            $normalized = self::normalizeNoteValue($field['value']);
+            if ($normalized !== null) {
+                $out[] = ['label' => $field['label'], 'value' => $normalized];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Image attachment labels on file (for patient info overview).
+     *
+     * @return list<string>
+     */
+    public function patientInfoImageAttachments(): array
+    {
+        $items = [];
+        if (filled($this->body_analyzer_image_path)) {
+            $items[] = __('Body analyzer');
+        }
+        if (filled($this->bottle_citrus_image_path)) {
+            $items[] = __('Bottle citrus');
+        }
+        if (filled($this->lemon_bottle_image_path)) {
+            $items[] = __('Lemon bottle');
+        }
+        if (filled($this->aqualyx_image_path)) {
+            $items[] = __('Aqualyx');
+        }
+        if (filled($this->drip_image_path)) {
+            $items[] = __('Drip');
+        }
+        if (filled($this->micro_needling_image_path)) {
+            $items[] = __('Micro needling');
+        }
+
+        return $items;
     }
 
     /**
