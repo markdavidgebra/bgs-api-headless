@@ -48,6 +48,9 @@
                   if ($affiliateCode->treatment_packages_count > 0) {
                       $scopeParts[] = $affiliateCode->treatment_packages_count.' package'.($affiliateCode->treatment_packages_count === 1 ? '' : 's');
                   }
+                  if ($affiliateCode->membership_plans_count > 0) {
+                      $scopeParts[] = $affiliateCode->membership_plans_count.' plan'.($affiliateCode->membership_plans_count === 1 ? '' : 's');
+                  }
                   if ($affiliateCode->products_count > 0) {
                       $scopeParts[] = $affiliateCode->products_count.' product'.($affiliateCode->products_count === 1 ? '' : 's');
                   }

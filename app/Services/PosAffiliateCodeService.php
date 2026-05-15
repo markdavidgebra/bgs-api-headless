@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AffiliateCode;
+use App\Models\MembershipPlan;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\TreatmentPackage;
@@ -45,6 +46,9 @@ class PosAffiliateCodeService
             'treatmentPackages' => fn ($query) => $query
                 ->where('status', 'active')
                 ->orderBy('name'),
+            'membershipPlans' => fn ($query) => $query
+                ->where('status', 'active')
+                ->orderBy('name'),
         ]);
 
         $rows = [];
@@ -61,9 +65,13 @@ class PosAffiliateCodeService
             $rows[] = ['type' => 'package', 'id' => $package->id, 'quantity' => 1];
         }
 
+        foreach ($affiliateCode->membershipPlans as $membership) {
+            $rows[] = ['type' => 'membership', 'id' => $membership->id, 'quantity' => 1];
+        }
+
         if ($rows === []) {
             throw ValidationException::withMessages([
-                'code' => ['This affiliate code has no available products, services, or packages.'],
+                'code' => ['This affiliate code has no available products, services, packages, or membership plans.'],
             ]);
         }
 
@@ -86,7 +94,7 @@ class PosAffiliateCodeService
     public function preview(string $code, array $items, callable $resolveUnitPrice): array
     {
         $affiliateCode = $this->resolveActiveCode($code);
-        $affiliateCode->load(['services:id', 'treatmentPackages:id', 'products:id']);
+        $affiliateCode->load(['services:id', 'treatmentPackages:id', 'membershipPlans:id', 'products:id']);
 
         $lines = [];
         $subtotal = 0.0;
@@ -185,6 +193,7 @@ class PosAffiliateCodeService
         return match ($type) {
             'service' => $this->idInRelation($affiliateCode->services, $recordId),
             'package' => $this->idInRelation($affiliateCode->treatmentPackages, $recordId),
+            'membership' => $this->idInRelation($affiliateCode->membershipPlans, $recordId),
             'product' => $this->idInRelation($affiliateCode->products, $recordId),
             default => false,
         };
@@ -247,6 +256,7 @@ class PosAffiliateCodeService
                 ?? $affiliateCode->services->firstWhere('id', $recordId)?->price
                 ?? 0),
             'package' => (float) ($affiliateCode->treatmentPackages->firstWhere('id', $recordId)?->price ?? 0),
+            'membership' => (float) ($affiliateCode->membershipPlans->firstWhere('id', $recordId)?->price ?? 0),
             default => 0.0,
         };
     }
@@ -265,6 +275,7 @@ class PosAffiliateCodeService
             'product' => $this->catalogFieldsForProduct($affiliateCode->products->firstWhere('id', $recordId)),
             'service' => $this->catalogFieldsForService($affiliateCode->services->firstWhere('id', $recordId)),
             'package' => $this->catalogFieldsForPackage($affiliateCode->treatmentPackages->firstWhere('id', $recordId)),
+            'membership' => $this->catalogFieldsForMembership($affiliateCode->membershipPlans->firstWhere('id', $recordId)),
             default => [],
         };
 
@@ -325,6 +336,23 @@ class PosAffiliateCodeService
             'id' => $package->id,
             'name' => $package->name,
             'validity_label' => $package->validity_label,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function catalogFieldsForMembership(?MembershipPlan $plan): array
+    {
+        if (! $plan) {
+            return ['type' => 'membership', 'name' => 'Membership'];
+        }
+
+        return [
+            'type' => 'membership',
+            'id' => $plan->id,
+            'name' => $plan->name,
+            'duration_label' => $plan->duration_label,
         ];
     }
 }

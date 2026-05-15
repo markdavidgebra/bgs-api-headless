@@ -5,8 +5,8 @@
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@yield('title', 'Home | Careon | Laravel Template')</title>
-    <meta name="description" content="Careon HTML 5 Template" />
+    <title>@yield('title', 'Home | Bio Global Solutions')</title>
+    <meta name="description" content="Bio Global Solutions" />
 
     @include('partials.site-favicon', ['variant' => 'frontend'])
 

@@ -52,6 +52,12 @@ class AffiliateCode extends Model
             ->withTimestamps();
     }
 
+    public function membershipPlans(): BelongsToMany
+    {
+        return $this->belongsToMany(MembershipPlan::class, 'affiliate_code_membership_plan')
+            ->withTimestamps();
+    }
+
     public function getStatusBadgeAttribute(): string
     {
         return match ($this->status) {

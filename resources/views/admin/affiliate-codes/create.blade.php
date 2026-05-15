@@ -3,9 +3,11 @@
 @php
   /** @var \Illuminate\Support\Collection $services */
   /** @var \Illuminate\Support\Collection $treatmentPackages */
+  /** @var \Illuminate\Support\Collection $membershipPlans */
   /** @var \Illuminate\Support\Collection $products */
   $oldServiceIds = collect(old('service_ids', []))->map(fn ($v) => (string) $v)->all();
   $oldPackageIds = collect(old('treatment_package_ids', []))->map(fn ($v) => (string) $v)->all();
+  $oldMembershipPlanIds = collect(old('membership_plan_ids', []))->map(fn ($v) => (string) $v)->all();
   $oldProductIds = collect(old('product_ids', []))->map(fn ($v) => (string) $v)->all();
 @endphp
 
@@ -215,6 +217,47 @@
 
             <div class="card mb-3">
               <div class="card-header">
+                <h3 class="card-title mb-0">Membership plans</h3>
+              </div>
+              <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                  <p class="text-secondary small mb-0">Check each membership plan this affiliate code applies to.</p>
+                  @if (!$membershipPlans->isEmpty())
+                    <label class="form-check mb-0">
+                      <input type="checkbox" class="form-check-input js-affiliate-select-all" id="aff-select-all-memberships"
+                        data-target="affiliate-membership-item">
+                      <span class="form-check-label">Select all</span>
+                    </label>
+                  @endif
+                </div>
+                @if ($membershipPlans->isEmpty())
+                  <p class="text-secondary small mb-0">No membership plans in the catalog yet.</p>
+                @else
+                  <div class="border rounded p-3 bg-secondary-lt row row-cols-1 row-cols-md-2 g-2" role="group"
+                    aria-labelledby="affiliate-memberships-label">
+                    <span id="affiliate-memberships-label" class="visually-hidden">Membership plans</span>
+                    @foreach ($membershipPlans as $plan)
+                      <div class="col">
+                        <label class="form-check mb-0">
+                          <input type="checkbox" class="form-check-input affiliate-membership-item" name="membership_plan_ids[]"
+                            value="{{ $plan->id }}" id="aff-mem-{{ $plan->id }}"
+                            @checked(in_array((string) $plan->id, $oldMembershipPlanIds, true))>
+                          <span class="form-check-label">
+                            {{ $plan->name }}@if ($plan->duration_label) <span class="text-secondary">({{ $plan->duration_label }})</span> @endif
+                          </span>
+                        </label>
+                      </div>
+                    @endforeach
+                  </div>
+                @endif
+                @error('membership_plan_ids')
+                  <div class="text-danger small mt-2">{{ $message }}</div>
+                @enderror
+              </div>
+            </div>
+
+            <div class="card mb-3">
+              <div class="card-header">
                 <h3 class="card-title mb-0">Products</h3>
               </div>
               <div class="card-body">
@@ -260,7 +303,7 @@
                 <h3 class="card-title mb-2">How it works</h3>
                 <p class="text-secondary small mb-0">
                   The code is entered manually with a percentage or fixed discount. Link it to any combination of
-                  services, treatment packages, and products. Select at least one item before saving.
+                  services, treatment packages, membership plans, and products. Select at least one item before saving.
                 </p>
               </div>
             </div>

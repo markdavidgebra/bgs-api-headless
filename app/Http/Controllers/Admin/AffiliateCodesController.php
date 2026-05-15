@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AffiliateCode;
+use App\Models\MembershipPlan;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\TreatmentPackage;
@@ -19,7 +20,7 @@ class AffiliateCodesController extends Controller
     public function index(): View
     {
         $affiliateCodes = AffiliateCode::query()
-            ->withCount(['services', 'treatmentPackages', 'products'])
+            ->withCount(['services', 'treatmentPackages', 'membershipPlans', 'products'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(15);
@@ -31,11 +32,13 @@ class AffiliateCodesController extends Controller
     {
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
         $treatmentPackages = TreatmentPackage::query()->orderBy('name')->get(['id', 'name']);
+        $membershipPlans = MembershipPlan::query()->orderBy('name')->get(['id', 'name', 'duration_value', 'duration_type']);
         $products = Product::query()->orderBy('name')->get(['id', 'name', 'sku']);
 
         return view('admin.affiliate-codes.create', compact(
             'services',
             'treatmentPackages',
+            'membershipPlans',
             'products',
         ));
     }
@@ -49,16 +52,18 @@ class AffiliateCodesController extends Controller
 
     public function edit(AffiliateCode $affiliateCode): View
     {
-        $affiliateCode->load(['services:id', 'treatmentPackages:id', 'products:id']);
+        $affiliateCode->load(['services:id', 'treatmentPackages:id', 'membershipPlans:id', 'products:id']);
 
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
         $treatmentPackages = TreatmentPackage::query()->orderBy('name')->get(['id', 'name']);
+        $membershipPlans = MembershipPlan::query()->orderBy('name')->get(['id', 'name', 'duration_value', 'duration_type']);
         $products = Product::query()->orderBy('name')->get(['id', 'name', 'sku']);
 
         return view('admin.affiliate-codes.edit', compact(
             'affiliateCode',
             'services',
             'treatmentPackages',
+            'membershipPlans',
             'products',
         ));
     }
@@ -117,6 +122,8 @@ class AffiliateCodesController extends Controller
             'service_ids.*' => ['integer', 'exists:services,id'],
             'treatment_package_ids' => ['nullable', 'array'],
             'treatment_package_ids.*' => ['integer', 'exists:treatment_packages,id'],
+            'membership_plan_ids' => ['nullable', 'array'],
+            'membership_plan_ids.*' => ['integer', 'exists:membership_plans,id'],
             'product_ids' => ['nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
         ];
@@ -129,13 +136,14 @@ class AffiliateCodesController extends Controller
     {
         $serviceIds = array_values(array_unique(array_map('intval', $validated['service_ids'] ?? [])));
         $packageIds = array_values(array_unique(array_map('intval', $validated['treatment_package_ids'] ?? [])));
+        $membershipPlanIds = array_values(array_unique(array_map('intval', $validated['membership_plan_ids'] ?? [])));
         $productIds = array_values(array_unique(array_map('intval', $validated['product_ids'] ?? [])));
 
-        if ($serviceIds === [] && $packageIds === [] && $productIds === []) {
+        if ($serviceIds === [] && $packageIds === [] && $membershipPlanIds === [] && $productIds === []) {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'service_ids' => 'Select at least one service, treatment package, or product.',
+                    'service_ids' => 'Select at least one service, treatment package, membership plan, or product.',
                 ]);
         }
 
@@ -150,7 +158,7 @@ class AffiliateCodesController extends Controller
             'notes' => $validated['notes'] ?? null,
         ];
 
-        $affiliateCode = DB::transaction(function () use ($affiliateCode, $payload, $serviceIds, $packageIds, $productIds) {
+        $affiliateCode = DB::transaction(function () use ($affiliateCode, $payload, $serviceIds, $packageIds, $membershipPlanIds, $productIds) {
             if ($affiliateCode) {
                 $affiliateCode->update($payload);
             } else {
@@ -159,6 +167,7 @@ class AffiliateCodesController extends Controller
 
             $affiliateCode->services()->sync($serviceIds);
             $affiliateCode->treatmentPackages()->sync($packageIds);
+            $affiliateCode->membershipPlans()->sync($membershipPlanIds);
             $affiliateCode->products()->sync($productIds);
 
             return $affiliateCode;
