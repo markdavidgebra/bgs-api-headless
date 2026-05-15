@@ -218,10 +218,6 @@ class DoctorAppointmentController extends Controller
 
     public function approve(Appointment $appointment): RedirectResponse
     {
-        if ((int) $appointment->doctor_id !== (int) auth('doctor')->id()) {
-            abort(403);
-        }
-
         if (! in_array($appointment->status, ['pending', 'rescheduled'], true)) {
             return back()->with('info', __('This appointment cannot be approved.'));
         }

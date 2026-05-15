@@ -476,17 +476,13 @@
                                   <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
                                 </td>
                                 <td class="text-nowrap">
-                                  @if ((int) $appointment->doctor_id === (int) auth('doctor')->id())
-                                    <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
-                                    @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
-                                      <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                                      </form>
-                                    @endif
-                                  @else
-                                    —
+                                  <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                  <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                  @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
+                                    <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
+                                      @csrf
+                                      <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                    </form>
                                   @endif
                                 </td>
                               </tr>
@@ -525,17 +521,13 @@
                                   <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
                                 </td>
                                 <td class="text-nowrap">
-                                  @if ((int) $appointment->doctor_id === (int) auth('doctor')->id())
-                                    <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
-                                    @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
-                                      <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                                      </form>
-                                    @endif
-                                  @else
-                                    —
+                                  <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                  <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                  @if (in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true))
+                                    <form method="POST" action="{{ route('doctor.appointments.approve', $appointment) }}" class="d-inline">
+                                      @csrf
+                                      <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                    </form>
                                   @endif
                                 </td>
                               </tr>
