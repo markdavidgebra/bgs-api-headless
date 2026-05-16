@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind nginx/Cloudflare/Laragon, forwarded proto/host must be trusted or URLs,
+        // session cookies (Secure), and Sanctum stateful detection can be wrong.
+        $trusted = env('TRUSTED_PROXIES', '*');
+        $middleware->trustProxies(at: $trusted === '*'
+            ? '*'
+            : array_values(array_filter(array_map('trim', explode(',', (string) $trusted)))));
+
         // Equivalent to adding EnsureFrontendRequestsAreStateful to the `api`
         // middleware group in app/Http/Kernel.php (Laravel 10 and earlier).
         $middleware->statefulApi();
@@ -34,6 +41,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/inventory/*',
             'pos/login',
             'pos/logout',
+            // Web aliases (same SPA as api/pos — session + auth middleware protect these)
+            'pos/checkout',
+            'pos/affiliate-codes/*',
         ]);
 
         $middleware->alias([

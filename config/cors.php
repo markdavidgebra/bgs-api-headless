@@ -15,13 +15,14 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'login', 'logout', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'pos/*', 'login', 'logout', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => array_values(array_unique(array_filter(array_merge(
         [
             'http://localhost:5173',
+            'http://127.0.0.1:5173',
             'http://localhost:3000',
             'https://catalog.bioglowsolutions.com',
             'https://pos.bioglowsolutions.com',
@@ -33,7 +34,11 @@ return [
         )
     )))),
 
-    'allowed_origins_patterns' => [],
+    // Any localhost / 127.0.0.1 port (Vite :5173, :5180, etc.) for credentialed POS dev.
+    'allowed_origins_patterns' => [
+        '#^http://localhost(:\d+)?$#',
+        '#^http://127\.0\.0\.1(:\d+)?$#',
+    ],
 
     'allowed_headers' => ['*'],
 

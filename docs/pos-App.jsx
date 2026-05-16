@@ -6,10 +6,66 @@ import React, {
   useState,
 } from 'react';
 
-// Set in .env: VITE_API_URL=http://bgs-api-blade.test/api  (or leave empty + use Vite proxy)
-const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+// API calls must reach Laravel — not localhost:5173 alone.
+//
+// Recommended (Vite proxy): merge `docs/pos-vite-proxy.config.js` into vite.config.* `server.proxy`.
+// Leave VITE_API_URL unset → POS uses /api and /sanctum on the dev server origin; proxy forwards to Laravel.
+//
+// Or cross-origin without proxy (use the same host in the browser and in VITE_* — do not mix localhost with 127.0.0.1):
+//   VITE_API_URL=http://127.0.0.1:8000/api
+//   VITE_APP_URL=http://127.0.0.1:8000
+//
+// Production POS on pos.* without VITE_API_URL: set VITE_POS_LARAVEL_ORIGIN=https://your-laravel-host
+// (or rely on built-in mapping pos.bioglowsolutions.com → catalog.bioglowsolutions.com/api).
+//
+// Optional: SPA built to call Laravel's /pos/* web mirrors instead of /api/pos/*
+// (also works with proxy for /pos). Set VITE_POS_USE_WEB_ROUTES=1
+const POS_USE_WEB_ROUTES =
+  import.meta.env.VITE_POS_USE_WEB_ROUTES === '1' ||
+  import.meta.env.VITE_POS_USE_WEB_ROUTES === 'true';
+
+/** Laravel public origin without trailing slash (e.g. https://catalog.bioglowsolutions.com). */
+const POS_LARAVEL_ORIGIN_ENV = String(
+  import.meta.env.VITE_POS_LARAVEL_ORIGIN || '',
+).trim();
+
+/**
+ * When VITE_API_URL is unset, relative "/api" only works if this origin proxies /api to Laravel.
+ * The hosted POS at pos.bioglowsolutions.com is static; the API lives on catalog.* — infer it so
+ * production builds work without env (still override with VITE_API_URL + VITE_APP_URL when needed).
+ */
+function inferDefaultApiBaseFromBrowser() {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  const { hostname, protocol } = window.location;
+  if (hostname === 'pos.bioglowsolutions.com') {
+    const p = protocol === 'http:' ? 'http:' : 'https:';
+    return `${p}//catalog.bioglowsolutions.com/api`;
+  }
+  return '';
+}
+
+const RAW_API_BASE = (
+  import.meta.env.VITE_API_URL !== undefined &&
+  String(import.meta.env.VITE_API_URL).trim() !== ''
+    ? String(import.meta.env.VITE_API_URL).trim()
+    : POS_LARAVEL_ORIGIN_ENV !== ''
+      ? `${POS_LARAVEL_ORIGIN_ENV.replace(/\/+$/, '')}/api`
+      : inferDefaultApiBaseFromBrowser() || '/api'
+).replace(/\/+$/, '');
+
+const LARAVEL_ORIGIN = (
+  import.meta.env.VITE_APP_URL ||
+  RAW_API_BASE.replace(/\/api\/?$/i, '')
+).replace(/\/+$/, '');
+
+const API_BASE = POS_USE_WEB_ROUTES
+  ? LARAVEL_ORIGIN
+  : RAW_API_BASE;
+
 const POS_PREFIX = '/pos';
-const SANCTUM_CSRF_URL = `${API_BASE}/sanctum/csrf-cookie`;
+const SANCTUM_CSRF_URL = `${LARAVEL_ORIGIN || ''}/sanctum/csrf-cookie`;
 
 const UI = {
   bg: 'linear-gradient(135deg,#fff5f9 0%,#ffe4ef 45%,#ffd6e8 100%)',
@@ -42,6 +98,38 @@ const CATALOG_TABS = [
   { key: 'package', label: 'Packages' },
   { key: 'membership', label: 'Memberships' },
 ];
+
+function offeringKindLabel(tabKey) {
+  const row = CATALOG_TABS.find((t) => t.key === tabKey);
+  return row ? row.label : 'Items';
+}
+
+function offeringKindLabelLower(tabKey) {
+  return offeringKindLabel(tabKey).toLowerCase();
+}
+
+function searchPlaceholderForOfferingTab(tabKey) {
+  switch (tabKey) {
+    case 'product':
+      return 'Search products by name, SKU, or brand…';
+    case 'service':
+      return 'Search services by name…';
+    case 'package':
+      return 'Search packages by name…';
+    case 'membership':
+      return 'Search memberships by name…';
+    default:
+      return 'Search…';
+  }
+}
+
+function emptyOfferingsCopy(tabKey, hasSearch) {
+  const kind = offeringKindLabelLower(tabKey);
+  if (hasSearch) {
+    return `No ${kind} match your search.`;
+  }
+  return `No ${kind} to show. Try another tab or adjust your search.`;
+}
 
 function formatMoney(amount) {
   const n = Number(amount);
@@ -106,6 +194,37 @@ async function apiFetch(path, options = {}) {
     throw err;
   }
   return data;
+}
+
+function sessionHintForApiError(err) {
+  if (!err || err.status !== 401) {
+    return '';
+  }
+  return (
+    ' Session was rejected or cookies were not sent. Common causes: POS opened on localhost while VITE_API_URL uses 127.0.0.1 (or the reverse), or missing Sanctum stateful domain for your dev port. Prefer the Vite proxy (docs/pos-vite-proxy.config.js) so the app and API share one origin, or align hostnames and SANCTUM_STATEFUL_DOMAINS.'
+  );
+}
+
+function offeringsFailureMessage(err, requestUrl, tabKey) {
+  const kind = offeringKindLabelLower(tabKey);
+  const base =
+    (err && err.message) ||
+    (err && err.status ? `HTTP ${err.status}` : '') ||
+    `Could not load ${kind}.`;
+  const extra = sessionHintForApiError(err);
+  if (err && err.status === 404) {
+    return (
+      `${base} The API URL may be wrong (e.g. requests hit the POS host instead of Laravel). Set VITE_API_URL and VITE_APP_URL to your Laravel origin, or proxy /api on the POS domain.` +
+      extra
+    );
+  }
+  if (err && err.status === 419) {
+    return `${base} Try signing out and in again after loading completes (CSRF / session).${extra}`;
+  }
+  if (requestUrl) {
+    return `${base}${extra ? extra : ` (${requestUrl})`}`;
+  }
+  return base + extra;
 }
 
 function lineDiscountFor(appliedAffiliate, item) {
@@ -311,7 +430,7 @@ function SelectInput(props) {
   );
 }
 
-function CatalogCard({ item, tab, onAdd }) {
+function OfferingCard({ item, tab, onAdd }) {
   const price =
     typeof item.price === 'number'
       ? item.price
@@ -844,14 +963,17 @@ function POSPage({
     let cancelled = false;
     async function load() {
       setCatalogLoading(true);
+      const catalogPath =
+        '/catalog?type=' +
+        encodeURIComponent(catalogTab) +
+        '&search=' +
+        encodeURIComponent(debouncedSearch) +
+        '&limit=120';
+      const catalogUrl = String(catalogPath).startsWith('http')
+        ? catalogPath
+        : API_BASE + POS_PREFIX + catalogPath;
       try {
-        const data = await apiFetch(
-          '/catalog?type=' +
-            encodeURIComponent(catalogTab) +
-            '&search=' +
-            encodeURIComponent(debouncedSearch) +
-            '&limit=120',
-        );
+        const data = (await apiFetch(catalogPath)) || {};
         if (cancelled) return;
         setCatalog({
           products: data.products || [],
@@ -863,8 +985,8 @@ function POSPage({
         if (!cancelled) {
           pushToast({
             type: 'error',
-            title: 'Catalog error',
-            message: e.message || 'Could not load catalog.',
+            title: 'Failed to load ' + offeringKindLabel(catalogTab),
+            message: offeringsFailureMessage(e, catalogUrl, catalogTab),
           });
         }
       } finally {
@@ -1232,6 +1354,12 @@ function POSPage({
             padding: 14,
           }}
         >
+          <div style={{ fontWeight: 900, fontSize: 15, color: UI.text, marginBottom: 4 }}>
+            Products, services, packages & memberships
+          </div>
+          <div style={{ fontSize: 12, color: UI.textMuted, marginBottom: 12, lineHeight: 1.45 }}>
+            Choose a tab, then search and add items to the cart.
+          </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
             {CATALOG_TABS.map((t) => (
               <Button
@@ -1244,15 +1372,17 @@ function POSPage({
               </Button>
             ))}
           </div>
-          <Field label="Search catalog">
+          <Field label={'Search ' + offeringKindLabelLower(catalogTab)}>
             <TextInput
               value={catalogSearch}
               onChange={(e) => setCatalogSearch(e.target.value)}
-              placeholder="Search name, SKU, brand…"
+              placeholder={searchPlaceholderForOfferingTab(catalogTab)}
             />
           </Field>
           <div style={{ minHeight: 16, fontSize: 12, color: UI.textMuted }}>
-            {catalogLoading ? 'Loading catalog…' : catalogList.length + ' results'}
+            {catalogLoading
+              ? 'Loading ' + offeringKindLabelLower(catalogTab) + '…'
+              : catalogList.length + ' ' + (catalogList.length === 1 ? 'result' : 'results')}
           </div>
           <div
             style={{
@@ -1260,11 +1390,27 @@ function POSPage({
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))',
               gap: 10,
+              minHeight: 200,
             }}
           >
-            {catalogList.map((item) => (
-              <CatalogCard key={item.type + '-' + item.id} item={item} tab={catalogTab} onAdd={addToCatalog} />
-            ))}
+            {!catalogLoading && catalogList.length === 0 ? (
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  textAlign: 'center',
+                  padding: '48px 16px',
+                  color: UI.textMuted,
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                }}
+              >
+                {emptyOfferingsCopy(catalogTab, debouncedSearch.trim() !== '')}
+              </div>
+            ) : (
+              catalogList.map((item) => (
+                <OfferingCard key={item.type + '-' + item.id} item={item} tab={catalogTab} onAdd={addToCatalog} />
+              ))
+            )}
           </div>
         </section>
 
@@ -1327,7 +1473,9 @@ function POSPage({
             <div style={{ fontWeight: 900, fontSize: 14 }}>Cart</div>
             <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
               {cart.length === 0 ? (
-                <div style={{ color: UI.textMuted, fontSize: 13 }}>Cart is empty.</div>
+                <div style={{ color: UI.textMuted, fontSize: 13 }}>
+                  Cart is empty. Add products, services, packages, or memberships from the list on the left.
+                </div>
               ) : (
                 cart.map((row) => (
                   <CartItem
@@ -1597,21 +1745,30 @@ function App() {
     <div style={{ position: 'relative' }}>
       {!admin ? (
         <LoginPage
-          onLoggedIn={async (payload) => {
+          onLoggedIn={async () => {
             try {
               const data = await apiFetch('/me');
               if (data && data.admin && data.admin.id) {
                 setAdmin(data.admin);
                 return;
               }
-            } catch {
-              //
+            } catch (err) {
+              pushToast({
+                type: 'error',
+                title: 'Session not established',
+                message:
+                  (err && err.message) ||
+                  'Could not verify your session after login.' +
+                    sessionHintForApiError(err),
+              });
+              return;
             }
-            if (payload && payload.admin) {
-              setAdmin(payload.admin);
-            } else {
-              setAdmin({ name: 'Cashier' });
-            }
+            pushToast({
+              type: 'error',
+              title: 'Session not established',
+              message:
+                'Login succeeded but the server did not return an admin profile. Try again or check API configuration.',
+            });
           }}
           pushToast={pushToast}
         />

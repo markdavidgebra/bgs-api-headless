@@ -67,11 +67,46 @@ Route::get('/vitality-health-solutions', [FrontEndController::class, 'vitalityHe
 Route::get('/wellSpring-wellness-center', [FrontEndController::class, 'wellSpringWellnessCenter'])->name('wellSpring-wellness-center');
 Route::get('/wishlist', [FrontEndController::class, 'wishlist'])->name('wishlist');
 
-// POS route aliases for external React apps that post to /pos/*
-Route::post('/pos/login', [PosController::class, 'login'])->name('pos/login');
+// POS route aliases for external React apps (mirror routes/api.php but without /api prefix).
+// With Vite devServer.proxy → these hit Laravel at /pos/catalog, etc.
+Route::middleware('throttle:10,1')->post('/pos/login', [PosController::class, 'login'])->name('pos/login');
 Route::middleware(['auth:admin', 'admin_role:admin,cashier'])->prefix('pos')->group(function () {
     Route::post('/logout', [PosController::class, 'logout'])->name('pos/logout');
     Route::get('/me', [PosController::class, 'me'])->name('pos/me');
+    Route::get('/catalog', [PosController::class, 'catalog'])->name('pos/catalog');
+    Route::get('/patients', [PosController::class, 'patients'])->name('pos/patients');
+    Route::get('/promotions', [PosController::class, 'promotions'])->name('pos/promotions');
+    Route::post('/affiliate-codes/validate', [PosController::class, 'validateAffiliateCode'])->name('pos/affiliate-codes/validate');
+    Route::post('/checkout', [PosController::class, 'checkout'])->name('pos/checkout');
+});
+
+/*
+|--------------------------------------------------------------------------
+| POS JSON API (/api/pos/*)
+|--------------------------------------------------------------------------
+|
+| Registered here (not only in routes/api.php) so these endpoints always load
+| with the web routes file. A missing or outdated api routes file / route cache
+| was causing 404 "The route api/pos/affiliate-codes/validate could not be found."
+| for the React POS while /pos/* mirrors still worked.
+|
+*/
+Route::prefix('api')->group(function () {
+    Route::middleware('throttle:10,1')->prefix('pos')->group(function () {
+        Route::post('login', [PosController::class, 'login']);
+    });
+
+    Route::middleware(['auth:admin', 'admin_role:admin,cashier'])
+        ->prefix('pos')
+        ->group(function () {
+            Route::get('me', [PosController::class, 'me']);
+            Route::post('logout', [PosController::class, 'logout']);
+            Route::get('catalog', [PosController::class, 'catalog']);
+            Route::get('patients', [PosController::class, 'patients']);
+            Route::get('promotions', [PosController::class, 'promotions']);
+            Route::post('affiliate-codes/validate', [PosController::class, 'validateAffiliateCode']);
+            Route::post('checkout', [PosController::class, 'checkout']);
+        });
 });
 
 /*
