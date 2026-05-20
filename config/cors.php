@@ -24,9 +24,11 @@ return [
             'http://localhost:5173',
             'http://127.0.0.1:5173',
             'http://localhost:3000',
+            'https://bioglowsolutions.com',
             'https://catalog.bioglowsolutions.com',
             'https://pos.bioglowsolutions.com',
             'https://inventory.bioglowsolutions.com',
+            'https://doctor.bioglowsolutions.com',
         ],
         array_map(
             static fn (string $origin): string => trim($origin),

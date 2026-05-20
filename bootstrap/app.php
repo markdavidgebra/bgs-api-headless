@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/pos/*',
             'api/inventory/*',
+            'api/doctor/*',
             'pos/login',
             'pos/logout',
             // Web aliases (same SPA as api/pos — session + auth middleware protect these)
@@ -54,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin_permission' => EnsureAdminHasPermission::class,
             'admin_approved' => EnsureAdminAccountApproved::class,
             'doctor_approved' => EnsureDoctorAccountApproved::class,
+            'doctor.permission' => \App\Http\Middleware\EnsureDoctorApiPermission::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

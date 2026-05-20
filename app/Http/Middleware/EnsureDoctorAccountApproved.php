@@ -23,6 +23,12 @@ class EnsureDoctorAccountApproved
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
+            if ($request->expectsJson() || $request->is('api/doctor/*')) {
+                return response()->json([
+                    'message' => __('Your doctor account is not approved yet.'),
+                ], 403);
+            }
+
             return redirect()->route('login')->withErrors([
                 'email' => __('Your doctor account is not approved yet.'),
             ]);

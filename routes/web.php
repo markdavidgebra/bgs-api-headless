@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\DoctorPortalController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Doctor\DoctorAppointmentController;
 use App\Http\Controllers\Doctor\DoctorAvailabilityController;
@@ -106,6 +108,113 @@ Route::prefix('api')->group(function () {
             Route::get('promotions', [PosController::class, 'promotions']);
             Route::post('affiliate-codes/validate', [PosController::class, 'validateAffiliateCode']);
             Route::post('checkout', [PosController::class, 'checkout']);
+        });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Doctor portal JSON API (/api/doctor/*)
+|--------------------------------------------------------------------------
+|
+| Session-based API for a React doctor portal (mirrors /doctor/* web routes).
+|
+*/
+Route::prefix('api')->group(function () {
+    Route::middleware('throttle:10,1')->prefix('doctor')->group(function () {
+        Route::post('login', [DoctorPortalController::class, 'login']);
+    });
+
+    Route::middleware([
+        'prevent_cross_guard:doctor',
+        'auth:doctor',
+        'doctor_approved',
+        'verified',
+    ])->prefix('doctor')->group(function () {
+        Route::post('logout', [DoctorPortalController::class, 'logout']);
+        Route::get('me', [DoctorPortalController::class, 'me']);
+
+        Route::middleware('doctor.permission:doctor.dashboard')->get('dashboard', [DoctorPortalController::class, 'dashboard']);
+
+        Route::middleware('doctor.permission:doctor.appointments')->group(function () {
+            Route::get('appointments', [DoctorPortalController::class, 'appointmentsIndex']);
+            Route::get('appointments/{appointment}', [DoctorPortalController::class, 'appointmentShow']);
+            Route::get('appointments/{appointment}/notes-form', [DoctorPortalController::class, 'appointmentNotesForm']);
+            Route::post('appointments/{appointment}/approve', [DoctorPortalController::class, 'appointmentApprove']);
+            Route::post('appointments/{appointment}/start-session', [DoctorPortalController::class, 'appointmentStartSession']);
+            Route::post('appointments/{appointment}/complete', [DoctorPortalController::class, 'appointmentComplete']);
+            Route::post('appointments/{appointment}/session-done', [DoctorPortalController::class, 'appointmentSessionDone']);
+            Route::post('appointments/{appointment}/no-show', [DoctorPortalController::class, 'appointmentNoShow']);
+            Route::post('appointments/{appointment}/reschedule', [DoctorPortalController::class, 'appointmentReschedule']);
+            Route::post('appointments/{appointment}/treatment-progress', [DoctorPortalController::class, 'appointmentTreatmentProgress']);
+            Route::post('appointments/{appointment}/notes', [DoctorPortalController::class, 'appointmentNotes']);
+            Route::post('appointments/{appointment}/assessment', [DoctorPortalController::class, 'appointmentAssessment']);
+        });
+
+        Route::middleware('doctor.permission:doctor.patient_records')->prefix('patient-records')->group(function () {
+            Route::get('/', [DoctorPortalController::class, 'patientRecordsIndex']);
+            Route::get('{patient}', [DoctorPortalController::class, 'patientRecordShow']);
+            Route::post('{patient}/notes', [DoctorPortalController::class, 'patientRecordStoreNote']);
+            Route::patch('{patient}/packages/{patientPackage}/sessions', [DoctorPortalController::class, 'patientRecordUpdatePackageSessions']);
+        });
+
+        Route::middleware('doctor.permission:doctor.treatment_notes')->prefix('treatment-notes')->group(function () {
+            Route::get('/', [DoctorPortalController::class, 'treatmentNotesIndex']);
+            Route::get('{appointment}', [DoctorPortalController::class, 'treatmentNoteShow']);
+        });
+
+        Route::middleware('doctor.permission:doctor.notifications')->prefix('notifications')->group(function () {
+            Route::get('/', [DoctorPortalController::class, 'notificationsIndex']);
+            Route::post('mark-all-read', [DoctorPortalController::class, 'notificationsMarkAllRead']);
+            Route::post('clear-read', [DoctorPortalController::class, 'notificationsClearRead']);
+            Route::get('{notification}', [DoctorPortalController::class, 'notificationShow']);
+            Route::patch('{notification}/read', [DoctorPortalController::class, 'notificationMarkRead']);
+            Route::delete('{notification}', [DoctorPortalController::class, 'notificationDestroy']);
+        });
+
+        Route::middleware('doctor.permission:doctor.products')->get('products', [DoctorPortalController::class, 'productsIndex']);
+        Route::middleware('doctor.permission:doctor.services')->get('services', [DoctorPortalController::class, 'servicesIndex']);
+
+        Route::middleware('doctor.permission:doctor.profile')->group(function () {
+            Route::get('profile', [DoctorPortalController::class, 'profileShow']);
+            Route::patch('profile', [DoctorPortalController::class, 'profileUpdate']);
+            Route::put('profile/password', [DoctorPortalController::class, 'profileUpdatePassword']);
+        });
+
+        Route::middleware('doctor.permission:doctor.availability')->prefix('availability')->group(function () {
+            Route::get('/', [DoctorPortalController::class, 'availabilityIndex']);
+            Route::get('weekday/{weekday}', [DoctorPortalController::class, 'availabilityWeekday'])->whereNumber('weekday');
+            Route::patch('weekday/{weekday}', [DoctorPortalController::class, 'availabilityUpdateWeekday'])->whereNumber('weekday');
+            Route::post('weekday/{weekday}/toggle', [DoctorPortalController::class, 'availabilityToggleDay'])->whereNumber('weekday');
+            Route::post('blocked-dates', [DoctorPortalController::class, 'availabilityStoreBlockedDate']);
+            Route::delete('blocked-dates/{blockedDate}', [DoctorPortalController::class, 'availabilityDestroyBlockedDate']);
+        });
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Inventory officer JSON API (/api/inventory/*)
+|--------------------------------------------------------------------------
+|
+| Session-based API for the React inventory officer portal (gbs-inventory).
+|
+*/
+Route::prefix('api')->group(function () {
+    Route::middleware('throttle:10,1')->prefix('inventory')->group(function () {
+        Route::post('login', [InventoryController::class, 'login']);
+        Route::get('me', [InventoryController::class, 'me']);
+    });
+
+    Route::middleware(['auth:admin', 'admin_role:inventory_officer'])
+        ->prefix('inventory')
+        ->group(function () {
+            Route::post('logout', [InventoryController::class, 'logout']);
+            Route::get('summary', [InventoryController::class, 'summary']);
+            Route::get('products', [InventoryController::class, 'products']);
+            Route::get('products/{id}', [InventoryController::class, 'showProduct'])->whereNumber('id');
+            Route::get('low-stock', [InventoryController::class, 'lowStock']);
+            Route::get('movements', [InventoryController::class, 'movements']);
+            Route::post('stock-movements', [InventoryController::class, 'storeMovement']);
         });
 });
 
