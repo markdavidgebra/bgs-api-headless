@@ -25,6 +25,16 @@ class SubscriptionsController extends Controller
             ])
             ->orderBy('name');
 
+        if ($request->filled('search')) {
+            $term = $request->string('search')->toString();
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
+                    ->orWhere('slug', 'like', "%{$term}%")
+                    ->orWhere('type', 'like', "%{$term}%")
+                    ->orWhere('description', 'like', "%{$term}%");
+            });
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->string('status')->toString());
         }
@@ -148,6 +158,25 @@ class SubscriptionsController extends Controller
         return redirect()
             ->route('admin.subscriptions.show', $plan)
             ->with('status', __('Membership plan updated.'));
+    }
+
+    public function destroy(int $id): RedirectResponse
+    {
+        $plan = MembershipPlan::query()->findOrFail($id);
+
+        if ($plan->patientSubscriptions()->exists()) {
+            return redirect()
+                ->route('admin.subscriptions')
+                ->with('error', __('Cannot delete this plan because patients are already subscribed to it.'));
+        }
+
+        $plan->services()->detach();
+        $plan->promotions()->detach();
+        $plan->delete();
+
+        return redirect()
+            ->route('admin.subscriptions')
+            ->with('status', __('Membership plan deleted.'));
     }
 
     /**

@@ -156,6 +156,7 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::post('roles', [AdminRolesController::class, 'store'])->name('roles.store');
         Route::get('roles/{id}/edit', [AdminRolesController::class, 'edit'])->name('roles.edit');
         Route::put('roles/{id}', [AdminRolesController::class, 'update'])->name('roles.update');
+        Route::delete('roles/{id}', [AdminRolesController::class, 'destroy'])->name('roles.destroy');
     });
     Route::middleware('admin_permission:pages.manage')->group(function () {
         Route::get('slides', [SlidesController::class, 'index'])->name('slides');
@@ -259,6 +260,7 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::get('packages/edit/{id}', [PackagesController::class, 'edit'])->name('packages.edit');
         Route::put('packages/{id}', [PackagesController::class, 'update'])->name('packages.update');
         Route::get('packages/{id}', [PackagesController::class, 'show'])->name('packages.show');
+        Route::delete('packages/{id}', [PackagesController::class, 'destroy'])->name('packages.destroy');
     });
     Route::middleware('admin_permission:subscriptions.manage')->group(function () {
         Route::get('subscriptions', [SubscriptionsController::class, 'index'])->name('subscriptions');
@@ -267,6 +269,7 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::get('subscriptions/show/{id}', [SubscriptionsController::class, 'show'])->name('subscriptions.show');
         Route::get('subscriptions/edit/{id}', [SubscriptionsController::class, 'edit'])->name('subscriptions.edit');
         Route::put('subscriptions/{id}', [SubscriptionsController::class, 'update'])->name('subscriptions.update');
+        Route::delete('subscriptions/{id}', [SubscriptionsController::class, 'destroy'])->name('subscriptions.destroy');
     });
     Route::middleware('admin_permission:payments.manage')->group(function () {
         Route::get('payments', [PaymentsController::class, 'index'])->name('payments');

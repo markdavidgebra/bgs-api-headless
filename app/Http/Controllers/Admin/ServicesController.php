@@ -19,7 +19,7 @@ class ServicesController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Service::query()->orderBy('name');
+        $query = Service::query()->withCount('doctors')->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();

@@ -22,6 +22,7 @@ class PackagesController extends Controller
     {
         $query = TreatmentPackage::query()
             ->with('services')
+            ->withCount(['services', 'doctors'])
             ->orderByDesc('updated_at');
 
         if ($request->filled('search')) {
@@ -170,6 +171,27 @@ class PackagesController extends Controller
         return redirect()
             ->route('admin.packages.show', $package)
             ->with('status', __('Package updated.'));
+    }
+
+    public function destroy(string $id): RedirectResponse
+    {
+        $package = TreatmentPackage::query()->findOrFail($id);
+
+        if ($package->patientPackages()->exists()) {
+            return redirect()
+                ->route('admin.packages')
+                ->with('error', __('Cannot delete this package because it has already been purchased by patients.'));
+        }
+
+        $this->deleteStoredPackageImage($package->image);
+
+        $package->services()->detach();
+        $package->doctors()->detach();
+        $package->delete();
+
+        return redirect()
+            ->route('admin.packages')
+            ->with('status', __('Package deleted.'));
     }
 
     /**

@@ -22,8 +22,12 @@ return [
     'allowed_origins' => array_values(array_unique(array_filter(array_merge(
         [
             'http://localhost:5173',
+            'http://localhost:5178',
             'http://127.0.0.1:5173',
+            'http://localhost:5174',
+            'http://127.0.0.1:5174',
             'http://localhost:3000',
+            'https://admin.bioglowsolutions.com',
             'https://bioglowsolutions.com',
             'https://catalog.bioglowsolutions.com',
             'https://pos.bioglowsolutions.com',

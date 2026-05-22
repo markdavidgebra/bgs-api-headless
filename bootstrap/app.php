@@ -9,10 +9,7 @@ use App\Http\Middleware\RedirectIfAuthenticated;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
-use Symfony\Component\Mailer\Exception\TransportException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -62,23 +59,4 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('notifications:appointment-reminders')->dailyAt('08:00');
         $schedule->command('notifications:admin-low-stock')->weekdays()->at('09:00');
         $schedule->command('notifications:admin-approval-digest')->dailyAt('07:30');
-    })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->renderable(function (TransportException $e, Request $request) {
-            report($e);
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => __('Mail could not be sent. Fix SMTP credentials (e.g. Gmail App Password) or set MAIL_MAILER=failover in .env.'),
-                ], 503);
-            }
-
-            if ($request->hasSession()) {
-                return redirect()
-                    ->back()
-                    ->with('warning', __('Email could not be sent: SMTP rejected the login (535). Use a Gmail App Password with 2-Step Verification, or set MAIL_MAILER=failover in .env to log emails instead of using SMTP.'));
-            }
-
-            return null;
-        });
     })->create();

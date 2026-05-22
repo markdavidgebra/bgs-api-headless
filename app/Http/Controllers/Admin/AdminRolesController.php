@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\AdminRole;
 use App\Support\AdminPermissions;
 use Illuminate\Http\RedirectResponse;
@@ -125,6 +126,27 @@ class AdminRolesController extends Controller
         return redirect()
             ->route('admin.roles.index')
             ->with('status', __('Role updated.'));
+    }
+
+    public function destroy(int $id): RedirectResponse
+    {
+        $role = AdminRole::query()->findOrFail($id);
+
+        $reserved = ['super admin', 'superadmin', 'admin'];
+        if (in_array(strtolower((string) $role->role_value), $reserved, true)) {
+            return back()->with('error', __('This role is reserved and cannot be deleted.'));
+        }
+
+        $inUse = Admin::query()->where('role', $role->role_value)->exists();
+        if ($inUse) {
+            return back()->with('error', __('This role is currently assigned to one or more admins and cannot be deleted.'));
+        }
+
+        $role->delete();
+
+        return redirect()
+            ->route('admin.roles.index')
+            ->with('status', __('Role deleted.'));
     }
 
     private function normalizeRoleValue(string $value): string

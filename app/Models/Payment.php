@@ -26,6 +26,17 @@ class Payment extends Model
         'notes',
     ];
 
+    /**
+     * Derived label attributes consumed by the React admin (Revenue report table, etc.).
+     * `reference_name` requires the relevant reference relationship to be eager-loaded
+     * on the query to avoid N+1.
+     */
+    protected $appends = [
+        'method_label',
+        'reference_type_label',
+        'reference_name',
+    ];
+
     protected function casts(): array
     {
         return [

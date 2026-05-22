@@ -202,6 +202,12 @@ class ReportsController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        // Explicitly include the derived label attributes so the React admin
+        // doesn't depend on the model's $appends being honored by every cache layer.
+        $payments->getCollection()->each(function (Payment $payment): void {
+            $payment->append(['method_label', 'reference_type_label', 'reference_name']);
+        });
+
         $methodOptions = [
             'cash' => 'Cash',
             'gcash' => 'GCash',
@@ -240,7 +246,17 @@ class ReportsController extends Controller
      */
     private function revenuePaymentsBaseQuery(Request $request): Builder
     {
-        $query = Payment::query()->with(['patient:id,name']);
+        // Full relations (no column restriction) so the model's reference_name
+        // accessor chain always has the data it needs.
+        $query = Payment::query()->with([
+            'patient:id,name',
+            'referenceAppointment',
+            'referenceAppointment.service',
+            'referencePackage',
+            'referenceMembership',
+            'referenceProduct',
+            'referenceService',
+        ]);
 
         if ($request->filled('from')) {
             $query->whereDate('payment_date', '>=', $request->date('from'));

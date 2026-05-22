@@ -503,6 +503,17 @@ class Service extends Model
         'notes',
     ];
 
+    /**
+     * Computed attributes exposed on JSON responses for the admin UI.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'image_url',
+        'duration_label',
+        'summary_text',
+    ];
+
     protected function casts(): array
     {
         return [

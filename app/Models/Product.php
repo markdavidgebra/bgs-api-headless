@@ -38,6 +38,16 @@ class Product extends Model
         'supplier',
     ];
 
+    /**
+     * Computed attributes exposed on JSON responses for the admin UI.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'image_url',
+        'stock_status',
+    ];
+
     protected function casts(): array
     {
         return [

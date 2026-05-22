@@ -36,6 +36,21 @@ class TreatmentPackage extends Model
         'internal_notes',
     ];
 
+    /**
+     * Computed attributes exposed on JSON responses for the admin UI.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'image_url',
+        'validity_label',
+        'total_price',
+        'validity_duration',
+        'validity_unit',
+        'refundable',
+        'notes',
+    ];
+
     protected function casts(): array
     {
         return [

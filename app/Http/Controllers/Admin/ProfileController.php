@@ -34,9 +34,10 @@ class ProfileController extends Controller
                 Rule::unique('admins', 'email')->ignore($admin->id),
             ],
             'photo' => ['nullable', 'image', 'max:499'],
+            'remove_photo' => ['nullable', 'boolean'],
         ]);
 
-        $data = collect($validated)->except('photo')->all();
+        $data = collect($validated)->except(['photo', 'remove_photo'])->all();
 
         if ($request->hasFile('photo')) {
             $this->removeStoredAdminImage($admin->image_path);
@@ -52,6 +53,9 @@ class ProfileController extends Controller
             $file->move($dir, $filename);
 
             $data['image_path'] = 'uploads/admins/'.$filename;
+        } elseif ($request->boolean('remove_photo') && $admin->image_path) {
+            $this->removeStoredAdminImage($admin->image_path);
+            $data['image_path'] = null;
         }
 
         $admin->fill($data)->save();
