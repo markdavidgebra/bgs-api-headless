@@ -18,7 +18,7 @@ class AppointmentRescheduledPatientNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

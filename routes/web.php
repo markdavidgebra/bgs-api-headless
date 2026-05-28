@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\DoctorPortalController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\PatientPortalController;
 use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Doctor\DoctorAppointmentController;
 use App\Http\Controllers\Doctor\DoctorAvailabilityController;
@@ -215,6 +216,60 @@ Route::prefix('api')->group(function () {
             Route::get('low-stock', [InventoryController::class, 'lowStock']);
             Route::get('movements', [InventoryController::class, 'movements']);
             Route::post('stock-movements', [InventoryController::class, 'storeMovement']);
+        });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Patient portal JSON API (/api/patient/*)
+|--------------------------------------------------------------------------
+|
+| Session-based API for the React patient portal (mirrors /patient/* web routes).
+|
+*/
+Route::prefix('api')->group(function () {
+    Route::middleware('throttle:10,1')->prefix('patient')->group(function () {
+        Route::post('login', [PatientPortalController::class, 'login']);
+    });
+
+    Route::middleware(['prevent_cross_guard:web', 'auth:web', 'verified'])
+        ->prefix('patient')
+        ->group(function () {
+            Route::post('logout', [PatientPortalController::class, 'logout']);
+            Route::get('me', [PatientPortalController::class, 'me']);
+            Route::get('dashboard', [PatientPortalController::class, 'dashboard']);
+
+            Route::get('appointments', [PatientPortalController::class, 'appointments']);
+            Route::get('appointments/book', [PatientPortalController::class, 'bookOptions']);
+            Route::get('appointments/book/doctors', [PatientPortalController::class, 'bookableDoctors']);
+            Route::post('appointments/book', [PatientPortalController::class, 'bookAppointment']);
+            Route::get('appointments/{appointment}', [PatientPortalController::class, 'appointment']);
+            Route::post('appointments/{appointment}/reschedule', [PatientPortalController::class, 'rescheduleAppointment']);
+            Route::post('appointments/{appointment}/cancel', [PatientPortalController::class, 'cancelAppointment']);
+
+            Route::get('notifications', [PatientPortalController::class, 'notifications']);
+            Route::post('notifications/read-all', [PatientPortalController::class, 'markAllNotificationsRead']);
+            Route::post('notifications/{notification}/read', [PatientPortalController::class, 'markNotificationRead']);
+
+            Route::get('profile', [PatientPortalController::class, 'profile']);
+            Route::post('profile', [PatientPortalController::class, 'updateProfile']);
+            Route::post('profile/avatar', [PatientPortalController::class, 'uploadAvatar']);
+            Route::post('profile/avatar/remove', [PatientPortalController::class, 'removeAvatar']);
+
+            Route::get('treatments', [PatientPortalController::class, 'treatments']);
+            Route::get('treatments/{patientPackage}', [PatientPortalController::class, 'treatment']);
+
+            Route::get('memberships', [PatientPortalController::class, 'memberships']);
+
+            Route::get('payments', [PatientPortalController::class, 'payments']);
+            Route::get('payments/{payment}', [PatientPortalController::class, 'payment'])->whereNumber('payment');
+
+            Route::get('promotions', [PatientPortalController::class, 'promotions']);
+            Route::get('promotions/{promotion}', [PatientPortalController::class, 'promotion'])->whereNumber('promotion');
+
+            Route::get('aftercare-instructions', [PatientPortalController::class, 'aftercare']);
+            Route::get('aftercare-instructions/{source}/{record}', [PatientPortalController::class, 'aftercareItem'])
+                ->whereNumber('record');
         });
 });
 

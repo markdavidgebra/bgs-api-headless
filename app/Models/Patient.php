@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class Patient extends Authenticatable
 {
@@ -25,6 +26,7 @@ class Patient extends Authenticatable
         'name',
         'email',
         'phone',
+        'avatar_path',
         'password',
         'pending_password_plain',
         'status',
@@ -77,6 +79,27 @@ class Patient extends Authenticatable
     public function getInitialAttribute(): string
     {
         return strtoupper(substr($this->name ?? '?', 0, 1));
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if ($this->avatar_path === null || $this->avatar_path === '') {
+            return null;
+        }
+
+        $path = (string) $this->avatar_path;
+
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        $normalized = ltrim($path, '/');
+
+        if (str_starts_with($normalized, 'uploads/patients/')) {
+            return asset($normalized);
+        }
+
+        return asset('storage/'.$normalized);
     }
 
     public function appointments(): HasMany

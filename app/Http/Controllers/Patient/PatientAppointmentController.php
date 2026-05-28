@@ -138,14 +138,18 @@ class PatientAppointmentController extends Controller
         });
 
         $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
-        if ($appointment->patient && filled($appointment->patient->email)) {
-            Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
+        try {
+            if ($appointment->patient) {
+                Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
+            }
+            DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+        } catch (\Throwable $e) {
+            report($e);
         }
-        DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
 
         return redirect()
             ->route('patient.appointments.show', $appointment)
-            ->with('success', 'Appointment booked successfully. A booking confirmation email has been sent to your registered email.');
+            ->with('success', 'Appointment booked successfully.');
     }
 
     public function show(Appointment $appointment): View
