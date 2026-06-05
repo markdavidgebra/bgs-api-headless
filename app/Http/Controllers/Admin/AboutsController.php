@@ -47,6 +47,15 @@ class AboutsController extends Controller
             'meta.list_points' => ['nullable', 'array'],
             'meta.list_points.*' => ['nullable', 'string', 'max:255'],
             'meta.home_bottom_text' => ['nullable', 'string', 'max:1000'],
+            'meta.about_highlight_quote' => ['nullable', 'string', 'max:1000'],
+            'meta.about_after_quote_paragraphs' => ['nullable', 'array'],
+            'meta.about_after_quote_paragraphs.*' => ['nullable', 'string', 'max:2000'],
+            'meta.vision_title' => ['nullable', 'string', 'max:255'],
+            'meta.vision_text' => ['nullable', 'string', 'max:1000'],
+            'meta.mission_title' => ['nullable', 'string', 'max:255'],
+            'meta.mission_text' => ['nullable', 'string', 'max:1000'],
+            'meta.about_footer_title' => ['nullable', 'string', 'max:255'],
+            'meta.about_footer_subtitle' => ['nullable', 'string', 'max:255'],
             'meta.clinic_hours_title' => ['nullable', 'string', 'max:255'],
             'meta.clinic_hours' => ['nullable', 'array'],
             'meta.clinic_hours.*.day' => ['nullable', 'string', 'max:255'],
@@ -134,6 +143,15 @@ class AboutsController extends Controller
             'meta.list_points' => ['nullable', 'array'],
             'meta.list_points.*' => ['nullable', 'string', 'max:255'],
             'meta.home_bottom_text' => ['nullable', 'string', 'max:1000'],
+            'meta.about_highlight_quote' => ['nullable', 'string', 'max:1000'],
+            'meta.about_after_quote_paragraphs' => ['nullable', 'array'],
+            'meta.about_after_quote_paragraphs.*' => ['nullable', 'string', 'max:2000'],
+            'meta.vision_title' => ['nullable', 'string', 'max:255'],
+            'meta.vision_text' => ['nullable', 'string', 'max:1000'],
+            'meta.mission_title' => ['nullable', 'string', 'max:255'],
+            'meta.mission_text' => ['nullable', 'string', 'max:1000'],
+            'meta.about_footer_title' => ['nullable', 'string', 'max:255'],
+            'meta.about_footer_subtitle' => ['nullable', 'string', 'max:255'],
             'meta.clinic_hours_title' => ['nullable', 'string', 'max:255'],
             'meta.clinic_hours' => ['nullable', 'array'],
             'meta.clinic_hours.*.day' => ['nullable', 'string', 'max:255'],
@@ -314,11 +332,25 @@ class AboutsController extends Controller
             ])->filter(fn ($point) => $point !== '')->values()->all();
         }
 
+        $afterQuoteParagraphs = collect($meta['about_after_quote_paragraphs'] ?? [])
+            ->map(fn ($paragraph) => trim((string) $paragraph))
+            ->filter(fn ($paragraph) => $paragraph !== '')
+            ->values()
+            ->all();
+
         return [
             'story_points' => $storyPoints,
             'features' => $features,
             'list_points' => $listPoints,
             'home_bottom_text' => trim((string) ($meta['home_bottom_text'] ?? '')),
+            'about_highlight_quote' => trim((string) ($meta['about_highlight_quote'] ?? '')),
+            'about_after_quote_paragraphs' => $afterQuoteParagraphs,
+            'vision_title' => trim((string) ($meta['vision_title'] ?? '')),
+            'vision_text' => trim((string) ($meta['vision_text'] ?? '')),
+            'mission_title' => trim((string) ($meta['mission_title'] ?? '')),
+            'mission_text' => trim((string) ($meta['mission_text'] ?? '')),
+            'about_footer_title' => trim((string) ($meta['about_footer_title'] ?? '')),
+            'about_footer_subtitle' => trim((string) ($meta['about_footer_subtitle'] ?? '')),
             'clinic_hours_title' => trim((string) ($meta['clinic_hours_title'] ?? '')),
             'clinic_hours' => $clinicHours,
             'why_tagline' => trim((string) ($meta['why_tagline'] ?? '')),

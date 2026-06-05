@@ -28,6 +28,14 @@ class Slide extends Model
         'image_alt',
     ];
 
+    // Surface the computed image URL in JSON responses (used by the Next.js public API).
+    // Without this the accessor below only fires when accessed in PHP/Blade, leaving
+    // the headless frontend to fall back to a raw path that misses the storage/ prefix
+    // for uploaded files.
+    protected $appends = [
+        'image_url',
+    ];
+
     protected function casts(): array
     {
         return [

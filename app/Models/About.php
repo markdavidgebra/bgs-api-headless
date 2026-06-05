@@ -25,6 +25,11 @@ class About extends Model
         'meta' => 'array',
     ];
 
+    protected $appends = [
+        'image_url',
+        'secondary_image_url',
+    ];
+
     public function scopePublished($query)
     {
         return $query->where('status', 'published');
@@ -47,5 +52,24 @@ class About extends Model
         }
 
         return $fallback;
+    }
+
+    public function getSecondaryImageUrlAttribute(): ?string
+    {
+        $path = trim((string) data_get($this->meta, 'secondary_image', ''));
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        if (is_file(public_path($path))) {
+            return asset($path);
+        }
+
+        return null;
     }
 }

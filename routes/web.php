@@ -362,3 +362,4 @@ Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doc
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';
 require __DIR__.'/admin-api.php';
+require __DIR__.'/public-api.php';

@@ -72,15 +72,8 @@ class AdminPermissions
     public static function forAdmin(Admin $admin): array
     {
         $role = self::normalizeRole((string) ($admin->role ?? ''));
-        if (in_array($role, ['super admin', 'superadmin'], true)) {
+        if (in_array($role, ['super admin', 'superadmin', 'admin'], true)) {
             return self::allKeys();
-        }
-
-        if ($role === 'admin') {
-            return array_values(array_filter(
-                self::allKeys(),
-                static fn (string $key): bool => $key !== 'pages.manage'
-            ));
         }
 
         $adminRole = AdminRole::query()->where('role_value', $role)->first();
