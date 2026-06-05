@@ -36,6 +36,7 @@ return [
             'https://staff.bioglowsolutions.com',
             'https://user.bioglowsolutions.com',
             'https://test.bioglowsolutions.com',
+            'https://bioglowsolutions.com',
         ],
         array_map(
             static fn (string $origin): string => trim($origin),
