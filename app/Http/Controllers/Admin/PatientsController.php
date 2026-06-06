@@ -440,23 +440,25 @@ class PatientsController extends Controller
     {
         $patient = Patient::query()->findOrFail($id);
 
-        if (Appointment::query()->where('patient_id', $patient->id)->exists()) {
-            return redirect()
-                ->route('admin.patients')
-                ->with('error', __('This patient cannot be deleted because they have appointments on record.'));
-        }
+        DB::transaction(function () use ($patient): void {
+            TreatmentPackageUsageHistory::query()
+                ->where('patient_id', $patient->id)
+                ->delete();
 
-        if (TreatmentPatientPackage::query()->where('patient_id', $patient->id)->exists()) {
-            return redirect()
-                ->route('admin.patients')
-                ->with('error', __('This patient cannot be deleted because they have treatment packages assigned.'));
-        }
+            TreatmentPatientPackage::query()
+                ->where('patient_id', $patient->id)
+                ->delete();
 
-        $patient->delete();
+            Appointment::query()
+                ->where('patient_id', $patient->id)
+                ->delete();
+
+            $patient->delete();
+        });
 
         return redirect()
             ->route('admin.patients')
-            ->with('status', __('Patient deleted.'));
+            ->with('status', __('Patient and related records deleted.'));
     }
 
     public function updatePassword(Request $request, int $id): RedirectResponse
