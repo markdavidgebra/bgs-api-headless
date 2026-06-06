@@ -17,32 +17,57 @@ class PreventCrossGuardAccess
     public function handle(Request $request, Closure $next, string $allowedGuard): Response
     {
         if ($allowedGuard === 'admin') {
-            if (Auth::guard('web')->check()) {
-                return redirect()->route('patient.dashboard');
+            // Admin session takes precedence — do not redirect to patient/doctor portals.
+            if (Auth::guard('admin')->check()) {
+                return $next($request);
             }
+
+            if (Auth::guard('web')->check()) {
+                return $this->blockCrossGuard($request, __('Sign out of the patient portal before using the admin dashboard.'), 'patient.dashboard');
+            }
+
             if (Auth::guard('doctor')->check()) {
-                return redirect()->route('doctor.dashboard');
+                return $this->blockCrossGuard($request, __('Sign out of the doctor portal before using the admin dashboard.'), 'doctor.dashboard');
             }
         }
 
         if ($allowedGuard === 'web') {
-            if (Auth::guard('admin')->check()) {
-                return redirect()->route('admin.dashboard');
+            if (Auth::guard('web')->check()) {
+                return $next($request);
             }
+
+            if (Auth::guard('admin')->check()) {
+                return $this->blockCrossGuard($request, __('Sign out of the admin portal before using the patient portal.'), 'admin.dashboard');
+            }
+
             if (Auth::guard('doctor')->check()) {
-                return redirect()->route('doctor.dashboard');
+                return $this->blockCrossGuard($request, __('Sign out of the doctor portal before using the patient portal.'), 'doctor.dashboard');
             }
         }
 
         if ($allowedGuard === 'doctor') {
-            if (Auth::guard('admin')->check()) {
-                return redirect()->route('admin.dashboard');
+            if (Auth::guard('doctor')->check()) {
+                return $next($request);
             }
+
+            if (Auth::guard('admin')->check()) {
+                return $this->blockCrossGuard($request, __('Sign out of the admin portal before using the doctor portal.'), 'admin.dashboard');
+            }
+
             if (Auth::guard('web')->check()) {
-                return redirect()->route('patient.dashboard');
+                return $this->blockCrossGuard($request, __('Sign out of the patient portal before using the doctor portal.'), 'patient.dashboard');
             }
         }
 
         return $next($request);
+    }
+
+    protected function blockCrossGuard(Request $request, string $message, string $redirectRoute): Response
+    {
+        if ($request->expectsJson() || str_starts_with($request->path(), 'api/')) {
+            return response()->json(['message' => $message], 403);
+        }
+
+        return redirect()->route($redirectRoute);
     }
 }

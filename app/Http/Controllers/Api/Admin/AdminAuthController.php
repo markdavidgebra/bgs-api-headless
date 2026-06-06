@@ -22,6 +22,12 @@ class AdminAuthController extends Controller
 
     public function login(AdminLoginRequest $request): JsonResponse
     {
+        // Clear other portal sessions so admin API routes are not blocked by
+        // prevent_cross_guard while a patient/doctor cookie is still active.
+        if (Auth::guard('web')->check()) {
+            Auth::guard('web')->logout();
+        }
+
         if (Auth::guard('doctor')->check()) {
             Auth::guard('doctor')->logout();
         }
