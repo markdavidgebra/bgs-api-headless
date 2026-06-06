@@ -210,6 +210,8 @@ Route::prefix('api')->group(function () {
         ->prefix('inventory')
         ->group(function () {
             Route::post('logout', [InventoryController::class, 'logout']);
+            Route::patch('profile', [InventoryController::class, 'updateProfile']);
+            Route::put('profile/password', [InventoryController::class, 'updatePassword']);
             Route::get('summary', [InventoryController::class, 'summary']);
             Route::get('products', [InventoryController::class, 'products']);
             Route::get('products/{id}', [InventoryController::class, 'showProduct'])->whereNumber('id');

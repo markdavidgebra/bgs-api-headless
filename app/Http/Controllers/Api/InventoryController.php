@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class InventoryController extends Controller
@@ -20,6 +23,15 @@ class InventoryController extends Controller
     public function __construct(
         private readonly ProductStockService $stock,
     ) {}
+
+    private function inventoryOfficerOrNull(?Admin $admin): ?array
+    {
+        if (! $admin || strtolower((string) $admin->role) !== self::INVENTORY_ROLE) {
+            return null;
+        }
+
+        return $this->officerPayload($admin);
+    }
 
     public function login(Request $request): JsonResponse
     {
@@ -88,11 +100,61 @@ class InventoryController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $admin = $request->user('admin');
-
         return response()->json([
             'csrf_token' => csrf_token(),
-            'officer' => $admin ? $this->officerPayload($admin) : null,
+            'officer' => $this->inventoryOfficerOrNull($request->user('admin')),
+        ]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $admin = $request->user('admin');
+        if (! $this->inventoryOfficerOrNull($admin)) {
+            return response()->json([
+                'message' => 'Forbidden. Only inventory officers may update this profile.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('admins', 'email')->ignore($admin->id),
+            ],
+        ]);
+
+        $admin->fill($validated)->save();
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'csrf_token' => csrf_token(),
+            'officer' => $this->officerPayload($admin->fresh()),
+        ]);
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $admin = $request->user('admin');
+        if (! $this->inventoryOfficerOrNull($admin)) {
+            return response()->json([
+                'message' => 'Forbidden. Only inventory officers may update this profile.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password:admin'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
+        ]);
+
+        $admin->forceFill([
+            'password' => Hash::make($validated['password']),
+        ])->save();
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
         ]);
     }
 
