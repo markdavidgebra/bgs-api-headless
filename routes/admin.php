@@ -139,6 +139,7 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::post('patients', [PatientsController::class, 'store'])->name('patients.store');
         Route::get('patients/{id}/edit', [PatientsController::class, 'edit'])->name('patients.edit');
         Route::put('patients/{id}', [PatientsController::class, 'update'])->name('patients.update');
+        Route::delete('patients/{id}', [PatientsController::class, 'destroy'])->name('patients.destroy');
         Route::post('patients/{id}/treatment-packages', [PatientsController::class, 'storePatientTreatmentPackage'])->name('patients.treatment-packages.store');
         Route::post('patients/{id}/status', [PatientsController::class, 'updateStatus'])->name('patients.status');
         Route::post('patients/{id}/password', [PatientsController::class, 'updatePassword'])->name('patients.password.update');

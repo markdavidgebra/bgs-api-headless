@@ -116,6 +116,7 @@ Route::prefix('api/admin')->group(function () {
             Route::post('/', [AdminPatientsController::class, 'store']);
             Route::get('{id}/edit', [AdminPatientsController::class, 'edit'])->whereNumber('id');
             Route::put('{id}', [AdminPatientsController::class, 'update'])->whereNumber('id');
+            Route::delete('{id}', [AdminPatientsController::class, 'destroy'])->whereNumber('id');
             Route::post('{id}/status', [AdminPatientsController::class, 'updateStatus'])->whereNumber('id');
             Route::post('{id}/password', [AdminPatientsController::class, 'updatePassword'])->whereNumber('id');
             Route::post('{id}/password-reset-link', [AdminPatientsController::class, 'sendPasswordReset'])->whereNumber('id');

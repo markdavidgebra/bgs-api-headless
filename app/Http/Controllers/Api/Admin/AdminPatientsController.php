@@ -189,6 +189,13 @@ class AdminPatientsController extends Controller
         );
     }
 
+    public function destroy(int $id): JsonResponse
+    {
+        return $this->adminWebJson(
+            app(PatientsController::class)->destroy($id)
+        );
+    }
+
     public function updatePassword(Request $request, int $id): JsonResponse
     {
         return $this->adminWebJson(
