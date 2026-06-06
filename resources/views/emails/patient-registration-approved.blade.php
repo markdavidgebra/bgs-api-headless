@@ -10,6 +10,7 @@
     $nameParts = preg_split('/\s+/', trim((string) $name)) ?: [];
     $firstName = $nameParts[0] ?? (string) $name;
     $loginUrl = config('app.patient_portal_url') ?: route('login');
+    $guestBookingUrl = rtrim((string) config('app.website_url', 'https://bioglowsolutions.com'), '/').'/';
   @endphp
 
   <p>Hi {{ $firstName }},</p>
@@ -33,7 +34,7 @@
   <p>For your security, please change your password after your first sign-in.</p>
 
   <p>You may also book an appointment as a guest here:</p>
-  <p><a href="{{ route('appointment') }}">{{ route('appointment') }}</a></p>
+  <p><a href="{{ $guestBookingUrl }}">{{ $guestBookingUrl }}</a></p>
 
   <p>
     <strong>Clinic address:</strong><br>

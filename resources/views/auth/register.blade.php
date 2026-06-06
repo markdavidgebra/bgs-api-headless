@@ -84,11 +84,6 @@
             </div>
             <form id="sign-up-one__form" name="sign-up-one_form" action="{{ route('register') }}" method="POST">
                 @csrf
-                @if (session('status'))
-                    <div class="alert alert-success mb-3" role="alert">
-                        {{ session('status') }}
-                    </div>
-                @endif
                
                 <div class="row">
                     <div class="col-xl-12">
@@ -187,6 +182,14 @@
     </div>
 </section>
 <!--End Sign Up One-->
+
+@include('frontend.components.success-modal', [
+    'message' => session('status'),
+    'title' => __('Registration submitted'),
+    'loginUrl' => route('login'),
+    'loginLabel' => __('Go to login'),
+    'closeLabel' => __('Close'),
+])
 
 
 @include('frontend.components.mobileMenu')

@@ -62,6 +62,8 @@ return [
 
     'patient_portal_url' => env('PATIENT_PORTAL_URL'),
 
+    'website_url' => env('WEBSITE_URL', 'https://bioglowsolutions.com'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
