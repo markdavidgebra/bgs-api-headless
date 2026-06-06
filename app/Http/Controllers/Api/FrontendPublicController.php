@@ -9,16 +9,24 @@ use App\Models\Doctor;
 use App\Models\Faq;
 use App\Models\Inquiry;
 use App\Models\MembershipPlan;
+use App\Models\Patient;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Service;
 use App\Models\Slide;
 use App\Models\Testimonial;
 use App\Models\TreatmentPackage;
+use App\Mail\NewPatientRegistrationPendingMail;
+use App\Support\AdminNotificationRecipients;
 use App\Support\PageHeaderConfig;
 use App\Support\SiteFooterConfig;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules;
 
 /**
  * Read-only JSON API for the Next.js public frontend (bgs-front-end).
@@ -249,6 +257,53 @@ class FrontendPublicController extends Controller
 
         return response()->json([
             'message' => __('Thank you. Your inquiry has been sent—we will get back to you soon.'),
+        ], 201);
+    }
+
+    public function register(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email'),
+                Rule::unique('doctors', 'email'),
+            ],
+            'birthdate' => ['required', 'date', 'before_or_equal:today'],
+            'gender' => ['required', 'string', Rule::in(['male', 'female'])],
+            'address' => ['required', 'string', 'max:500'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $user = Patient::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'birthdate' => $validated['birthdate'],
+            'gender' => $validated['gender'],
+            'address' => $validated['address'],
+            'password' => $validated['password'],
+            'pending_password_plain' => Crypt::encryptString($validated['password']),
+            'status' => 'pending',
+        ]);
+
+        $adminEmails = array_values(array_unique(array_merge(
+            AdminNotificationRecipients::emailsForPermission('registrations.manage'),
+            AdminNotificationRecipients::superAdminEmails(),
+        )));
+        if ($adminEmails !== []) {
+            try {
+                Mail::to($adminEmails)->send(new NewPatientRegistrationPendingMail($user));
+            } catch (\Throwable) {
+                // Registration is saved even if admin notification email fails.
+            }
+        }
+
+        return response()->json([
+            'message' => __('Registration submitted. Please wait for admin approval before you can login.'),
         ], 201);
     }
 }

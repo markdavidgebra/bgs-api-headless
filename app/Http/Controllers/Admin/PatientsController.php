@@ -15,16 +15,16 @@ use App\Models\TreatmentPackageUsageHistory;
 use App\Models\TreatmentPatientPackage;
 use App\Notifications\Patient\PatientPasswordResetLinkSentNotification;
 use App\Support\AdminPermissions;
+use App\Support\PatientLogin;
+use App\Support\SafeMail;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
@@ -126,13 +126,21 @@ class PatientsController extends Controller
         $patient = Patient::query()->create($payload);
 
         if ($status === 'active') {
-            Mail::to($patient->email)->send(
+            $sent = SafeMail::send(
+                (string) $patient->email,
                 new PatientRegistrationApprovedMail(
                     name: (string) $patient->name,
                     emailAddress: (string) $patient->email,
                     plainPassword: $plainPassword
                 )
             );
+
+            if (! $sent) {
+                return redirect()
+                    ->route('admin.patients.show', $patient->id)
+                    ->with('status', __('Patient created.'))
+                    ->with('warning', __('Patient was created, but the approval email could not be sent.'));
+            }
         }
 
         return redirect()
@@ -388,38 +396,44 @@ class PatientsController extends Controller
         $approvalPassword = null;
 
         if ($targetStatus === 'active') {
-            if (! empty($patient->pending_password_plain)) {
-                try {
-                    $approvalPassword = Crypt::decryptString($patient->pending_password_plain);
-                    $payload['password'] = $approvalPassword;
-                    $payload['pending_password_plain'] = null;
-                } catch (\Throwable) {
-                    // If decrypt fails, fallback to a generated temporary password.
-                }
-            }
+            $plainFromPending = PatientLogin::plainPasswordFromPending($patient);
 
-            if ($approvalPassword === null || $approvalPassword === '') {
-                $approvalPassword = Str::password(12);
-                $payload['password'] = $approvalPassword;
+            if ($plainFromPending !== null) {
+                $payload['password'] = $plainFromPending;
+                $payload['pending_password_plain'] = null;
+                $approvalPassword = $plainFromPending;
+            } elseif (! empty($patient->pending_password_plain)) {
+                // Unreadable pending value — keep the registration hash, drop stale pending.
                 $payload['pending_password_plain'] = null;
             }
         }
 
         $patient->update($payload);
 
+        $mailFailed = false;
         if ($targetStatus === 'active' && $patient->wasChanged('status')) {
-            Mail::to($patient->email)->send(
+            $mailFailed = ! SafeMail::send(
+                (string) $patient->email,
                 new PatientRegistrationApprovedMail(
                     name: (string) $patient->name,
                     emailAddress: (string) $patient->email,
-                    plainPassword: (string) $approvalPassword
+                    plainPassword: (string) ($approvalPassword ?? '')
                 )
             );
         }
 
-        return redirect()
+        $redirect = redirect()
             ->route('admin.patients')
             ->with('status', __('Patient status updated.'));
+
+        if ($mailFailed) {
+            return $redirect->with(
+                'warning',
+                __('Patient status was updated, but the approval email could not be sent. Set MAIL_PASSWORD for admin@bioglowsolutions.com in .env (Hostinger SMTP: smtp.hostinger.com).')
+            );
+        }
+
+        return $redirect;
     }
 
     public function updatePassword(Request $request, int $id): RedirectResponse

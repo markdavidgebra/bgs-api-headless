@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // the API host’s cookie to cross-origin requests. Exempt api/pos/* (still protected
         // by auth:admin + admin_role). Web route aliases under /pos/* stay listed explicitly.
         $middleware->validateCsrfTokens(except: [
+            'api/public/*',
             'api/pos/*',
             'api/inventory/*',
             'api/doctor/*',

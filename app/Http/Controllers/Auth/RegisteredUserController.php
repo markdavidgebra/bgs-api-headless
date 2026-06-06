@@ -58,7 +58,7 @@ class RegisteredUserController extends Controller
             'birthdate' => $request->birthdate,
             'gender' => $request->gender,
             'address' => $request->address,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
             'pending_password_plain' => Crypt::encryptString($request->password),
             'status' => 'pending',
         ]);

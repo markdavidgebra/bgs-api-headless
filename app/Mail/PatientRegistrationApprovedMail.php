@@ -22,7 +22,7 @@ class PatientRegistrationApprovedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Registration Has Been Approved'
+            subject: 'Your BioGlow Solutions Account Has Been Approved',
         );
     }
 

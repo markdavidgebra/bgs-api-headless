@@ -18,6 +18,7 @@ use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
 use App\Rules\BookableAppointmentDate;
 use App\Support\AppointmentBookingRules;
 use App\Support\DoctorAppointmentAlerts;
+use App\Support\PatientLogin;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,7 +60,7 @@ class PatientPortalController extends Controller
             ]);
         }
 
-        if (! Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
+        if (! PatientLogin::attempt(Auth::guard('web'), $credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
             ]);

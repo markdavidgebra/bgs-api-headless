@@ -28,4 +28,5 @@ Route::prefix('api/public')->middleware('throttle:120,1')->group(function () {
     Route::get('promotions', [FrontendPublicController::class, 'promotions']);
     Route::get('page-headers/{key}', [FrontendPublicController::class, 'pageHeader']);
     Route::post('contact-inquiry', [FrontendPublicController::class, 'contactInquiry']);
+    Route::middleware('throttle:10,1')->post('register', [FrontendPublicController::class, 'register']);
 });

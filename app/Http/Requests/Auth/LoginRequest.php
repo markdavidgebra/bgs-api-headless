@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\PatientLogin;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -52,7 +53,7 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        if (! Auth::guard('web')->attempt($credentials, $remember)) {
+        if (! PatientLogin::attempt(Auth::guard('web'), $credentials, $remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
