@@ -37,6 +37,22 @@ class AppointmentNote extends Model
         'micro_needling_image_path',
         'section_authors',
         'mobility',
+        'iv_line_type',
+        'procedure_drip',
+        'procedure_peptides',
+        'informed_consent',
+        'drip_type',
+        'drip_nod',
+        'drip_remarks',
+        'peptides_type',
+        'peptides_routes',
+        'peptides_md',
+        'peptides_remarks',
+        'has_reaction',
+        'reaction_time',
+        'reaction_referred',
+        'reaction_notes',
+        'reaction_md',
     ];
 
     /**
@@ -46,6 +62,9 @@ class AppointmentNote extends Model
     {
         return [
             'section_authors' => 'array',
+            'procedure_drip' => 'boolean',
+            'procedure_peptides' => 'boolean',
+            'peptides_routes' => 'array',
         ];
     }
 
@@ -54,10 +73,13 @@ class AppointmentNote extends Model
         return $this->belongsTo(Appointment::class);
     }
 
-    public function bodyAnalyzerImageUrl(): ?string
+    /**
+     * Host-agnostic public URL for files on the public disk.
+     * The staff portal resolves /storage/... against the correct origin in production.
+     */
+    public static function publicStoragePathUrl(?string $path): ?string
     {
-        $path = $this->body_analyzer_image_path;
-        if ($path === null || $path === '') {
+        if (! filled($path)) {
             return null;
         }
 
@@ -65,7 +87,12 @@ class AppointmentNote extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($path);
+        return '/storage/'.ltrim(str_replace('\\', '/', $path), '/');
+    }
+
+    public function bodyAnalyzerImageUrl(): ?string
+    {
+        return self::publicStoragePathUrl($this->body_analyzer_image_path);
     }
 
     public function hasBodyAnalyzerImagePath(): bool
@@ -75,16 +102,7 @@ class AppointmentNote extends Model
 
     public function bottleCitrusImageUrl(): ?string
     {
-        $path = $this->bottle_citrus_image_path;
-        if ($path === null || $path === '') {
-            return null;
-        }
-
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($path);
+        return self::publicStoragePathUrl($this->bottle_citrus_image_path);
     }
 
     public function hasBottleCitrusImagePath(): bool
@@ -94,16 +112,7 @@ class AppointmentNote extends Model
 
     public function lemonBottleImageUrl(): ?string
     {
-        $path = $this->lemon_bottle_image_path;
-        if ($path === null || $path === '') {
-            return null;
-        }
-
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($path);
+        return self::publicStoragePathUrl($this->lemon_bottle_image_path);
     }
 
     public function hasLemonBottleImagePath(): bool
@@ -113,16 +122,7 @@ class AppointmentNote extends Model
 
     public function aqualyxImageUrl(): ?string
     {
-        $path = $this->aqualyx_image_path;
-        if ($path === null || $path === '') {
-            return null;
-        }
-
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($path);
+        return self::publicStoragePathUrl($this->aqualyx_image_path);
     }
 
     public function hasAqualyxImagePath(): bool
@@ -132,16 +132,7 @@ class AppointmentNote extends Model
 
     public function dripImageUrl(): ?string
     {
-        $path = $this->drip_image_path;
-        if ($path === null || $path === '') {
-            return null;
-        }
-
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($path);
+        return self::publicStoragePathUrl($this->drip_image_path);
     }
 
     public function hasDripImagePath(): bool
@@ -151,16 +142,7 @@ class AppointmentNote extends Model
 
     public function microNeedlingImageUrl(): ?string
     {
-        $path = $this->micro_needling_image_path;
-        if ($path === null || $path === '') {
-            return null;
-        }
-
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($path);
+        return self::publicStoragePathUrl($this->micro_needling_image_path);
     }
 
     public function hasMicroNeedlingImagePath(): bool
@@ -188,6 +170,162 @@ class AppointmentNote extends Model
         }
 
         return self::mobilityOptions()[$value] ?? $value;
+    }
+
+    /**
+     * @return array<string, string> Stored value => display label
+     */
+    public static function ivLineTypeOptions(): array
+    {
+        return [
+            'iv_cannula_g16' => __('IV Cannula G16'),
+            'scalp_vein' => __('Scalp Vein'),
+        ];
+    }
+
+    public function ivLineTypeLabel(): ?string
+    {
+        $value = $this->iv_line_type;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return self::ivLineTypeOptions()[$value] ?? $value;
+    }
+
+    /**
+     * @return array<string, string> Stored value => display label
+     */
+    public static function yesNoOptions(): array
+    {
+        return [
+            'yes' => __('Yes'),
+            'no' => __('No'),
+        ];
+    }
+
+    public function informedConsentLabel(): ?string
+    {
+        $value = $this->informed_consent;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return self::yesNoOptions()[$value] ?? $value;
+    }
+
+    public function hasReactionLabel(): ?string
+    {
+        $value = $this->has_reaction;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return self::yesNoOptions()[$value] ?? $value;
+    }
+
+    /**
+     * @return array<string, string> Stored value => display label
+     */
+    public static function peptidesRouteOptions(): array
+    {
+        return [
+            'sq' => __('SQ'),
+            'iv' => __('IV'),
+            'mg' => __('Mg'),
+            'units' => __('Units'),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function peptidesRouteLabels(): array
+    {
+        $routes = is_array($this->peptides_routes) ? $this->peptides_routes : [];
+        $options = self::peptidesRouteOptions();
+        $labels = [];
+
+        foreach ($routes as $route) {
+            $key = is_string($route) ? $route : '';
+            if ($key === '') {
+                continue;
+            }
+            $labels[] = $options[$key] ?? $key;
+        }
+
+        return $labels;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function assessmentChecklistFieldKeys(): array
+    {
+        return [
+            'mobility',
+            'iv_line_type',
+            'procedure_drip',
+            'procedure_peptides',
+            'informed_consent',
+            'drip_type',
+            'drip_nod',
+            'drip_remarks',
+            'peptides_type',
+            'peptides_routes',
+            'peptides_md',
+            'peptides_remarks',
+            'has_reaction',
+            'reaction_time',
+            'reaction_referred',
+            'reaction_notes',
+            'reaction_md',
+        ];
+    }
+
+    public static function hasAssessmentChecklistContent(?self $note): bool
+    {
+        if ($note === null) {
+            return false;
+        }
+
+        if (filled($note->mobility)) {
+            return true;
+        }
+
+        if (filled($note->iv_line_type)) {
+            return true;
+        }
+
+        if ($note->procedure_drip || $note->procedure_peptides) {
+            return true;
+        }
+
+        if (filled($note->informed_consent)) {
+            return true;
+        }
+
+        foreach ([
+            $note->drip_type,
+            $note->drip_nod,
+            $note->drip_remarks,
+            $note->peptides_type,
+            $note->peptides_md,
+            $note->peptides_remarks,
+            $note->has_reaction,
+            $note->reaction_time,
+            $note->reaction_referred,
+            $note->reaction_notes,
+            $note->reaction_md,
+        ] as $value) {
+            if (self::normalizeNoteValue($value) !== null) {
+                return true;
+            }
+        }
+
+        $routes = is_array($note->peptides_routes) ? $note->peptides_routes : [];
+
+        return $routes !== [];
     }
 
     /**

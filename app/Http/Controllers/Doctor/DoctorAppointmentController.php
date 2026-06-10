@@ -587,23 +587,88 @@ class DoctorAppointmentController extends Controller
     {
         $validated = $request->validate([
             'mobility' => ['required', 'string', Rule::in(['ambulatory', 'with_assistive', 'wheelchair'])],
+            'iv_line_type' => ['nullable', 'string', Rule::in(['iv_cannula_g16', 'scalp_vein'])],
+            'procedure_drip' => ['nullable', 'boolean'],
+            'procedure_peptides' => ['nullable', 'boolean'],
+            'informed_consent' => ['nullable', 'string', Rule::in(['yes', 'no'])],
+            'drip_type' => ['nullable', 'string', 'max:255'],
+            'drip_nod' => ['nullable', 'string', 'max:64'],
+            'drip_remarks' => ['nullable', 'string', 'max:5000'],
+            'peptides_type' => ['nullable', 'string', 'max:255'],
+            'peptides_routes' => ['nullable', 'array'],
+            'peptides_routes.*' => ['string', Rule::in(['sq', 'iv', 'mg', 'units'])],
+            'peptides_md' => ['nullable', 'string', 'max:255'],
+            'peptides_remarks' => ['nullable', 'string', 'max:5000'],
+            'has_reaction' => ['nullable', 'string', Rule::in(['yes', 'no'])],
+            'reaction_time' => ['nullable', 'string', 'max:64'],
+            'reaction_referred' => ['nullable', 'string', 'max:255'],
+            'reaction_notes' => ['nullable', 'string', 'max:5000'],
+            'reaction_md' => ['nullable', 'string', 'max:255'],
         ]);
 
         $existingNote = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
-        $newMobility = $validated['mobility'];
+        $fieldKeys = AppointmentNote::assessmentChecklistFieldKeys();
+        $normalizeForAuthor = static function (string $key, mixed $value): ?string {
+            if (in_array($key, ['procedure_drip', 'procedure_peptides'], true)) {
+                return (bool) $value ? '1' : '0';
+            }
+            if ($key === 'peptides_routes') {
+                $routes = is_array($value) ? array_values($value) : [];
+                sort($routes);
+
+                return $routes === [] ? null : json_encode($routes);
+            }
+
+            return AppointmentNote::normalizeNoteValue($value);
+        };
+        $oldSnapshot = [];
+        foreach ($fieldKeys as $key) {
+            $oldSnapshot[$key] = $normalizeForAuthor($key, $existingNote?->{$key});
+        }
+
+        $peptidesRoutes = collect($validated['peptides_routes'] ?? [])
+            ->filter(fn ($route) => is_string($route) && $route !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $newPayload = [
+            'mobility' => $validated['mobility'],
+            'iv_line_type' => filled($validated['iv_line_type'] ?? null) ? $validated['iv_line_type'] : null,
+            'procedure_drip' => (bool) ($validated['procedure_drip'] ?? false),
+            'procedure_peptides' => (bool) ($validated['procedure_peptides'] ?? false),
+            'informed_consent' => filled($validated['informed_consent'] ?? null) ? $validated['informed_consent'] : null,
+            'drip_type' => AppointmentNote::normalizeNoteValue($validated['drip_type'] ?? null),
+            'drip_nod' => AppointmentNote::normalizeNoteValue($validated['drip_nod'] ?? null),
+            'drip_remarks' => AppointmentNote::normalizeNoteValue($validated['drip_remarks'] ?? null),
+            'peptides_type' => AppointmentNote::normalizeNoteValue($validated['peptides_type'] ?? null),
+            'peptides_routes' => $peptidesRoutes === [] ? null : $peptidesRoutes,
+            'peptides_md' => AppointmentNote::normalizeNoteValue($validated['peptides_md'] ?? null),
+            'peptides_remarks' => AppointmentNote::normalizeNoteValue($validated['peptides_remarks'] ?? null),
+            'has_reaction' => filled($validated['has_reaction'] ?? null) ? $validated['has_reaction'] : null,
+            'reaction_time' => AppointmentNote::normalizeNoteValue($validated['reaction_time'] ?? null),
+            'reaction_referred' => AppointmentNote::normalizeNoteValue($validated['reaction_referred'] ?? null),
+            'reaction_notes' => AppointmentNote::normalizeNoteValue($validated['reaction_notes'] ?? null),
+            'reaction_md' => AppointmentNote::normalizeNoteValue($validated['reaction_md'] ?? null),
+        ];
+
         $doctor = auth('doctor')->user();
+        $newSnapshot = [];
+        foreach ($fieldKeys as $key) {
+            $newSnapshot[$key] = $normalizeForAuthor($key, $newPayload[$key]);
+        }
         $sectionAuthors = AppointmentNote::mergeAuthorsOnFieldChanges(
             is_array($existingNote?->section_authors) ? $existingNote->section_authors : null,
-            ['mobility' => $existingNote?->mobility],
-            ['mobility' => $newMobility],
-            ['mobility'],
+            $oldSnapshot,
+            $newSnapshot,
+            $fieldKeys,
             AppointmentNote::authorPayloadFromUserName('doctor', $doctor?->name),
         );
 
         AppointmentNote::query()->updateOrCreate(
             ['appointment_id' => $appointment->id],
             [
-                'mobility' => $newMobility,
+                ...$newPayload,
                 'section_authors' => $sectionAuthors,
             ]
         );
