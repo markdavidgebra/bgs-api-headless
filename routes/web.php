@@ -121,6 +121,10 @@ Route::prefix('api')->group(function () {
 |
 */
 Route::prefix('api')->group(function () {
+    Route::get('doctor/clinical-images/{appointment}/{type}', [DoctorPortalController::class, 'clinicalImage'])
+        ->middleware('signed')
+        ->name('doctor.clinical-image');
+
     Route::middleware('throttle:10,1')->prefix('doctor')->group(function () {
         Route::post('login', [DoctorPortalController::class, 'login']);
     });

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class AppointmentNote extends Model
 {
@@ -74,25 +75,63 @@ class AppointmentNote extends Model
     }
 
     /**
-     * Host-agnostic public URL for files on the public disk.
-     * The staff portal resolves /storage/... against the correct origin in production.
+     * @return array<string, string> Route type slug => model path column
      */
-    public static function publicStoragePathUrl(?string $path): ?string
+    public static function clinicalImageTypeMap(): array
     {
-        if (! filled($path)) {
+        return [
+            'body-analyzer' => 'body_analyzer_image_path',
+            'bottle-citrus' => 'bottle_citrus_image_path',
+            'lemon-bottle' => 'lemon_bottle_image_path',
+            'aqualyx' => 'aqualyx_image_path',
+            'drip' => 'drip_image_path',
+            'micro-needling' => 'micro_needling_image_path',
+        ];
+    }
+
+    public static function clinicalImagePathForType(?self $note, string $type): ?string
+    {
+        if ($note === null) {
             return null;
         }
 
-        if (! Storage::disk('public')->exists($path)) {
+        $column = self::clinicalImageTypeMap()[$type] ?? null;
+        if ($column === null) {
             return null;
         }
 
-        return '/storage/'.ltrim(str_replace('\\', '/', $path), '/');
+        $path = $note->{$column};
+        if (! filled($path) || ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Time-limited signed API URL so the staff portal can load images without
+     * relying on a public /storage nginx symlink.
+     */
+    public function clinicalImageSignedUrl(string $type): ?string
+    {
+        if ($this->appointment_id === null) {
+            return null;
+        }
+
+        if (self::clinicalImagePathForType($this, $type) === null) {
+            return null;
+        }
+
+        return URL::temporarySignedRoute(
+            'doctor.clinical-image',
+            now()->addHours(12),
+            ['appointment' => $this->appointment_id, 'type' => $type]
+        );
     }
 
     public function bodyAnalyzerImageUrl(): ?string
     {
-        return self::publicStoragePathUrl($this->body_analyzer_image_path);
+        return $this->clinicalImageSignedUrl('body-analyzer');
     }
 
     public function hasBodyAnalyzerImagePath(): bool
@@ -102,7 +141,7 @@ class AppointmentNote extends Model
 
     public function bottleCitrusImageUrl(): ?string
     {
-        return self::publicStoragePathUrl($this->bottle_citrus_image_path);
+        return $this->clinicalImageSignedUrl('bottle-citrus');
     }
 
     public function hasBottleCitrusImagePath(): bool
@@ -112,7 +151,7 @@ class AppointmentNote extends Model
 
     public function lemonBottleImageUrl(): ?string
     {
-        return self::publicStoragePathUrl($this->lemon_bottle_image_path);
+        return $this->clinicalImageSignedUrl('lemon-bottle');
     }
 
     public function hasLemonBottleImagePath(): bool
@@ -122,7 +161,7 @@ class AppointmentNote extends Model
 
     public function aqualyxImageUrl(): ?string
     {
-        return self::publicStoragePathUrl($this->aqualyx_image_path);
+        return $this->clinicalImageSignedUrl('aqualyx');
     }
 
     public function hasAqualyxImagePath(): bool
@@ -132,7 +171,7 @@ class AppointmentNote extends Model
 
     public function dripImageUrl(): ?string
     {
-        return self::publicStoragePathUrl($this->drip_image_path);
+        return $this->clinicalImageSignedUrl('drip');
     }
 
     public function hasDripImagePath(): bool
@@ -142,7 +181,7 @@ class AppointmentNote extends Model
 
     public function microNeedlingImageUrl(): ?string
     {
-        return self::publicStoragePathUrl($this->micro_needling_image_path);
+        return $this->clinicalImageSignedUrl('micro-needling');
     }
 
     public function hasMicroNeedlingImagePath(): bool

@@ -31,7 +31,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DoctorPortalController extends Controller
 {
@@ -345,6 +347,22 @@ class DoctorPortalController extends Controller
     public function appointmentAssessment(Request $request, Appointment $appointment): JsonResponse
     {
         return $this->fromWeb(fn () => app(DoctorAppointmentController::class)->updateAssessmentChecklist($request, $appointment));
+    }
+
+    public function clinicalImage(Request $request, Appointment $appointment, string $type): BinaryFileResponse
+    {
+        $appointment->loadMissing('note');
+
+        $path = AppointmentNote::clinicalImagePathForType($appointment->note, $type);
+        if ($path === null) {
+            abort(404);
+        }
+
+        $absolutePath = Storage::disk('public')->path($path);
+
+        return response()->file($absolutePath, [
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
     }
 
     public function patientRecordsIndex(Request $request): JsonResponse
