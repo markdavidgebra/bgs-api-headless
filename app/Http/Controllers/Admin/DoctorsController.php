@@ -138,9 +138,19 @@ class DoctorsController extends Controller
             'doctor_role_id' => ['nullable', 'integer', Rule::exists('doctor_roles', 'id')],
             'photo' => ['nullable', 'image', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
+            'password' => ['nullable', 'string', 'min:8'],
         ]);
 
-        $data = collect($validated)->except(['photo', 'remove_photo'])->all();
+        $data = collect($validated)->except(['photo', 'remove_photo', 'password'])->all();
+
+        if (! empty($validated['password'])) {
+            if (strtolower((string) ($doctor->status ?? 'pending')) === 'active') {
+                $data['password'] = $validated['password'];
+                $data['pending_password_plain'] = null;
+            } else {
+                $data['pending_password_plain'] = Crypt::encryptString($validated['password']);
+            }
+        }
 
         if ($request->boolean('remove_photo')) {
             $this->removeStoredDoctorImage($doctor->image_path);
