@@ -15,26 +15,27 @@ class ServiceFactory extends Factory
 
     public function definition(): array
     {
-        $name = fake()->unique()->words(3, true).' Service';
+        $faker = \Faker\Factory::create();
+        $name = $faker->unique()->words(3, true).' Service';
 
         return [
             'name' => $name,
-            'slug' => Str::slug($name).'-'.fake()->unique()->numerify('###'),
-            'short_description' => fake()->sentence(),
-            'description' => fake()->paragraphs(2, true),
-            'price' => fake()->randomFloat(2, 500, 15000),
-            'promo_price' => fake()->optional(0.3)->randomFloat(2, 300, 12000),
-            'duration_minutes' => fake()->randomElement([30, 45, 60, 90, 120]),
-            'session_count' => fake()->numberBetween(1, 10),
+            'slug' => Str::slug($name).'-'.$faker->unique()->numerify('###'),
+            'short_description' => $faker->sentence(),
+            'description' => $faker->paragraphs(2, true),
+            'price' => $faker->randomFloat(2, 500, 15000),
+            'promo_price' => $faker->optional(0.3)->randomFloat(2, 300, 12000),
+            'duration_minutes' => $faker->randomElement([30, 45, 60, 90, 120]),
+            'session_count' => $faker->numberBetween(1, 10),
             'icon_class' => 'fas fa-spa',
             'image' => null,
-            'recovery_time' => fake()->randomElement(['None', '24h', '48h', '1 week']),
-            'max_appointments_per_day' => fake()->optional()->numberBetween(1, 20),
+            'recovery_time' => $faker->randomElement(['None', '24h', '48h', '1 week']),
+            'max_appointments_per_day' => $faker->optional()->numberBetween(1, 20),
             'status' => 'active',
-            'is_featured' => fake()->boolean(20),
+            'is_featured' => $faker->boolean(20),
             'is_bookable' => true,
-            'before_care' => fake()->optional()->paragraph(),
-            'after_care' => fake()->optional()->paragraph(),
+            'before_care' => $faker->optional()->paragraph(),
+            'after_care' => $faker->optional()->paragraph(),
             'notes' => null,
         ];
     }

@@ -679,6 +679,54 @@ class DoctorAppointmentController extends Controller
             ->withFragment('clinical-notes-assessment');
     }
 
+    public function updateConsent(Request $request, Appointment $appointment): RedirectResponse
+    {
+        $validated = $request->validate([
+            'consent_letter' => ['nullable', 'string', 'max:20000'],
+            'consent_send_letter' => ['nullable', 'boolean'],
+            'consent_signature_data' => ['nullable', 'string', 'max:500000'],
+            'consent_signer_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $existingNote = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
+        $shouldSendLetter = (bool) ($validated['consent_send_letter'] ?? false);
+        $signatureData = AppointmentNote::normalizeNoteValue($validated['consent_signature_data'] ?? null);
+        $letter = AppointmentNote::normalizeNoteValue($validated['consent_letter'] ?? null);
+        $signerName = AppointmentNote::normalizeNoteValue($validated['consent_signer_name'] ?? null);
+
+        if ($shouldSendLetter && $letter === null) {
+            return back()->withErrors([
+                'consent_letter' => __('Consent letter content is required before sending.'),
+            ]);
+        }
+
+        if ($signatureData !== null && ! str_starts_with($signatureData, 'data:image/png;base64,')) {
+            return back()->withErrors([
+                'consent_signature_data' => __('Signature must be a PNG data URL.'),
+            ]);
+        }
+
+        $newPayload = [
+            'consent_letter' => $letter,
+            'consent_sent_at' => $shouldSendLetter
+                ? ($existingNote?->consent_sent_at ?? now())
+                : $existingNote?->consent_sent_at,
+            'consent_signature_data' => $signatureData,
+            'consent_signed_at' => $signatureData !== null ? now() : null,
+            'consent_signer_name' => $signatureData !== null ? $signerName : null,
+        ];
+
+        AppointmentNote::query()->updateOrCreate(
+            ['appointment_id' => $appointment->id],
+            $newPayload
+        );
+
+        return redirect()
+            ->route('doctor.appointments.show', $appointment)
+            ->with('success', __('Consent saved.'))
+            ->withFragment('clinical-notes-assessment');
+    }
+
     public function reschedule(Request $request, Appointment $appointment): RedirectResponse
     {
         $validated = $request->validate([

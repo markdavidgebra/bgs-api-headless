@@ -17,12 +17,12 @@ class AppointmentNoteFactory extends Factory
     {
         return [
             'appointment_id' => Appointment::factory(),
-            'patient_concern' => fake()->optional()->paragraph(),
-            'appointment_remarks' => fake()->optional()->sentence(),
-            'admin_notes' => fake()->optional()->sentence(),
-            'doctor_notes' => fake()->optional()->paragraph(),
-            'instructions' => fake()->optional()->sentence(),
-            'alerts' => fake()->optional()->sentence(),
+            'patient_concern' => $this->faker->optional()->paragraph(),
+            'appointment_remarks' => $this->faker->optional()->sentence(),
+            'admin_notes' => $this->faker->optional()->sentence(),
+            'doctor_notes' => $this->faker->optional()->paragraph(),
+            'instructions' => $this->faker->optional()->sentence(),
+            'alerts' => $this->faker->optional()->sentence(),
         ];
     }
 }

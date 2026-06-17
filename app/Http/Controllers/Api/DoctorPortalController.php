@@ -349,6 +349,11 @@ class DoctorPortalController extends Controller
         return $this->fromWeb(fn () => app(DoctorAppointmentController::class)->updateAssessmentChecklist($request, $appointment));
     }
 
+    public function appointmentConsent(Request $request, Appointment $appointment): JsonResponse
+    {
+        return $this->fromWeb(fn () => app(DoctorAppointmentController::class)->updateConsent($request, $appointment));
+    }
+
     public function clinicalImage(Request $request, Appointment $appointment, string $type): BinaryFileResponse
     {
         $appointment->loadMissing('note');

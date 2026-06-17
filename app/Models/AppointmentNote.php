@@ -54,6 +54,11 @@ class AppointmentNote extends Model
         'reaction_referred',
         'reaction_notes',
         'reaction_md',
+        'consent_letter',
+        'consent_sent_at',
+        'consent_signature_data',
+        'consent_signed_at',
+        'consent_signer_name',
     ];
 
     /**
@@ -66,6 +71,8 @@ class AppointmentNote extends Model
             'procedure_drip' => 'boolean',
             'procedure_peptides' => 'boolean',
             'peptides_routes' => 'array',
+            'consent_sent_at' => 'datetime',
+            'consent_signed_at' => 'datetime',
         ];
     }
 
@@ -420,6 +427,10 @@ class AppointmentNote extends Model
             return false;
         }
 
+        if (self::hasConsentContent($note)) {
+            return true;
+        }
+
         foreach ([
             $note->doctor_notes,
             $note->patient_concern,
@@ -458,6 +469,19 @@ class AppointmentNote extends Model
         }
 
         return $note->vitalSignsSummary() !== '';
+    }
+
+    public static function hasConsentContent(?self $note): bool
+    {
+        if ($note === null) {
+            return false;
+        }
+
+        return self::normalizeNoteValue($note->consent_letter) !== null
+            || self::normalizeNoteValue($note->consent_signature_data) !== null
+            || self::normalizeNoteValue($note->consent_signer_name) !== null
+            || $note->consent_sent_at !== null
+            || $note->consent_signed_at !== null;
     }
 
     /**

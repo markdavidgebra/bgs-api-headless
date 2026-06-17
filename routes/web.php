@@ -153,6 +153,7 @@ Route::prefix('api')->group(function () {
             Route::post('appointments/{appointment}/treatment-progress', [DoctorPortalController::class, 'appointmentTreatmentProgress']);
             Route::post('appointments/{appointment}/notes', [DoctorPortalController::class, 'appointmentNotes']);
             Route::post('appointments/{appointment}/assessment', [DoctorPortalController::class, 'appointmentAssessment']);
+            Route::post('appointments/{appointment}/consent', [DoctorPortalController::class, 'appointmentConsent']);
         });
 
         Route::middleware('doctor.permission:doctor.patient_records')->prefix('patient-records')->group(function () {
