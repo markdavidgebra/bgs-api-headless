@@ -237,6 +237,8 @@ Route::prefix('api')->group(function () {
 Route::prefix('api')->group(function () {
     Route::middleware('throttle:10,1')->prefix('patient')->group(function () {
         Route::post('login', [PatientPortalController::class, 'login']);
+        Route::post('forgot-password', [PatientPortalController::class, 'forgotPassword']);
+        Route::post('reset-password', [PatientPortalController::class, 'resetPassword']);
     });
 
     Route::middleware(['prevent_cross_guard:web', 'auth:web', 'verified'])

@@ -15,19 +15,26 @@ use App\Models\Service;
 use App\Models\TreatmentPatientPackage;
 use App\Notifications\Patient\AppointmentBookedPatientNotification;
 use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
+use App\Notifications\Patient\PatientPasswordResetLinkSentNotification;
 use App\Rules\BookableAppointmentDate;
 use App\Support\AppointmentBookingRules;
 use App\Support\DoctorAppointmentAlerts;
 use App\Support\PatientLogin;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -82,6 +89,101 @@ class PatientPortalController extends Controller
             'message' => __('Login successful.'),
             'csrf_token' => csrf_token(),
             'patient' => $this->patientPayload($patient),
+        ]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        try {
+            $status = Password::broker('users')->sendResetLink(
+                $request->only('email'),
+                function (Patient $user, string $token) {
+                    $url = $this->patientPortalResetUrl($token, $user->email);
+                    $notification = new ResetPassword($token);
+                    $notification->createUrlUsing(fn () => $url);
+                    $user->notify($notification);
+                }
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            throw ValidationException::withMessages([
+                'email' => [__('We could not send the reset email right now. Please try again later or contact support.')],
+            ]);
+        }
+
+        if ($status === Password::RESET_LINK_SENT) {
+            $patient = Patient::query()
+                ->where('email', strtolower(trim((string) $request->input('email'))))
+                ->first();
+            if ($patient) {
+                Notification::send($patient, new PatientPasswordResetLinkSentNotification);
+            }
+        }
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return response()->json([
+            'message' => __($status),
+        ]);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $status = Password::broker('users')->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (Patient $user) use ($request) {
+                $user->forceFill([
+                    'password' => Hash::make($request->password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return response()->json([
+            'message' => __($status),
+        ]);
+    }
+
+    /**
+     * Build the SPA password-reset URL for patient emails.
+     * PATIENT_PORTAL_URL may be a portal origin or a /login path.
+     */
+    protected function patientPortalResetUrl(string $token, string $email): string
+    {
+        $base = rtrim((string) config('app.patient_portal_url'), '/');
+        if ($base === '') {
+            $base = rtrim((string) config('app.url'), '/');
+        }
+
+        $base = (string) preg_replace('#/login$#i', '', $base);
+        $base = rtrim($base, '/');
+
+        return $base.'/reset-password?'.http_build_query([
+            'token' => $token,
+            'email' => $email,
         ]);
     }
 
