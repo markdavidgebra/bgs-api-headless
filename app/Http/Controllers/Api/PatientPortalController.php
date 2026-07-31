@@ -801,50 +801,112 @@ class PatientPortalController extends Controller
     public function payments(Request $request): JsonResponse
     {
         $patientId = $request->user('web')->id;
+        $perPage = 15;
+        $page = max(1, (int) $request->integer('page', 1));
 
-        $paymentScope = AppointmentPayment::query()
-            ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId));
+        $posPayments = Payment::query()
+            ->where('patient_id', $patientId)
+            ->with([
+                'referenceAppointment.doctor',
+                'referenceAppointment.service',
+                'referencePackage',
+                'referenceMembership',
+                'referenceProduct',
+                'referenceService',
+            ])
+            ->get()
+            ->map(function (Payment $p) {
+                $payload = $this->paymentPayload($p);
+                $payload['source'] = 'payment';
 
-        $latestPaidAtRaw = (clone $paymentScope)->whereNotNull('paid_at')->max('paid_at');
-        $totals = [
-            'record_count' => (clone $paymentScope)->count(),
-            'paid_sum' => (float) (clone $paymentScope)->where('is_paid', true)->sum('amount'),
-            'outstanding_sum' => (float) (clone $paymentScope)->where('is_paid', false)->sum('amount'),
-            'pending_sum' => (float) (clone $paymentScope)->where('payment_status', 'pending')->sum('amount'),
-            'latest_paid_at' => $latestPaidAtRaw ? Carbon::parse($latestPaidAtRaw)->toIso8601String() : null,
-        ];
+                return $payload;
+            });
 
-        $payments = AppointmentPayment::query()
+        $appointmentPayments = AppointmentPayment::query()
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
             ->with(['appointment.doctor', 'appointment.service'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
+            ->get()
+            ->map(function (AppointmentPayment $p) {
+                $payload = $this->appointmentPaymentPayload($p);
+                $payload['source'] = 'appointment_payment';
+
+                return $payload;
+            });
+
+        $merged = $posPayments
+            ->concat($appointmentPayments)
+            ->sortByDesc(fn (array $row) => $row['paid_at'] ?? $row['created_at'] ?? '')
+            ->values();
+
+        $latestPaidAt = $merged
+            ->where('is_paid', true)
+            ->pluck('paid_at')
+            ->filter()
+            ->sortDesc()
+            ->first();
+
+        $totals = [
+            'record_count' => $merged->count(),
+            'paid_sum' => (float) $merged->where('is_paid', true)->sum('amount'),
+            'outstanding_sum' => (float) $merged->where('is_paid', false)->sum('amount'),
+            'pending_sum' => (float) $merged
+                ->filter(fn (array $row) => strtolower((string) ($row['payment_status'] ?? '')) === 'pending')
+                ->sum('amount'),
+            'latest_paid_at' => $latestPaidAt ? Carbon::parse($latestPaidAt)->toIso8601String() : null,
+        ];
+
+        $total = $merged->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $lastPage);
 
         return response()->json([
-            'data' => $payments->getCollection()
-                ->map(fn (AppointmentPayment $p) => $this->appointmentPaymentPayload($p))
-                ->values(),
-            'current_page' => $payments->currentPage(),
-            'last_page' => $payments->lastPage(),
-            'per_page' => $payments->perPage(),
-            'total' => $payments->total(),
+            'data' => $merged->forPage($page, $perPage)->values(),
+            'current_page' => $page,
+            'last_page' => $lastPage,
+            'per_page' => $perPage,
+            'total' => $total,
             'totals' => $totals,
         ]);
     }
 
-    public function payment(Request $request, int $payment): JsonResponse
+    public function payment(Request $request, string $source, int $payment): JsonResponse
     {
         $patientId = $request->user('web')->id;
 
-        $record = AppointmentPayment::query()
-            ->whereKey($payment)
-            ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.doctor', 'appointment.service'])
-            ->firstOrFail();
+        if ($source === 'payment') {
+            $record = Payment::query()
+                ->whereKey($payment)
+                ->where('patient_id', $patientId)
+                ->with([
+                    'referenceAppointment.doctor',
+                    'referenceAppointment.service',
+                    'referencePackage',
+                    'referenceMembership',
+                    'referenceProduct',
+                    'referenceService',
+                ])
+                ->firstOrFail();
 
-        return response()->json([
-            'payment' => $this->appointmentPaymentPayload($record),
-        ]);
+            $payload = $this->paymentPayload($record);
+            $payload['source'] = 'payment';
+
+            return response()->json(['payment' => $payload]);
+        }
+
+        if ($source === 'appointment_payment') {
+            $record = AppointmentPayment::query()
+                ->whereKey($payment)
+                ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
+                ->with(['appointment.doctor', 'appointment.service'])
+                ->firstOrFail();
+
+            $payload = $this->appointmentPaymentPayload($record);
+            $payload['source'] = 'appointment_payment';
+
+            return response()->json(['payment' => $payload]);
+        }
+
+        abort(404);
     }
 
     /*

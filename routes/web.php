@@ -271,7 +271,9 @@ Route::prefix('api')->group(function () {
             Route::get('memberships', [PatientPortalController::class, 'memberships']);
 
             Route::get('payments', [PatientPortalController::class, 'payments']);
-            Route::get('payments/{payment}', [PatientPortalController::class, 'payment'])->whereNumber('payment');
+            Route::get('payments/{source}/{payment}', [PatientPortalController::class, 'payment'])
+                ->whereIn('source', ['payment', 'appointment_payment'])
+                ->whereNumber('payment');
 
             Route::get('promotions', [PatientPortalController::class, 'promotions']);
             Route::get('promotions/{promotion}', [PatientPortalController::class, 'promotion'])->whereNumber('promotion');
