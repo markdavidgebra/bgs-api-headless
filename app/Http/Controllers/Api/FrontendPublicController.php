@@ -303,7 +303,7 @@ class FrontendPublicController extends Controller
         }
 
         return response()->json([
-            'message' => __('Registration submitted. Please wait for admin approval before you can login.'),
+            'message' => __('Registration submitted. Please check your email for the approval notice, then wait for admin approval before you can login.'),
         ], 201);
     }
 }
