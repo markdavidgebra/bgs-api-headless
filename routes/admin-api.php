@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\AdminDoctorsController;
 use App\Http\Controllers\Api\Admin\AdminFaqsController;
 use App\Http\Controllers\Api\Admin\AdminFooterSettingsController;
 use App\Http\Controllers\Api\Admin\AdminInquiriesController;
+use App\Http\Controllers\Api\Admin\AdminNavBadgesController;
 use App\Http\Controllers\Api\Admin\AdminPackagesController;
 use App\Http\Controllers\Api\Admin\AdminPageHeadersController;
 use App\Http\Controllers\Api\Admin\AdminPatientsController;
@@ -54,6 +55,8 @@ Route::prefix('api/admin')->group(function () {
 
         Route::middleware('admin_permission:dashboard.view')
             ->get('dashboard', [AdminDashboardController::class, 'index']);
+
+        Route::get('nav-badges', [AdminNavBadgesController::class, 'index']);
 
         Route::middleware('admin_permission:appointments.manage')->prefix('appointments')->group(function () {
             Route::get('/', [AdminAppointmentsController::class, 'index']);
