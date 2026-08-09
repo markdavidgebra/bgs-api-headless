@@ -18,16 +18,35 @@ class AppointmentBookedPatientNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
+        $this->appointment->loadMissing(['service:id,name', 'doctor:id,name', 'patient:id,name']);
+
         return (new MailMessage)
             ->subject(__('Appointment booking confirmation'))
             ->view('emails.patient-appointment-booked', [
                 'appointment' => $this->appointment,
+                'actionUrl' => $this->patientPortalLoginUrl(),
             ]);
+    }
+
+    /**
+     * Link the email's "View appointment" button to the patient portal sign-in page
+     * (the portal is a separate SPA at PATIENT_PORTAL_URL, not a route on this app).
+     */
+    protected function patientPortalLoginUrl(): string
+    {
+        $base = rtrim((string) config('app.patient_portal_url'), '/');
+        if ($base === '') {
+            $base = rtrim((string) config('app.url'), '/');
+        }
+
+        $base = (string) preg_replace('#/login$#i', '', $base);
+
+        return rtrim($base, '/').'/login';
     }
 
     /**

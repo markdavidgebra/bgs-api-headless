@@ -3,18 +3,28 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Api\Concerns\AdminPortalResponses;
+use App\Http\Controllers\Concerns\BooksAppointments;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\AppointmentPayment;
 use App\Models\AppointmentTimeline;
+use App\Models\Doctor;
+use App\Models\Service;
+use App\Notifications\Patient\AppointmentBookedPatientNotification;
+use App\Rules\BookableAppointmentDate;
+use App\Support\DoctorAppointmentAlerts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 class AdminAppointmentsController extends Controller
 {
     use AdminPortalResponses;
+    use BooksAppointments;
 
     public function index(Request $request): JsonResponse
     {
@@ -99,6 +109,131 @@ class AdminAppointmentsController extends Controller
             'next_month' => $monthCursor->copy()->addMonth()->format('Y-m'),
             'appointments_by_date' => $byDate,
         ]);
+    }
+
+    /**
+     * Form data for the "book for a client" screen: bookable services plus
+     * doctors available for the (optional) date/service already chosen.
+     */
+    public function bookOptions(Request $request): JsonResponse
+    {
+        $services = Service::query()
+            ->where('status', 'active')
+            ->where('is_bookable', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'duration_minutes', 'price']);
+
+        $date = $request->query('date');
+        $serviceId = $request->query('service_id');
+        $doctors = $this->bookableDoctorsQuery($date, $serviceId ? (int) $serviceId : null)
+            ->get(['id', 'name', 'specialty']);
+
+        return response()->json([
+            'services' => $services->map(fn (Service $s) => [
+                'id' => (int) $s->id,
+                'name' => (string) $s->name,
+                'duration_minutes' => $s->duration_minutes !== null ? (int) $s->duration_minutes : null,
+                'price' => $s->price !== null ? (float) $s->price : null,
+            ])->values(),
+            'doctors' => $doctors->map(fn (Doctor $d) => [
+                'id' => (int) $d->id,
+                'name' => (string) $d->name,
+                'specialty' => (string) ($d->specialty ?? ''),
+            ])->values(),
+            'statuses' => ['confirmed', 'pending'],
+        ]);
+    }
+
+    /**
+     * Refresh the doctor list when the date and/or service change on the booking form.
+     */
+    public function bookableDoctors(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
+            'service_id' => ['nullable', 'integer', 'exists:services,id'],
+        ]);
+
+        $doctors = $this->bookableDoctorsQuery($data['date'], isset($data['service_id']) ? (int) $data['service_id'] : null)
+            ->get(['id', 'name', 'specialty']);
+
+        return response()->json([
+            'doctors' => $doctors->map(fn (Doctor $d) => [
+                'id' => (int) $d->id,
+                'name' => (string) $d->name,
+                'specialty' => (string) ($d->specialty ?? ''),
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Book an appointment on behalf of a client (walk-in / phone booking).
+     * Mirrors the patient self-service booking rules in {@see \App\Http\Controllers\Api\PatientPortalController::bookAppointment()}.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'patient_id' => ['required', 'integer', 'exists:users,id'],
+            'service_id' => ['required', 'integer', 'exists:services,id'],
+            'doctor_id' => ['required', 'integer', 'exists:doctors,id'],
+            'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
+            'appointment_time' => ['required', 'date_format:H:i'],
+            'status' => ['nullable', 'in:pending,confirmed'],
+            'patient_concern' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        if (! $this->bookableDoctorsQuery($data['appointment_date'], (int) $data['service_id'])
+            ->whereKey((int) $data['doctor_id'])
+            ->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'doctor_id' => 'This doctor is not available on the selected date for the selected service.',
+            ]);
+        }
+
+        $admin = $request->user('admin');
+
+        $appointment = DB::transaction(function () use ($data, $admin) {
+            $appointment = Appointment::create([
+                'appointment_no' => $this->generateAppointmentNo(),
+                'patient_id' => (int) $data['patient_id'],
+                'doctor_id' => (int) $data['doctor_id'],
+                'service_id' => (int) $data['service_id'],
+                'appointment_date' => $data['appointment_date'],
+                'appointment_time' => $data['appointment_time'],
+                'status' => $data['status'] ?? 'confirmed',
+                'created_by' => $admin?->id,
+            ]);
+
+            if (! empty($data['patient_concern'])) {
+                AppointmentNote::create([
+                    'appointment_id' => $appointment->id,
+                    'patient_concern' => $data['patient_concern'],
+                    'section_authors' => [
+                        'patient_concern' => AppointmentNote::authorPayloadFromUserName('admin', $admin?->name),
+                    ],
+                ]);
+            }
+
+            return $appointment;
+        });
+
+        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name', 'createdByAdmin:id,name']);
+
+        try {
+            if ($appointment->patient) {
+                Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
+            }
+            DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return response()->json([
+            'message' => 'Appointment booked successfully.',
+            'id' => (int) $appointment->id,
+            'appointment' => $this->appointmentPayload($appointment, true),
+        ], 201);
     }
 
     public function show(int $id): JsonResponse

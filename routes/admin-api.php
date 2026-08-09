@@ -57,7 +57,10 @@ Route::prefix('api/admin')->group(function () {
 
         Route::middleware('admin_permission:appointments.manage')->prefix('appointments')->group(function () {
             Route::get('/', [AdminAppointmentsController::class, 'index']);
+            Route::post('/', [AdminAppointmentsController::class, 'store']);
             Route::get('calendar', [AdminAppointmentsController::class, 'calendar']);
+            Route::get('book-options', [AdminAppointmentsController::class, 'bookOptions']);
+            Route::get('bookable-doctors', [AdminAppointmentsController::class, 'bookableDoctors']);
             Route::get('{id}', [AdminAppointmentsController::class, 'show'])->whereNumber('id');
         });
 
