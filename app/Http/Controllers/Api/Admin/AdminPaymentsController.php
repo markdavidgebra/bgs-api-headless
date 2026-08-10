@@ -234,6 +234,7 @@ class AdminPaymentsController extends Controller
             'payment_status' => $statuses->count() === 1 ? $statuses->first() : 'mixed',
             'payment_date' => $first->payment_date?->toDateString(),
             'created_at' => $items->min(fn (Payment $p) => $p->created_at)?->toIso8601String(),
+            'affiliate_code' => $this->extractAffiliateCode($items),
             'items' => $items->map(fn (Payment $p) => [
                 'id' => $p->id,
                 'payment_id' => $p->payment_id,
@@ -253,5 +254,32 @@ class AdminPaymentsController extends Controller
         }
 
         return $payload;
+    }
+
+    /**
+     * POS checkout has no dedicated affiliate-code column — the code is
+     * embedded as free text into a line item's `notes` (e.g.
+     * "Affiliate code: WELCOME10" or "Cashier note | Affiliate code: WELCOME10 | POS service checkout").
+     * Scan every item's notes for that segment and return the code, if any.
+     *
+     * @param  Collection<int, Payment>|BaseCollection<int, Payment>  $items
+     */
+    private function extractAffiliateCode(Collection|BaseCollection $items): ?string
+    {
+        foreach ($items as $item) {
+            $notes = (string) ($item->notes ?? '');
+            if ($notes === '') {
+                continue;
+            }
+
+            if (preg_match('/Affiliate code:\s*([^|]+)/i', $notes, $matches)) {
+                $code = trim($matches[1]);
+                if ($code !== '') {
+                    return $code;
+                }
+            }
+        }
+
+        return null;
     }
 }
