@@ -183,6 +183,7 @@ class PaymentsController extends Controller
 
         $payment = Payment::query()->create([
             'payment_id' => Payment::generatePaymentId(),
+            'transaction_no' => Payment::generateTransactionNo(),
             'patient_id' => $validated['patient_id'],
             'reference_type' => $validated['reference_type'],
             'reference_id' => $referenceId,

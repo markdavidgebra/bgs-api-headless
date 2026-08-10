@@ -324,6 +324,10 @@ class PosController extends Controller
         }
 
         $created = DB::transaction(function () use ($validated, $items, $paymentDate, $paymentStatus, $cashierTxnRef, $notes, $affiliatePreview) {
+            // Shared by every line item in this checkout so the admin payments
+            // list can group them into a single "transaction" row.
+            $transactionNo = Payment::generateTransactionNo();
+
             $payments = [];
             $totals = [
                 'subtotal' => 0.0,
@@ -382,6 +386,7 @@ class PosController extends Controller
 
                 $payment = Payment::query()->create([
                     'payment_id' => Payment::generatePaymentId(),
+                    'transaction_no' => $transactionNo,
                     'patient_id' => $validated['patient_id'],
                     'reference_type' => $referenceType,
                     'reference_id' => $model->id,
@@ -457,11 +462,12 @@ class PosController extends Controller
                 ? $this->affiliateCodes->formatAffiliateCodePayload($affiliatePreview['affiliate_code'])
                 : null;
 
-            return [$payments, $totals, $affiliatePayload];
+            return [$payments, $totals, $affiliatePayload, $transactionNo];
         });
 
         return response()->json([
             'message' => 'POS checkout completed.',
+            'transaction_no' => $created[3],
             'payments' => $created[0],
             'totals' => $created[1],
             'affiliate_code' => $created[2],

@@ -15,6 +15,7 @@ class Payment extends Model
 
     protected $fillable = [
         'payment_id',
+        'transaction_no',
         'patient_id',
         'reference_type',
         'reference_id',
@@ -233,5 +234,18 @@ class Payment extends Model
         $nextNumber = ($latest?->id ?? 0) + 1;
 
         return 'PAY-'.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * One transaction number is shared by every line item created in the same
+     * checkout (POS cart with multiple items, or a single manually recorded
+     * payment), so the admin can list/view "one row per transaction".
+     */
+    public static function generateTransactionNo(): string
+    {
+        $latest = static::latest('id')->first();
+        $nextNumber = ($latest?->id ?? 0) + 1;
+
+        return 'TXN-'.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
     }
 }
