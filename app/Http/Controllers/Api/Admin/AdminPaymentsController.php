@@ -6,13 +6,18 @@ use App\Http\Controllers\Admin\PaymentsController;
 use App\Http\Controllers\Api\Concerns\AdminPortalResponses;
 use App\Http\Controllers\Api\Concerns\ConvertsAdminWebResponses;
 use App\Http\Controllers\Controller;
+use App\Models\PatientSubscription;
 use App\Models\Payment;
+use App\Models\Product;
+use App\Models\StockMovement;
+use App\Models\TreatmentPatientPackage;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Support\Facades\DB;
 
 class AdminPaymentsController extends Controller
 {
@@ -89,27 +94,7 @@ class AdminPaymentsController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $anchor = Payment::query()
-            ->where('transaction_no', $id)
-            ->orWhere('payment_id', $id)
-            ->orWhere('id', $id)
-            ->first();
-
-        if (! $anchor) {
-            abort(404);
-        }
-
-        $groupKey = $anchor->transaction_no ?: $anchor->payment_id;
-
-        $items = $this->paymentDetailQuery()
-            ->where(function (Builder $q) use ($groupKey, $anchor) {
-                $q->where('transaction_no', $groupKey);
-                if (! $anchor->transaction_no) {
-                    $q->orWhere('id', $anchor->id);
-                }
-            })
-            ->orderBy('id')
-            ->get();
+        $items = $this->resolveTransactionRows($id, $this->paymentDetailQuery());
 
         return response()->json([
             'transaction' => $this->transactionSummary($items, detailed: true),
@@ -124,6 +109,146 @@ class AdminPaymentsController extends Controller
     public function store(Request $request): JsonResponse
     {
         return $this->adminWebJson(app(PaymentsController::class)->store($request), 201);
+    }
+
+    /**
+     * Same payload as `show()` — used to prefill the edit form with the
+     * transaction's current shared values and read-only item breakdown.
+     */
+    public function edit(string $id): JsonResponse
+    {
+        return $this->show($id);
+    }
+
+    /**
+     * Only the fields shared across every line item in a checkout (method,
+     * status, date, gateway/bank reference) are editable here. Per-item
+     * amounts/references are left untouched to avoid desyncing POS-generated
+     * stock movements, subscriptions, and treatment packages.
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $items = $this->resolveTransactionRows($id, Payment::query());
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'string', 'in:cash,gcash,maya,card,bank_transfer'],
+            'payment_status' => ['required', 'string', 'in:paid,unpaid,partial,refunded,cancelled'],
+            'payment_date' => ['nullable', 'date'],
+            'transaction_reference' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($items, $validated) {
+            foreach ($items as $item) {
+                $item->update([
+                    'payment_method' => $validated['payment_method'],
+                    'payment_status' => $validated['payment_status'],
+                    'payment_date' => $validated['payment_date'] ?? $item->payment_date,
+                    'transaction_reference' => $validated['transaction_reference'] ?? null,
+                ]);
+            }
+        });
+
+        $fresh = $items->fresh([
+            'patient:id,name,email,phone',
+            'referenceAppointment.service',
+            'referenceAppointment.doctor',
+            'referencePackage',
+            'referenceMembership',
+            'referenceProduct',
+            'referenceService',
+        ]);
+
+        return response()->json([
+            'message' => __('Transaction updated.'),
+            'transaction' => $this->transactionSummary($fresh, detailed: true),
+        ]);
+    }
+
+    /**
+     * Deletes every line item in the transaction and reverses the POS side
+     * effects tied to those specific payments (restocking products, removing
+     * memberships/packages the checkout created). It cannot restore a
+     * membership that the checkout replaced/cancelled.
+     */
+    public function destroy(string $id): JsonResponse
+    {
+        $items = $this->resolveTransactionRows($id, Payment::query());
+
+        DB::transaction(function () use ($items) {
+            foreach ($items as $item) {
+                $this->reversePosSideEffects($item);
+                $item->delete();
+            }
+        });
+
+        return response()->json([
+            'message' => __('Transaction deleted.'),
+        ]);
+    }
+
+    /**
+     * Resolves `$id` (a `transaction_no` like `TXN-0031`, or — for older
+     * links — a `payment_id`/numeric id) to every Payment row belonging to
+     * that same transaction.
+     *
+     * @return Collection<int, Payment>
+     */
+    private function resolveTransactionRows(string $id, Builder $query): Collection
+    {
+        $anchor = Payment::query()
+            ->where('transaction_no', $id)
+            ->orWhere('payment_id', $id)
+            ->orWhere('id', $id)
+            ->first();
+
+        if (! $anchor) {
+            abort(404);
+        }
+
+        $groupKey = $anchor->transaction_no ?: $anchor->payment_id;
+
+        return $query
+            ->where(function (Builder $q) use ($groupKey, $anchor) {
+                $q->where('transaction_no', $groupKey);
+                if (! $anchor->transaction_no) {
+                    $q->orWhere('id', $anchor->id);
+                }
+            })
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * Undoes the POS checkout side effects created for this specific payment
+     * line: restocks products via their matching `stock_movements` row, and
+     * removes memberships/packages the checkout created (matched by the
+     * `payment {payment_id}` marker `PosController` writes into their notes).
+     */
+    private function reversePosSideEffects(Payment $item): void
+    {
+        if ($item->reference_type === 'product' && $item->reference_id) {
+            $movement = StockMovement::query()
+                ->where('reference', $item->payment_id)
+                ->where('type', 'out')
+                ->first();
+
+            if ($movement) {
+                Product::query()->whereKey($item->reference_id)->increment('stock_quantity', $movement->quantity);
+                $movement->delete();
+            }
+        }
+
+        if ($item->reference_type === 'membership') {
+            PatientSubscription::query()
+                ->where('notes', 'like', '%payment '.$item->payment_id.'%')
+                ->delete();
+        }
+
+        if ($item->reference_type === 'package') {
+            TreatmentPatientPackage::query()
+                ->where('notes', 'like', '%payment '.$item->payment_id.'%')
+                ->delete();
+        }
     }
 
     private function filteredPaymentsQuery(Request $request): Builder

@@ -179,6 +179,9 @@ Route::prefix('api/admin')->group(function () {
             Route::get('create', [AdminPaymentsController::class, 'create']);
             Route::post('/', [AdminPaymentsController::class, 'store']);
             Route::get('show/{id}', [AdminPaymentsController::class, 'show']);
+            Route::get('edit/{id}', [AdminPaymentsController::class, 'edit']);
+            Route::put('{id}', [AdminPaymentsController::class, 'update']);
+            Route::delete('{id}', [AdminPaymentsController::class, 'destroy']);
         });
 
         Route::middleware('admin_permission:promotions.manage')->group(function () {
