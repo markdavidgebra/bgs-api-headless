@@ -11,8 +11,10 @@ use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\PatientSubscription;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Service;
+use App\Models\TreatmentPackage;
 use App\Models\TreatmentPatientPackage;
 use App\Notifications\Patient\AppointmentBookedPatientNotification;
 use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
@@ -344,6 +346,21 @@ class PatientPortalController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'duration_minutes', 'price']);
 
+        $packages = TreatmentPackage::query()
+            ->where('status', 'active')
+            ->with(['services' => fn ($q) => $q
+                ->where('services.status', 'active')
+                ->where('services.is_bookable', true)
+                ->orderBy('name')])
+            ->orderBy('name')
+            ->get(['id', 'name', 'description', 'price', 'validity_value', 'validity_type']);
+
+        $products = Product::query()
+            ->where('status', 'active')
+            ->where('is_available_for_sale', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'brand', 'selling_price', 'discount_price', 'unit', 'stock_quantity']);
+
         $date = $request->query('date');
         $serviceId = $request->query('service_id');
         $doctors = $this->bookableDoctorsQuery($date, $serviceId ? (int) $serviceId : null)
@@ -355,6 +372,27 @@ class PatientPortalController extends Controller
                 'name' => (string) $s->name,
                 'duration_minutes' => $s->duration_minutes !== null ? (int) $s->duration_minutes : null,
                 'price' => $s->price !== null ? (float) $s->price : null,
+            ])->values(),
+            'packages' => $packages->map(fn (TreatmentPackage $p) => [
+                'id' => (int) $p->id,
+                'name' => (string) $p->name,
+                'description' => (string) ($p->description ?? ''),
+                'price' => $p->price !== null ? (float) $p->price : null,
+                'validity_label' => (string) ($p->validity_label ?? ''),
+                'services' => $p->services->map(fn (Service $s) => [
+                    'id' => (int) $s->id,
+                    'name' => (string) $s->name,
+                    'sessions' => $s->pivot?->sessions !== null ? (int) $s->pivot->sessions : null,
+                    'is_bookable' => true,
+                ])->values(),
+            ])->values(),
+            'products' => $products->map(fn (Product $p) => [
+                'id' => (int) $p->id,
+                'name' => (string) $p->name,
+                'brand' => (string) ($p->brand ?? ''),
+                'price' => $p->final_price !== null ? (float) $p->final_price : ($p->selling_price !== null ? (float) $p->selling_price : null),
+                'unit' => (string) ($p->unit ?? ''),
+                'in_stock' => (int) ($p->stock_quantity ?? 0) > 0,
             ])->values(),
             'doctors' => $doctors->map(fn (Doctor $d) => [
                 'id' => (int) $d->id,
@@ -393,9 +431,13 @@ class PatientPortalController extends Controller
     public function bookAppointment(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'service_id' => ['nullable', 'integer', 'exists:services,id', 'required_without:service_ids'],
-            'service_ids' => ['nullable', 'array', 'min:1', 'required_without:service_id'],
+            'service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
+            'package_ids' => ['nullable', 'array'],
+            'package_ids.*' => ['integer', 'exists:treatment_packages,id'],
+            'product_ids' => ['nullable', 'array'],
+            'product_ids.*' => ['integer', 'exists:products,id'],
             'doctor_id' => ['required', 'exists:doctors,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
@@ -405,12 +447,32 @@ class PatientPortalController extends Controller
         $patientId = $request->user('web')->id;
         $serviceIds = array_values(array_unique(array_map(
             'intval',
-            $data['service_ids'] ?? [(int) $data['service_id']]
+            $data['service_ids'] ?? (isset($data['service_id']) ? [$data['service_id']] : [])
         )));
+        $packageIds = array_values(array_unique(array_map('intval', $data['package_ids'] ?? [])));
+        $productIds = array_values(array_unique(array_map('intval', $data['product_ids'] ?? [])));
+
+        $selectedPackages = collect();
+        if ($packageIds !== []) {
+            $selectedPackages = TreatmentPackage::query()
+                ->whereIn('id', $packageIds)
+                ->where('status', 'active')
+                ->with(['services' => fn ($q) => $q
+                    ->where('services.status', 'active')
+                    ->where('services.is_bookable', true)])
+                ->get();
+
+            foreach ($selectedPackages as $package) {
+                foreach ($package->services as $service) {
+                    $serviceIds[] = (int) $service->id;
+                }
+            }
+            $serviceIds = array_values(array_unique($serviceIds));
+        }
 
         if ($serviceIds === []) {
             throw ValidationException::withMessages([
-                'service_ids' => 'Please select at least one service.',
+                'service_ids' => 'Please select at least one service or package with bookable services.',
             ]);
         }
 
@@ -423,9 +485,29 @@ class PatientPortalController extends Controller
             ]);
         }
 
-        $appointments = DB::transaction(function () use ($data, $patientId, $serviceIds) {
+        $concernParts = [];
+        if (! empty($data['patient_concern'])) {
+            $concernParts[] = trim((string) $data['patient_concern']);
+        }
+        if ($selectedPackages->isNotEmpty()) {
+            $concernParts[] = 'Requested packages: '.$selectedPackages->pluck('name')->filter()->implode(', ');
+        }
+        if ($productIds !== []) {
+            $productNames = Product::query()
+                ->whereIn('id', $productIds)
+                ->where('status', 'active')
+                ->pluck('name')
+                ->filter()
+                ->values();
+            if ($productNames->isNotEmpty()) {
+                $concernParts[] = 'Requested products: '.$productNames->implode(', ');
+            }
+        }
+        $patientConcern = trim(implode("\n", array_filter($concernParts)));
+
+        $appointments = DB::transaction(function () use ($data, $patientId, $serviceIds, $productIds, $patientConcern) {
             $created = [];
-            $patient = ! empty($data['patient_concern'])
+            $patient = $patientConcern !== ''
                 ? Patient::query()->find($patientId)
                 : null;
 
@@ -440,10 +522,10 @@ class PatientPortalController extends Controller
                     'status' => 'pending',
                 ]);
 
-                if ($index === 0 && ! empty($data['patient_concern'])) {
+                if ($index === 0 && $patientConcern !== '') {
                     AppointmentNote::create([
                         'appointment_id' => $appointment->id,
-                        'patient_concern' => $data['patient_concern'],
+                        'patient_concern' => $patientConcern,
                         'section_authors' => [
                             'patient_concern' => AppointmentNote::authorPayloadFromUserName(
                                 'patient',
@@ -451,6 +533,14 @@ class PatientPortalController extends Controller
                             ),
                         ],
                     ]);
+                }
+
+                if ($index === 0 && $productIds !== []) {
+                    $sync = [];
+                    foreach ($productIds as $productId) {
+                        $sync[$productId] = ['quantity' => 1];
+                    }
+                    $appointment->prescribedProducts()->syncWithoutDetaching($sync);
                 }
 
                 $created[] = $appointment;
