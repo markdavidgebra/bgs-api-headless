@@ -27,6 +27,8 @@
 
                 return [
                     'id' => (int) $appt->id,
+                    'patient_id' => (int) ($appt->patient_id ?? 0),
+                    'doctor_id' => (int) ($appt->doctor_id ?? 0),
                     'time' => $timeLabel,
                     'patient' => (string) ($appt->patient?->name ?? '—'),
                     'procedure' => (string) ($appt->service?->name ?? '—'),
@@ -36,6 +38,34 @@
                     'showUrl' => route('admin.appointments.show', $appt->id),
                 ];
             })
+            ->groupBy(fn ($row) => implode('|', [
+                (string) $row['patient_id'],
+                (string) $row['doctor_id'],
+                (string) $row['time'],
+            ]))
+            ->map(function ($group) {
+                $sorted = $group->sortBy('id')->values();
+                $primary = $sorted->first();
+                $procedures = $sorted
+                    ->pluck('procedure')
+                    ->filter(fn ($name) => $name !== '' && $name !== '—')
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $primary['id'],
+                    'time' => $primary['time'],
+                    'patient' => $primary['patient'],
+                    'procedure' => implode(', ', $procedures) ?: ($primary['procedure'] ?? '—'),
+                    'procedures' => $procedures,
+                    'doctor' => $primary['doctor'],
+                    'status' => $primary['status'],
+                    'badge' => $primary['badge'],
+                    'showUrl' => $primary['showUrl'],
+                ];
+            })
+            ->sortBy('time')
             ->values();
 
         $calendarDays->push([
@@ -204,11 +234,22 @@
           }
 
           rowsEl.innerHTML = appointments.map(function (row) {
+            const procedures = Array.isArray(row.procedures) && row.procedures.length
+              ? row.procedures
+              : (row.procedure ? [row.procedure] : []);
+            const procedureHtml = procedures.length === 0
+              ? '—'
+              : procedures.length === 1
+                ? escapeHtml(procedures[0])
+                : `<ul class="mb-0 ps-3">${procedures.map(function (name) {
+                    return `<li>${escapeHtml(name)}</li>`;
+                  }).join('')}</ul>`;
+
             return `
               <tr>
                 <td class="font-monospace">${escapeHtml(row.time || '—')}</td>
                 <td>${escapeHtml(row.patient || '—')}</td>
-                <td>${escapeHtml(row.procedure || '—')}</td>
+                <td>${procedureHtml}</td>
                 <td>${escapeHtml(row.doctor || '—')}</td>
                 <td><span class="badge ${escapeHtml(row.badge || 'bg-secondary-lt')}">${escapeHtml(row.status || '—')}</span></td>
                 <td><a href="${escapeHtml(row.showUrl || '#')}" class="btn btn-sm btn-primary">View</a></td>
