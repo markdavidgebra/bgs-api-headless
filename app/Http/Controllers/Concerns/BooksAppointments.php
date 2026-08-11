@@ -17,14 +17,23 @@ use Illuminate\Support\Facades\DB;
  */
 trait BooksAppointments
 {
-    protected function bookableDoctorsQuery(?string $appointmentDate = null, ?int $serviceId = null): Builder
+    /**
+     * @param  int|list<int>|null  $serviceId
+     */
+    protected function bookableDoctorsQuery(?string $appointmentDate = null, int|array|null $serviceId = null): Builder
     {
         $q = Doctor::query()
             ->where('status', 'active')
             ->whereHas('weeklySchedules', fn (Builder $sub) => $sub->where('is_active', true));
 
-        if ($serviceId !== null && DB::table('doctor_service')->where('service_id', $serviceId)->exists()) {
-            $q->whereHas('services', fn (Builder $sub) => $sub->where('services.id', $serviceId));
+        $serviceIds = is_array($serviceId)
+            ? array_values(array_unique(array_map('intval', $serviceId)))
+            : ($serviceId !== null ? [(int) $serviceId] : []);
+
+        foreach ($serviceIds as $sid) {
+            if ($sid > 0 && DB::table('doctor_service')->where('service_id', $sid)->exists()) {
+                $q->whereHas('services', fn (Builder $sub) => $sub->where('services.id', $sid));
+            }
         }
 
         if ($appointmentDate === null || $appointmentDate === '') {

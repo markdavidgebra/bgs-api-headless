@@ -369,9 +369,16 @@ class PatientPortalController extends Controller
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'service_ids' => ['nullable', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
         ]);
 
-        $doctors = $this->bookableDoctorsQuery($data['date'], isset($data['service_id']) ? (int) $data['service_id'] : null)
+        $serviceIds = array_values(array_unique(array_map(
+            'intval',
+            $data['service_ids'] ?? (isset($data['service_id']) ? [$data['service_id']] : [])
+        )));
+
+        $doctors = $this->bookableDoctorsQuery($data['date'], $serviceIds !== [] ? $serviceIds : null)
             ->get(['id', 'name', 'specialty']);
 
         return response()->json([
@@ -386,7 +393,9 @@ class PatientPortalController extends Controller
     public function bookAppointment(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'service_id' => ['required', 'exists:services,id'],
+            'service_id' => ['nullable', 'integer', 'exists:services,id', 'required_without:service_ids'],
+            'service_ids' => ['nullable', 'array', 'min:1', 'required_without:service_id'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
             'doctor_id' => ['required', 'exists:doctors,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
@@ -394,58 +403,84 @@ class PatientPortalController extends Controller
         ]);
 
         $patientId = $request->user('web')->id;
+        $serviceIds = array_values(array_unique(array_map(
+            'intval',
+            $data['service_ids'] ?? [(int) $data['service_id']]
+        )));
 
-        if (! $this->bookableDoctorsQuery($data['appointment_date'], (int) $data['service_id'])
+        if ($serviceIds === []) {
+            throw ValidationException::withMessages([
+                'service_ids' => 'Please select at least one service.',
+            ]);
+        }
+
+        if (! $this->bookableDoctorsQuery($data['appointment_date'], $serviceIds)
             ->whereKey((int) $data['doctor_id'])
             ->exists()
         ) {
             throw ValidationException::withMessages([
-                'doctor_id' => 'This doctor is not available on the selected date for the selected service.',
+                'doctor_id' => 'This doctor is not available on the selected date for the selected service(s).',
             ]);
         }
 
-        $appointment = DB::transaction(function () use ($data, $patientId) {
-            $appointment = Appointment::create([
-                'appointment_no' => $this->generateAppointmentNo(),
-                'patient_id' => $patientId,
-                'doctor_id' => (int) $data['doctor_id'],
-                'service_id' => (int) $data['service_id'],
-                'appointment_date' => $data['appointment_date'],
-                'appointment_time' => $data['appointment_time'],
-                'status' => 'pending',
-            ]);
+        $appointments = DB::transaction(function () use ($data, $patientId, $serviceIds) {
+            $created = [];
+            $patient = ! empty($data['patient_concern'])
+                ? Patient::query()->find($patientId)
+                : null;
 
-            if (! empty($data['patient_concern'])) {
-                $patient = Patient::query()->find($patientId);
-                AppointmentNote::create([
-                    'appointment_id' => $appointment->id,
-                    'patient_concern' => $data['patient_concern'],
-                    'section_authors' => [
-                        'patient_concern' => AppointmentNote::authorPayloadFromUserName(
-                            'patient',
-                            $patient?->name,
-                        ),
-                    ],
+            foreach ($serviceIds as $index => $serviceId) {
+                $appointment = Appointment::create([
+                    'appointment_no' => $this->generateAppointmentNo(),
+                    'patient_id' => $patientId,
+                    'doctor_id' => (int) $data['doctor_id'],
+                    'service_id' => $serviceId,
+                    'appointment_date' => $data['appointment_date'],
+                    'appointment_time' => $data['appointment_time'],
+                    'status' => 'pending',
                 ]);
+
+                if ($index === 0 && ! empty($data['patient_concern'])) {
+                    AppointmentNote::create([
+                        'appointment_id' => $appointment->id,
+                        'patient_concern' => $data['patient_concern'],
+                        'section_authors' => [
+                            'patient_concern' => AppointmentNote::authorPayloadFromUserName(
+                                'patient',
+                                $patient?->name,
+                            ),
+                        ],
+                    ]);
+                }
+
+                $created[] = $appointment;
             }
 
-            return $appointment;
+            return $created;
         });
 
-        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
-        try {
-            if ($appointment->patient) {
-                Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
+        foreach ($appointments as $appointment) {
+            $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+            try {
+                if ($appointment->patient) {
+                    Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
+                }
+                DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+            } catch (\Throwable $e) {
+                report($e);
             }
-            DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
-        } catch (\Throwable $e) {
-            report($e);
         }
 
+        $primary = $appointments[0];
+
         return response()->json([
-            'message' => 'Appointment booked successfully.',
-            'id' => (int) $appointment->id,
-            'appointment' => $this->appointmentPayload($appointment),
+            'message' => count($appointments) > 1
+                ? 'Appointments booked successfully.'
+                : 'Appointment booked successfully.',
+            'id' => (int) $primary->id,
+            'ids' => array_map(fn (Appointment $a) => (int) $a->id, $appointments),
+            'appointment' => $this->appointmentPayload($primary),
+            'appointments' => array_map(fn (Appointment $a) => $this->appointmentPayload($a), $appointments),
         ], 201);
     }
 
