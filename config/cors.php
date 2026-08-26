@@ -28,6 +28,7 @@ return [
             'http://127.0.0.1:5174',
             'http://localhost:3000',
             'https://admin.bioglowsolutions.com',
+            'https://portal.bioglowsolutions.com',
             'https://bioglowsolutions.com',
             'https://catalog.bioglowsolutions.com',
             'https://pos.bioglowsolutions.com',
