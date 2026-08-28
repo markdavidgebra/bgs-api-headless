@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\AdminPortalResponses;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AdminLoginRequest;
 use App\Models\Admin;
+use App\Support\AdminPermissions;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,19 @@ class AdminAuthController extends Controller
     use AdminPortalResponses;
 
     public function login(AdminLoginRequest $request): JsonResponse
+    {
+        return $this->completePortalLogin($request, 'admin');
+    }
+
+    public function managerLogin(AdminLoginRequest $request): JsonResponse
+    {
+        return $this->completePortalLogin($request, 'manager');
+    }
+
+    /**
+     * @param  'admin'|'manager'  $portal
+     */
+    private function completePortalLogin(AdminLoginRequest $request, string $portal): JsonResponse
     {
         // Clear other portal sessions so admin API routes are not blocked by
         // prevent_cross_guard while a patient/doctor cookie is still active.
@@ -40,14 +54,36 @@ class AdminAuthController extends Controller
             ]);
         }
 
+        $admin = Auth::guard('admin')->user();
+        $isManager = AdminPermissions::isManagerRole((string) ($admin->role ?? ''));
+
+        if ($portal === 'manager' && ! $isManager) {
+            $this->rejectWrongPortal($request, __('Use the admin portal to sign in with this account.'));
+        }
+
+        if ($portal === 'admin' && $isManager) {
+            $this->rejectWrongPortal($request, __('Use the manager portal to sign in with this account.'));
+        }
+
         $request->session()->regenerate();
 
-        $admin = Auth::guard('admin')->user();
-
         return response()->json([
-            'message' => __('Admin login successful.'),
+            'message' => $portal === 'manager'
+                ? __('Manager login successful.')
+                : __('Admin login successful.'),
             'csrf_token' => csrf_token(),
             'admin' => $this->adminPayload($admin),
+        ]);
+    }
+
+    private function rejectWrongPortal(AdminLoginRequest $request, string $message): never
+    {
+        Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        throw ValidationException::withMessages([
+            'email' => [$message],
         ]);
     }
 

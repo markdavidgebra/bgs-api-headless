@@ -83,7 +83,7 @@ class PatientsController extends Controller
                 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
-                Rule::unique('doctors', 'email'),
+                Rule::unique('clinical_staff', 'email'),
             ],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
             'phone' => ['nullable', 'string', 'max:30'],
@@ -649,7 +649,7 @@ class PatientsController extends Controller
     {
         $admin = auth('admin')->user();
 
-        return $admin?->hasRole('super admin', 'superadmin', 'admin') ?? false;
+        return AdminPermissions::isFullAccess($admin);
     }
 
     private function autoDeactivateInactivePatients(): void

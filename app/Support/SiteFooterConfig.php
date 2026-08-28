@@ -44,7 +44,7 @@ class SiteFooterConfig
                 ['label' => 'About Us', 'url' => '/about-us'],
                 ['label' => 'Services', 'url' => '/our-services'],
                 ['label' => 'Why Chose Us', 'url' => '/about-us'],
-                ['label' => 'Doctors', 'url' => '/doctor'],
+                ['label' => 'Clinical staff', 'url' => '/doctor'],
                 ['label' => 'Blog And News', 'url' => '/blog'],
             ],
             'copyright_brand' => 'Careon',

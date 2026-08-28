@@ -172,10 +172,10 @@ class DashboardController extends Controller
 
         $doctorActivityToday = Appointment::query()
             ->whereDate('appointment_date', $today)
-            ->join('doctors', 'doctors.id', '=', 'appointments.doctor_id')
-            ->select('doctors.id', 'doctors.name')
+            ->join('clinical_staff', 'clinical_staff.id', '=', 'appointments.clinical_staff_id')
+            ->select('clinical_staff.id', 'clinical_staff.name')
             ->selectRaw('COUNT(appointments.id) as appointment_count')
-            ->groupBy('doctors.id', 'doctors.name')
+            ->groupBy('clinical_staff.id', 'clinical_staff.name')
             ->orderByDesc('appointment_count')
             ->get();
 

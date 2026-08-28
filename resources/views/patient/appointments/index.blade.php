@@ -69,7 +69,7 @@
                               <th>Date</th>
                               <th>Time</th>
                               <th>Service</th>
-                              <th>Doctor</th>
+                              <th>Clinical staff</th>
                               <th>Status</th>
                               <th class="text-end">Actions</th>
                             </tr>
@@ -128,7 +128,7 @@
                               <th>Date</th>
                               <th>Time</th>
                               <th>Service</th>
-                              <th>Doctor</th>
+                              <th>Clinical staff</th>
                               <th>Status</th>
                               <th class="text-end">Actions</th>
                             </tr>

@@ -103,12 +103,12 @@ class AdminStaffController extends Controller
         $roles = AdminRole::query()
             ->orderBy('name')
             ->pluck('role_value')
-            ->map(static fn (string $role): string => strtolower(trim($role)))
+            ->map(static fn ($role): string => strtolower(trim((string) $role)))
             ->filter(static fn (string $role): bool => $role !== '')
             ->values()
             ->all();
 
-        foreach (['super admin', 'admin'] as $defaultRole) {
+        foreach (['super admin', 'admin', 'manager'] as $defaultRole) {
             if (! in_array($defaultRole, $roles, true)) {
                 $roles[] = $defaultRole;
             }

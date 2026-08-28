@@ -146,7 +146,7 @@
               </select>
             </div>
             <div class="col-md-6 col-lg-3">
-              <label class="form-label" for="doctor_id">Doctor</label>
+              <label class="form-label" for="doctor_id">Clinical staff</label>
               <select id="doctor_id" name="doctor_id" class="form-select">
                 <option value="">All</option>
                 @foreach ($doctors as $doctor)
@@ -182,7 +182,7 @@
               <tr>
                 <th>Code</th>
                 <th>Patient</th>
-                <th>Doctor</th>
+                <th>Clinical staff</th>
                 <th>Service</th>
                 <th>Date</th>
                 <th>Time</th>

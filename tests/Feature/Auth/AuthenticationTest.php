@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Admin;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Patient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -81,7 +81,7 @@ class AuthenticationTest extends TestCase
 
     public function test_doctor_credentials_cannot_sign_in_through_patient_login(): void
     {
-        $doctor = Doctor::factory()->create([
+        $doctor = ClinicalStaff::factory()->create([
             'email' => 'doctor-only@example.com',
             'password' => 'password',
             'status' => 'active',
@@ -99,7 +99,7 @@ class AuthenticationTest extends TestCase
 
     public function test_doctor_can_authenticate_using_staff_login(): void
     {
-        $doctor = Doctor::factory()->create([
+        $doctor = ClinicalStaff::factory()->create([
             'email' => 'doctor-portal@example.com',
             'password' => 'password',
             'status' => 'active',

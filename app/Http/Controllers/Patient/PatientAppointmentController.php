@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Patient;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentNote;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Patient;
 use App\Models\Service;
 use App\Notifications\Patient\AppointmentBookedPatientNotification;
 use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
 use App\Rules\BookableAppointmentDate;
 use App\Support\AppointmentBookingRules;
-use App\Support\DoctorAppointmentAlerts;
+use App\Support\ClinicalStaffAppointmentAlerts;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -95,7 +95,7 @@ class PatientAppointmentController extends Controller
     {
         $data = $request->validate([
             'service_id' => ['required', 'exists:services,id'],
-            'doctor_id' => ['required', 'exists:doctors,id'],
+            'doctor_id' => ['required', 'exists:clinical_staff,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
             'patient_concern' => ['nullable', 'string', 'max:2000'],
@@ -105,7 +105,7 @@ class PatientAppointmentController extends Controller
 
         if (! $this->bookableDoctorsQuery($data['appointment_date'], (int) $data['service_id'])->whereKey((int) $data['doctor_id'])->exists()) {
             throw ValidationException::withMessages([
-                'doctor_id' => 'This doctor is not available on the selected date for the selected service.',
+                'doctor_id' => 'This clinical staff member is not available on the selected date for the selected service.',
             ]);
         }
 
@@ -142,7 +142,7 @@ class PatientAppointmentController extends Controller
             if ($appointment->patient) {
                 Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
             }
-            DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+            ClinicalStaffAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
         } catch (\Throwable $e) {
             report($e);
         }
@@ -237,16 +237,16 @@ class PatientAppointmentController extends Controller
     }
 
     /**
-     * Doctors who can accept bookings: active status, at least one weekday with schedule on,
+     * Clinical staff who can accept bookings: active status, at least one weekday with schedule on,
      * and when a date is passed, that ISO weekday (Mon=1…Sun=7) must be on and the date must not be blocked.
      */
     private function bookableDoctorsQuery(?string $appointmentDate = null, ?int $serviceId = null): Builder
     {
-        $q = Doctor::query()
+        $q = ClinicalStaff::query()
             ->where('status', 'active')
             ->whereHas('weeklySchedules', fn (Builder $sub) => $sub->where('is_active', true));
 
-        if ($serviceId !== null && DB::table('doctor_service')->where('service_id', $serviceId)->exists()) {
+        if ($serviceId !== null && DB::table('clinical_staff_service')->where('service_id', $serviceId)->exists()) {
             $q->whereHas('services', fn (Builder $sub) => $sub->where('services.id', $serviceId));
         }
 

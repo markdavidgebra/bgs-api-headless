@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,7 @@ class AppointmentNote extends Model
         'patient_concern',
         'appointment_remarks',
         'admin_notes',
+        'clinical_notes',
         'doctor_notes',
         'instructions',
         'alerts',
@@ -30,6 +32,7 @@ class AppointmentNote extends Model
         'vital_oxygen_saturation',
         'vital_weight',
         'vital_height',
+        'vital_signs',
         'body_analyzer_image_path',
         'bottle_citrus_image_path',
         'lemon_bottle_image_path',
@@ -68,12 +71,21 @@ class AppointmentNote extends Model
     {
         return [
             'section_authors' => 'array',
+            'vital_signs' => 'array',
             'procedure_drip' => 'boolean',
             'procedure_peptides' => 'boolean',
             'peptides_routes' => 'array',
             'consent_sent_at' => 'datetime',
             'consent_signed_at' => 'datetime',
         ];
+    }
+
+    protected function doctorNotes(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->attributes['clinical_notes'] ?? null,
+            set: fn ($value) => ['clinical_notes' => $value],
+        );
     }
 
     public function appointment(): BelongsTo
@@ -542,7 +554,7 @@ class AppointmentNote extends Model
             ['label' => __('Patient concern'), 'value' => $this->patient_concern],
             ['label' => __('Post procedures'), 'value' => $this->appointment_remarks],
             ['label' => __('Medical history'), 'value' => $this->admin_notes],
-            ['label' => __('Doctor notes'), 'value' => $this->doctor_notes],
+            ['label' => __('Clinical notes'), 'value' => $this->doctor_notes],
             ['label' => __('Take home medications'), 'value' => $this->instructions],
         ];
 
@@ -592,23 +604,29 @@ class AppointmentNote extends Model
      */
     public function vitalSignsSummary(): string
     {
-        $parts = [];
-        $push = static function (string $label, mixed $value) use (&$parts): void {
-            $n = self::normalizeNoteValue($value);
-            if ($n !== null) {
-                $parts[] = $label.' '.$n;
+        $phaseParts = [];
+        $resolved = $this->resolvedVitalSigns();
+        foreach (self::vitalSignPhases() as $phase) {
+            $fields = is_array($resolved[$phase] ?? null) ? $resolved[$phase] : [];
+            $parts = self::formatVitalFieldParts($fields);
+            if ($parts !== []) {
+                $phaseParts[] = ucfirst($phase).': '.implode('; ', $parts);
             }
-        };
+        }
 
-        $push('BP', $this->vital_blood_pressure ?? null);
-        $push('HR', $this->vital_heart_rate ?? null);
-        $push('Temp', $this->vital_temperature ?? null);
-        $push('RR', $this->vital_respiratory_rate ?? null);
-        $push('SpO2', $this->vital_oxygen_saturation ?? null);
-        $push('Wt', $this->vital_weight ?? null);
-        $push('Ht', $this->vital_height ?? null);
+        foreach ($resolved['extra'] ?? [] as $reading) {
+            if (! is_array($reading)) {
+                continue;
+            }
+            $parts = self::formatVitalFieldParts($reading);
+            if ($parts === [] && self::normalizeNoteValue($reading['time'] ?? null) === null) {
+                continue;
+            }
+            $time = self::normalizeNoteValue($reading['time'] ?? null) ?? 'Extra';
+            $phaseParts[] = $time.($parts === [] ? '' : ': '.implode('; ', $parts));
+        }
 
-        return implode('; ', $parts);
+        return implode(' · ', $phaseParts);
     }
 
     /**
@@ -625,6 +643,238 @@ class AppointmentNote extends Model
             'vital_weight',
             'vital_height',
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function vitalSignPhases(): array
+    {
+        return ['before', 'during', 'after'];
+    }
+
+    /**
+     * @return array<string, null>
+     */
+    public static function emptyVitalPhase(): array
+    {
+        return array_fill_keys(self::vitalSignFieldKeys(), null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     * @return list<string>
+     */
+    public static function formatVitalFieldParts(array $fields): array
+    {
+        $parts = [];
+        $push = static function (string $label, mixed $value) use (&$parts): void {
+            $n = self::normalizeNoteValue($value);
+            if ($n !== null) {
+                $parts[] = $label.' '.$n;
+            }
+        };
+
+        $push('BP', $fields['vital_blood_pressure'] ?? null);
+        $push('HR', $fields['vital_heart_rate'] ?? null);
+        $push('Temp', $fields['vital_temperature'] ?? null);
+        $push('RR', $fields['vital_respiratory_rate'] ?? null);
+        $push('SpO2', $fields['vital_oxygen_saturation'] ?? null);
+        $push('Wt', $fields['vital_weight'] ?? null);
+        $push('Ht', $fields['vital_height'] ?? null);
+
+        return $parts;
+    }
+
+    /**
+     * @return array<string, array<string, string|null>|list<array<string, string|null>>>
+     */
+    public static function emptyVitalSigns(): array
+    {
+        $empty = [];
+        foreach (self::vitalSignPhases() as $phase) {
+            $empty[$phase] = self::emptyVitalPhase();
+        }
+        $empty['extra'] = [];
+
+        return $empty;
+    }
+
+    /**
+     * @return array<string, array<string, string|null>|list<array<string, string|null>>>
+     */
+    public function resolvedVitalSigns(): array
+    {
+        $result = self::emptyVitalSigns();
+        $stored = is_array($this->vital_signs) ? $this->vital_signs : [];
+        $hasStored = false;
+
+        foreach (self::vitalSignPhases() as $phase) {
+            $phaseData = is_array($stored[$phase] ?? null) ? $stored[$phase] : [];
+            foreach (self::vitalSignFieldKeys() as $key) {
+                $normalized = self::normalizeNoteValue($phaseData[$key] ?? null);
+                $result[$phase][$key] = $normalized;
+                if ($normalized !== null) {
+                    $hasStored = true;
+                }
+            }
+        }
+
+        $result['extra'] = self::normalizeExtraReadings($stored['extra'] ?? []);
+        if ($result['extra'] !== []) {
+            $hasStored = true;
+        }
+
+        if ($hasStored) {
+            return $result;
+        }
+
+        foreach (self::vitalSignFieldKeys() as $key) {
+            $result['before'][$key] = self::normalizeNoteValue($this->{$key} ?? null);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<int, mixed>|null  $input
+     * @return list<array<string, string|null>>
+     */
+    public static function normalizeExtraReadings(mixed $input): array
+    {
+        if (! is_array($input)) {
+            return [];
+        }
+
+        $readings = [];
+        foreach ($input as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $reading = self::emptyVitalPhase();
+            $id = trim((string) ($row['id'] ?? ''));
+            $reading['id'] = $id !== '' ? substr($id, 0, 64) : null;
+            $reading['time'] = self::normalizeNoteValue($row['time'] ?? null);
+            $hasValue = $reading['time'] !== null;
+            foreach (self::vitalSignFieldKeys() as $key) {
+                $reading[$key] = self::normalizeNoteValue($row[$key] ?? null);
+                if ($reading[$key] !== null) {
+                    $hasValue = true;
+                }
+            }
+
+            if ($hasValue) {
+                $readings[] = $reading;
+            }
+        }
+
+        return $readings;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $input
+     * @return array<string, array<string, string|null>|list<array<string, string|null>>>
+     */
+    public static function normalizeVitalSignsInput(?array $input, ?self $existing): array
+    {
+        $base = $existing?->resolvedVitalSigns() ?? self::emptyVitalSigns();
+        if ($input === null) {
+            return $base;
+        }
+
+        foreach (self::vitalSignPhases() as $phase) {
+            if (! is_array($input[$phase] ?? null)) {
+                continue;
+            }
+            foreach (self::vitalSignFieldKeys() as $key) {
+                if (array_key_exists($key, $input[$phase])) {
+                    $base[$phase][$key] = self::normalizeNoteValue($input[$phase][$key]);
+                }
+            }
+        }
+
+        if (array_key_exists('extra', $input)) {
+            $base['extra'] = self::normalizeExtraReadings($input['extra']);
+        }
+
+        return $base;
+    }
+
+    /**
+     * Overlay legacy flat vital_* request fields onto the "before" phase.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, array<string, string|null>>
+     */
+    public static function mergeLegacyVitalSignsIntoPhases(array $validated, ?self $existing): array
+    {
+        $base = $existing?->resolvedVitalSigns() ?? self::emptyVitalSigns();
+        foreach (self::vitalSignFieldKeys() as $key) {
+            if (array_key_exists($key, $validated)) {
+                $base['before'][$key] = self::normalizeNoteValue($validated[$key]);
+            }
+        }
+
+        return $base;
+    }
+
+    /**
+     * Copy the first populated phase into the legacy flat columns.
+     *
+     * @param  array<string, array<string, string|null>>  $phased
+     * @return array<string, string|null>
+     */
+    public static function flattenPrimaryVitalSigns(array $phased): array
+    {
+        foreach (self::vitalSignPhases() as $phase) {
+            $phaseData = is_array($phased[$phase] ?? null) ? $phased[$phase] : [];
+            foreach (self::vitalSignFieldKeys() as $key) {
+                if (self::normalizeNoteValue($phaseData[$key] ?? null) !== null) {
+                    $flat = [];
+                    foreach (self::vitalSignFieldKeys() as $field) {
+                        $flat[$field] = self::normalizeNoteValue($phaseData[$field] ?? null);
+                    }
+
+                    return $flat;
+                }
+            }
+        }
+
+        foreach ($phased['extra'] ?? [] as $reading) {
+            if (! is_array($reading)) {
+                continue;
+            }
+            foreach (self::vitalSignFieldKeys() as $key) {
+                if (self::normalizeNoteValue($reading[$key] ?? null) !== null) {
+                    $flat = [];
+                    foreach (self::vitalSignFieldKeys() as $field) {
+                        $flat[$field] = self::normalizeNoteValue($reading[$field] ?? null);
+                    }
+
+                    return $flat;
+                }
+            }
+        }
+
+        return self::emptyVitalPhase();
+    }
+
+    /**
+     * @param  array<string, mixed>  $phased
+     */
+    public static function vitalSignsHaveValues(array $phased): bool
+    {
+        foreach (self::vitalSignPhases() as $phase) {
+            $fields = is_array($phased[$phase] ?? null) ? $phased[$phase] : [];
+            foreach (self::vitalSignFieldKeys() as $key) {
+                if (self::normalizeNoteValue($fields[$key] ?? null) !== null) {
+                    return true;
+                }
+            }
+        }
+
+        return self::normalizeExtraReadings($phased['extra'] ?? []) !== [];
     }
 
     /**
@@ -780,7 +1030,7 @@ class AppointmentNote extends Model
         ?array $sectionAuthors,
         string $fieldKey,
         ?Patient $patient,
-        ?Doctor $doctor,
+        ?ClinicalStaff $doctor,
     ): ?string {
         $authors = is_array($sectionAuthors) ? $sectionAuthors : [];
         $raw = $authors[$fieldKey] ?? null;

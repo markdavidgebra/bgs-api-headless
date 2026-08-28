@@ -8,10 +8,10 @@ use App\Models\AppointmentNote;
 use App\Models\AppointmentPayment;
 use App\Models\AppointmentTimeline;
 use App\Models\Blog;
-use App\Models\Doctor;
-use App\Models\DoctorBlockedDate;
-use App\Models\DoctorNotification;
-use App\Models\DoctorWeeklySchedule;
+use App\Models\ClinicalStaff;
+use App\Models\ClinicalStaffBlockedDate;
+use App\Models\ClinicalStaffNotification;
+use App\Models\ClinicalStaffWeeklySchedule;
 use App\Models\Faq;
 use App\Models\MembershipPlan;
 use App\Models\Patient;
@@ -41,7 +41,7 @@ class DemoDataSeeder extends Seeder
     public function run(): void
     {
         $services = Service::factory()->count(8)->create();
-        $doctors = Doctor::factory()->count(4)->create();
+        $doctors = ClinicalStaff::factory()->count(4)->create();
         $patients = Patient::factory()->count(15)->create();
 
         About::factory()->count(2)->create();
@@ -106,14 +106,14 @@ class DemoDataSeeder extends Seeder
         Payment::factory()->count(4)->create();
 
         foreach (range(1, 8) as $_) {
-            DoctorNotification::factory()->create([
+            ClinicalStaffNotification::factory()->create([
                 'doctor_id' => $doctors->random()->id,
             ]);
         }
 
         foreach ($doctors as $doctor) {
             for ($weekday = 1; $weekday <= 7; $weekday++) {
-                DoctorWeeklySchedule::factory()->create([
+                ClinicalStaffWeeklySchedule::factory()->create([
                     'doctor_id' => $doctor->id,
                     'weekday' => $weekday,
                     'is_active' => $weekday <= 5,
@@ -124,7 +124,7 @@ class DemoDataSeeder extends Seeder
         }
 
         foreach (range(1, 6) as $dayOffset) {
-            DoctorBlockedDate::factory()->create([
+            ClinicalStaffBlockedDate::factory()->create([
                 'doctor_id' => $doctors->random()->id,
                 'blocked_date' => now()->addDays($dayOffset * 4)->format('Y-m-d'),
             ]);
@@ -154,7 +154,7 @@ class DemoDataSeeder extends Seeder
     /**
      * @param  Collection<int, TreatmentPackage>  $treatmentPackages
      * @param  Collection<int, Service>  $services
-     * @param  Collection<int, Doctor>  $doctors
+     * @param  Collection<int, ClinicalStaff>  $doctors
      */
     private function attachTreatmentPackageRelations(
         Collection $treatmentPackages,

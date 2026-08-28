@@ -55,7 +55,7 @@ class PosController extends Controller
         $request->session()->regenerate();
 
         $admin = Auth::guard('admin')->user();
-        if (! $admin || ! in_array((string) $admin->role, ['admin', 'cashier'], true)) {
+        if (! $admin || ! in_array((string) $admin->role, ['admin', 'cashier', 'manager', 'super admin', 'superadmin'], true)) {
             Auth::guard('admin')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

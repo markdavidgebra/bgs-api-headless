@@ -7,7 +7,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\AppointmentPayment;
 use App\Models\AppointmentTimeline;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Inquiry;
 use App\Models\Patient;
 use App\Models\Payment;
@@ -38,6 +38,7 @@ trait AdminPortalResponses
             'initial' => $admin->initial,
             'approved_at' => $admin->approved_at?->toIso8601String(),
             'permissions' => AdminPermissions::forAdmin($admin),
+            'can_approve_appointments' => AdminPermissions::canApproveAppointments($admin),
         ];
     }
 
@@ -166,7 +167,7 @@ trait AdminPortalResponses
     /**
      * @return array<string, mixed>
      */
-    protected function doctorPayload(Doctor $doctor): array
+    protected function doctorPayload(ClinicalStaff $doctor): array
     {
         return [
             'id' => $doctor->id,
@@ -194,7 +195,7 @@ trait AdminPortalResponses
      *
      * @return array<string, mixed>
      */
-    protected function doctorShowPayload(Doctor $doctor): array
+    protected function doctorShowPayload(ClinicalStaff $doctor): array
     {
         $payload = $this->doctorPayload($doctor);
 
@@ -216,7 +217,7 @@ trait AdminPortalResponses
             : [];
 
         $payload['recent_appointments_sample'] = Appointment::query()
-            ->where('doctor_id', $doctor->id)
+            ->where('clinical_staff_id', $doctor->id)
             ->with('patient:id,name')
             ->orderByDesc('appointment_date')
             ->orderByDesc('appointment_time')

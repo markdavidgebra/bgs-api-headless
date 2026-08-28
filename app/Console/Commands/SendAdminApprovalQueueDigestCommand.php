@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Mail\AdminApprovalQueueDigestMail;
 use App\Models\Admin;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Patient;
 use App\Support\AdminNotificationRecipients;
 use Illuminate\Console\Command;
@@ -19,7 +19,7 @@ class SendAdminApprovalQueueDigestCommand extends Command
     public function handle(): int
     {
         $pendingPatients = Patient::query()->where('status', 'pending')->count();
-        $pendingDoctors = Doctor::query()->where('status', 'pending')->count();
+        $pendingDoctors = ClinicalStaff::query()->where('status', 'pending')->count();
         $draftStaff = Admin::query()->where('status', 'draft')->count();
 
         $regEmails = AdminNotificationRecipients::emailsForPermission('registrations.manage');

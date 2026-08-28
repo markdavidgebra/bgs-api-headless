@@ -367,7 +367,7 @@
                   <h3 class="card-title mb-3">Assigned doctors</h3>
                   <div class="datagrid mb-0">
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Doctors</div>
+                      <div class="datagrid-title">Clinical staff</div>
                       <div class="datagrid-content">
                         @forelse ($package->doctors as $doc)
                           <div>{{ $doc->name }}</div>

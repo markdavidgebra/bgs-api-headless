@@ -23,7 +23,7 @@
                                         <a href="{{ route('about') }}">About</a>
                                     </li>
                                     <li>
-                                        <a href="{{ route('doctor') }}">Doctors</a>
+                                        <a href="{{ route('doctor') }}">Clinical staff</a>
                                         
                                     </li>
                                     <li>

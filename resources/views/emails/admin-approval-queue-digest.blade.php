@@ -8,7 +8,7 @@
   <p>{{ __('Summary of items that may need your attention:') }}</p>
   <ul>
     <li>{{ __('Pending patient registrations') }}: <strong>{{ $pendingPatients }}</strong></li>
-    <li>{{ __('Pending doctor accounts') }}: <strong>{{ $pendingDoctors }}</strong></li>
+    <li>{{ __('Pending clinical staff accounts') }}: <strong>{{ $pendingDoctors }}</strong></li>
     <li>{{ __('Draft staff accounts (awaiting approval)') }}: <strong>{{ $draftStaff }}</strong></li>
   </ul>
   @if ($pendingPatients > 0)

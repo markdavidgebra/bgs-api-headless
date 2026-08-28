@@ -9,11 +9,12 @@ use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\AppointmentPayment;
 use App\Models\AppointmentTimeline;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Service;
 use App\Notifications\Patient\AppointmentBookedPatientNotification;
 use App\Rules\BookableAppointmentDate;
-use App\Support\DoctorAppointmentAlerts;
+use App\Support\AdminPermissions;
+use App\Support\ClinicalStaffAppointmentAlerts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -135,7 +136,7 @@ class AdminAppointmentsController extends Controller
                 'duration_minutes' => $s->duration_minutes !== null ? (int) $s->duration_minutes : null,
                 'price' => $s->price !== null ? (float) $s->price : null,
             ])->values(),
-            'doctors' => $doctors->map(fn (Doctor $d) => [
+            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -158,7 +159,7 @@ class AdminAppointmentsController extends Controller
             ->get(['id', 'name', 'specialty']);
 
         return response()->json([
-            'doctors' => $doctors->map(fn (Doctor $d) => [
+            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -175,7 +176,7 @@ class AdminAppointmentsController extends Controller
         $data = $request->validate([
             'patient_id' => ['required', 'integer', 'exists:users,id'],
             'service_id' => ['required', 'integer', 'exists:services,id'],
-            'doctor_id' => ['required', 'integer', 'exists:doctors,id'],
+            'doctor_id' => ['required', 'integer', 'exists:clinical_staff,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
             'status' => ['nullable', 'in:pending,confirmed'],
@@ -187,13 +188,17 @@ class AdminAppointmentsController extends Controller
             ->exists()
         ) {
             throw ValidationException::withMessages([
-                'doctor_id' => 'This doctor is not available on the selected date for the selected service.',
+                'doctor_id' => 'This clinical staff member is not available on the selected date for the selected service.',
             ]);
         }
 
         $admin = $request->user('admin');
+        $isManager = AdminPermissions::canApproveAppointments($admin);
+        $status = $isManager
+            ? ($data['status'] ?? 'confirmed')
+            : 'pending';
 
-        $appointment = DB::transaction(function () use ($data, $admin) {
+        $appointment = DB::transaction(function () use ($data, $admin, $status) {
             $appointment = Appointment::create([
                 'appointment_no' => $this->generateAppointmentNo(),
                 'patient_id' => (int) $data['patient_id'],
@@ -201,7 +206,7 @@ class AdminAppointmentsController extends Controller
                 'service_id' => (int) $data['service_id'],
                 'appointment_date' => $data['appointment_date'],
                 'appointment_time' => $data['appointment_time'],
-                'status' => $data['status'] ?? 'confirmed',
+                'status' => $status,
                 'created_by' => $admin?->id,
             ]);
 
@@ -224,7 +229,7 @@ class AdminAppointmentsController extends Controller
             if ($appointment->patient) {
                 Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
             }
-            DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+            ClinicalStaffAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
         } catch (\Throwable $e) {
             report($e);
         }
@@ -268,6 +273,35 @@ class AdminAppointmentsController extends Controller
             'note' => $note ? $this->appointmentNotePayload($note) : null,
             'payment' => $payment ? $this->appointmentPaymentPayload($payment) : null,
             'timelines' => $timelines->map(fn ($t) => $this->appointmentTimelinePayload($t))->values(),
+        ]);
+    }
+
+    public function approve(int $id): JsonResponse
+    {
+        $admin = request()->user('admin');
+        if (! AdminPermissions::canApproveAppointments($admin)) {
+            return response()->json([
+                'message' => __('Only a manager can approve appointments.'),
+            ], 403);
+        }
+
+        $appointment = Appointment::query()->findOrFail($id);
+        $status = strtolower((string) ($appointment->status ?? ''));
+        if (! in_array($status, ['pending', 'rescheduled'], true)) {
+            return response()->json([
+                'message' => __('This appointment cannot be approved.'),
+            ], 422);
+        }
+
+        $appointment->update([
+            'status' => 'confirmed',
+            'updated_by' => $admin?->id,
+        ]);
+        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+
+        return response()->json([
+            'message' => __('Appointment approved successfully.'),
+            'appointment' => $this->appointmentPayload($appointment, true),
         ]);
     }
 }

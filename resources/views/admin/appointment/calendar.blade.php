@@ -181,7 +181,7 @@
                       <th>Time</th>
                       <th>Patient</th>
                       <th>Procedure</th>
-                      <th>Doctor</th>
+                      <th>Clinical staff</th>
                       <th>Status</th>
                       <th class="w-1"></th>
                     </tr>

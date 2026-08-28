@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,7 +58,7 @@ class ServicesController extends Controller
 
     public function create(): View
     {
-        $doctors = Doctor::query()->orderBy('name')->get(['id', 'name']);
+        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.services.create', compact('doctors'));
     }
@@ -74,7 +74,7 @@ class ServicesController extends Controller
         $featuredChecked = old('is_featured') === '1' || (old('is_featured') === null && $service->is_featured && ! session()->has('errors'));
         $bookableChecked = old('is_bookable') === '1' || (old('is_bookable') === null && $service->is_bookable && ! session()->has('errors'));
 
-        $doctors = Doctor::query()->orderBy('name')->get(['id', 'name']);
+        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.services.edit', compact('service', 'doctors', 'draftName', 'oldSlug', 'status', 'badge', 'featuredChecked', 'bookableChecked'));
     }
@@ -106,7 +106,7 @@ class ServicesController extends Controller
             'after_care' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'assigned_doctors' => ['nullable', 'array'],
-            'assigned_doctors.*' => ['integer', 'exists:doctors,id'],
+            'assigned_doctors.*' => ['integer', 'exists:clinical_staff,id'],
         ]);
 
         $slug = Str::slug((string) ($validated['slug'] ?? '')) !== ''
@@ -179,7 +179,7 @@ class ServicesController extends Controller
             'after_care' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'assigned_doctors' => ['nullable', 'array'],
-            'assigned_doctors.*' => ['integer', 'exists:doctors,id'],
+            'assigned_doctors.*' => ['integer', 'exists:clinical_staff,id'],
         ]);
 
         $slug = Str::slug((string) ($validated['slug'] ?? '')) !== ''

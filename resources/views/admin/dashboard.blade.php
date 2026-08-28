@@ -63,7 +63,7 @@
                     ['id' => 'revenue_snapshot', 'label' => 'Revenue snapshot'],
                     ['id' => 'appointments_status', 'label' => 'Appointments by status'],
                     ['id' => 'membership_overview', 'label' => 'Membership overview'],
-                    ['id' => 'doctor_activity', 'label' => 'Doctor activity today'],
+                    ['id' => 'doctor_activity', 'label' => 'Clinical staff activity today'],
                     ['id' => 'top_services', 'label' => 'Top services'],
                     ['id' => 'recent_payments', 'label' => 'Recent payments'],
                     ['id' => 'new_patients', 'label' => 'New patients'],
@@ -182,7 +182,7 @@
                   <tr>
                     <th>Patient</th>
                     <th>Service</th>
-                    <th>Doctor</th>
+                    <th>Clinical staff</th>
                     <th>Time</th>
                     <th>Status</th>
                   </tr>
@@ -328,11 +328,11 @@
           </div>
         </div>
 
-        {{-- Doctor activity (today) --}}
+        {{-- Clinical staff activity (today) --}}
         <div class="col-12 col-md dashboard-widget" data-dashboard-widget="doctor_activity">
           <div class="card h-100">
             <div class="card-header">
-              <h3 class="card-title">Doctor activity today</h3>
+              <h3 class="card-title">Clinical staff activity today</h3>
             </div>
             <div class="card-body">
               <div class="text-secondary small mb-2">
@@ -342,7 +342,7 @@
               <div class="table-responsive">
                 <table class="table table-sm table-vcenter mb-0">
                   <thead>
-                    <tr><th>Doctor</th><th class="text-end">Today</th></tr>
+                    <tr><th>Clinical staff</th><th class="text-end">Today</th></tr>
                   </thead>
                   <tbody>
                     @forelse ($doctorActivityToday as $dr)

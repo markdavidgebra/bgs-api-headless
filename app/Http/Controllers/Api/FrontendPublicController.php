@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\About;
 use App\Models\Blog;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Faq;
 use App\Models\Inquiry;
 use App\Models\MembershipPlan;
@@ -35,7 +35,7 @@ class FrontendPublicController extends Controller
 {
     public function home(): JsonResponse
     {
-        $homeDoctors = Doctor::query()
+        $homeDoctors = ClinicalStaff::query()
             ->where('status', 'active')
             ->orderByRaw('CASE WHEN image_path IS NULL OR image_path = "" THEN 1 ELSE 0 END')
             ->orderBy('name')
@@ -111,7 +111,7 @@ class FrontendPublicController extends Controller
 
     public function doctors(): JsonResponse
     {
-        $doctors = Doctor::query()
+        $doctors = ClinicalStaff::query()
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
@@ -271,7 +271,7 @@ class FrontendPublicController extends Controller
                 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
-                Rule::unique('doctors', 'email'),
+                Rule::unique('clinical_staff', 'email'),
             ],
             'birthdate' => ['required', 'date', 'before_or_equal:today'],
             'gender' => ['required', 'string', Rule::in(['male', 'female'])],

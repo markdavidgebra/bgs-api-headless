@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AliasesLegacyStaffId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,10 +14,12 @@ class Appointment extends Model
 {
     /** @use HasFactory<\Database\Factories\AppointmentFactory> */
     use HasFactory;
+    use AliasesLegacyStaffId;
 
     protected $fillable = [
         'appointment_no',
         'patient_id',
+        'clinical_staff_id',
         'doctor_id',
         'service_id',
         'appointment_date',
@@ -42,7 +45,7 @@ class Appointment extends Model
 
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(ClinicalStaff::class, 'clinical_staff_id');
     }
 
     public function service(): BelongsTo

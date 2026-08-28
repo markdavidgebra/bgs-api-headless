@@ -98,7 +98,7 @@ class PageHeadersController extends Controller
 
     public function editDoctor(): View
     {
-        return view('admin.page-headers.doctor', [
+        return view('admin.page-headers.clinical-staff', [
             'currentPath' => PageHeaderConfig::doctorBackgroundStoredPath(),
             'previewUrl' => PageHeaderConfig::doctorBackgroundUrl(),
         ]);
@@ -111,7 +111,7 @@ class PageHeadersController extends Controller
             PageHeaderConfig::DOCTOR_BACKGROUND_KEY,
             'doctor-header',
             'admin.page-headers.doctor',
-            __('Doctors page header image updated.')
+            __('Clinical staff page header image updated.')
         );
     }
 
@@ -120,13 +120,13 @@ class PageHeadersController extends Controller
         return $this->resetBackground(
             PageHeaderConfig::DOCTOR_BACKGROUND_KEY,
             'admin.page-headers.doctor',
-            __('Doctors page header reset to default image.')
+            __('Clinical staff page header reset to default image.')
         );
     }
 
     public function editDoctorDetails(): View
     {
-        return view('admin.page-headers.doctor-details', [
+        return view('admin.page-headers.clinical-staff-details', [
             'currentPath' => PageHeaderConfig::doctorDetailsBackgroundStoredPath(),
             'previewUrl' => PageHeaderConfig::doctorDetailsBackgroundUrl(),
         ]);
@@ -139,7 +139,7 @@ class PageHeadersController extends Controller
             PageHeaderConfig::DOCTOR_DETAILS_BACKGROUND_KEY,
             'doctor-details-header',
             'admin.page-headers.doctor-details',
-            __('Doctor details page header image updated.')
+            __('Clinical staff details page header image updated.')
         );
     }
 
@@ -148,7 +148,7 @@ class PageHeadersController extends Controller
         return $this->resetBackground(
             PageHeaderConfig::DOCTOR_DETAILS_BACKGROUND_KEY,
             'admin.page-headers.doctor-details',
-            __('Doctor details page header reset to default image.')
+            __('Clinical staff details page header reset to default image.')
         );
     }
 

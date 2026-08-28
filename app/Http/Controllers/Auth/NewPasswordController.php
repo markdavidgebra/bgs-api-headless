@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Patient;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
@@ -61,7 +61,7 @@ class NewPasswordController extends Controller
         if ($status !== Password::PASSWORD_RESET) {
             $status = Password::broker('doctors')->reset(
                 $credentials,
-                function (Doctor $doctor) use ($resetPassword) {
+                function (ClinicalStaff $doctor) use ($resetPassword) {
                     $resetPassword($doctor);
                 }
             );

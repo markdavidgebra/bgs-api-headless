@@ -14,7 +14,7 @@ class Service extends Model
 
     public function doctors(): BelongsToMany
     {
-        return $this->belongsToMany(Doctor::class, 'doctor_service')->withTimestamps();
+        return $this->belongsToMany(ClinicalStaff::class, 'clinical_staff_service', 'service_id', 'clinical_staff_id')->withTimestamps();
     }
 
     /**

@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\AppointmentPayment;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Patient;
 use App\Models\PatientSubscription;
 use App\Models\Payment;
@@ -21,7 +21,7 @@ use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
 use App\Notifications\Patient\PatientPasswordResetLinkSentNotification;
 use App\Rules\BookableAppointmentDate;
 use App\Support\AppointmentBookingRules;
-use App\Support\DoctorAppointmentAlerts;
+use App\Support\ClinicalStaffAppointmentAlerts;
 use App\Support\PatientLogin;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -394,7 +394,7 @@ class PatientPortalController extends Controller
                 'unit' => (string) ($p->unit ?? ''),
                 'in_stock' => (int) ($p->stock_quantity ?? 0) > 0,
             ])->values(),
-            'doctors' => $doctors->map(fn (Doctor $d) => [
+            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -420,7 +420,7 @@ class PatientPortalController extends Controller
             ->get(['id', 'name', 'specialty']);
 
         return response()->json([
-            'doctors' => $doctors->map(fn (Doctor $d) => [
+            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -438,7 +438,7 @@ class PatientPortalController extends Controller
             'package_ids.*' => ['integer', 'exists:treatment_packages,id'],
             'product_ids' => ['nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
-            'doctor_id' => ['required', 'exists:doctors,id'],
+            'doctor_id' => ['required', 'exists:clinical_staff,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
             'patient_concern' => ['nullable', 'string', 'max:2000'],
@@ -481,7 +481,7 @@ class PatientPortalController extends Controller
             ->exists()
         ) {
             throw ValidationException::withMessages([
-                'doctor_id' => 'This doctor is not available on the selected date for the selected service(s).',
+                'doctor_id' => 'This clinical staff member is not available on the selected date for the selected service(s).',
             ]);
         }
 
@@ -555,7 +555,7 @@ class PatientPortalController extends Controller
                 if ($appointment->patient) {
                     Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
                 }
-                DoctorAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+                ClinicalStaffAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
             } catch (\Throwable $e) {
                 report($e);
             }
@@ -842,7 +842,7 @@ class PatientPortalController extends Controller
                 'description' => (string) ($treatment->description ?? ''),
                 'aftercare' => (string) ($treatment->aftercare ?? ''),
                 'price' => $treatment->price !== null ? (float) $treatment->price : null,
-                'doctors' => $treatment->doctors->map(fn (Doctor $d) => [
+                'doctors' => $treatment->doctors->map(fn (ClinicalStaff $d) => [
                     'id' => (int) $d->id,
                     'name' => (string) $d->name,
                 ])->values(),

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\About;
 use App\Models\Blog;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Faq;
 use App\Models\MembershipPlan;
 use App\Models\Product;
@@ -118,14 +118,14 @@ class FrontEndController extends Controller
 
     public function doctor(): View
     {
-        return view('frontend.pages.doctors.doctor', [
+        return view('frontend.pages.clinical-staff.clinical-staff', [
             'doctorPageHeaderBgUrl' => PageHeaderConfig::doctorBackgroundUrl(),
         ]);
     }
 
     public function doctorDetails(): View
     {
-        return view('frontend.pages.doctors.doctor-details', [
+        return view('frontend.pages.clinical-staff.clinical-staff-details', [
             'doctorDetailsPageHeaderBgUrl' => PageHeaderConfig::doctorDetailsBackgroundUrl(),
         ]);
     }
@@ -156,7 +156,7 @@ class FrontEndController extends Controller
 
     public function index(): View
     {
-        $homeDoctors = Doctor::query()
+        $homeDoctors = ClinicalStaff::query()
             ->where('status', 'active')
             ->orderByRaw('CASE WHEN image_path IS NULL OR image_path = "" THEN 1 ELSE 0 END')
             ->orderBy('name')

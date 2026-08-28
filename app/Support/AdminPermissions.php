@@ -27,7 +27,7 @@ class AdminPermissions
                 ['key' => 'inquiries.manage', 'label' => 'Inquiries'],
                 ['key' => 'registrations.manage', 'label' => 'Registrations'],
                 ['key' => 'staff.manage', 'label' => 'Staff'],
-                ['key' => 'doctors.manage', 'label' => 'Doctors'],
+                ['key' => 'doctors.manage', 'label' => 'Clinical staff'],
                 ['key' => 'patients.view', 'label' => 'Patients (view only)'],
                 ['key' => 'patients.manage', 'label' => 'Patients (edit & clinical notes)'],
             ],
@@ -66,15 +66,45 @@ class AdminPermissions
         return in_array($permission, self::forAdmin($admin), true);
     }
 
+    public static function isFullAccess(?Admin $admin): bool
+    {
+        if (! $admin) {
+            return false;
+        }
+
+        return self::isFullAccessRole((string) ($admin->role ?? ''));
+    }
+
+    public static function isFullAccessRole(string $role): bool
+    {
+        return in_array(self::normalizeRole($role), ['super admin', 'superadmin', 'admin', 'manager'], true);
+    }
+
+    public static function isManagerRole(string $role): bool
+    {
+        return self::normalizeRole($role) === 'manager';
+    }
+
+    public static function isManager(?Admin $admin): bool
+    {
+        return $admin !== null && self::isManagerRole((string) ($admin->role ?? ''));
+    }
+
+    public static function canApproveAppointments(?Admin $admin): bool
+    {
+        return self::isManager($admin);
+    }
+
     /**
      * @return list<string>
      */
     public static function forAdmin(Admin $admin): array
     {
-        $role = self::normalizeRole((string) ($admin->role ?? ''));
-        if (in_array($role, ['super admin', 'superadmin', 'admin'], true)) {
+        if (self::isFullAccess($admin)) {
             return self::allKeys();
         }
+
+        $role = self::normalizeRole((string) ($admin->role ?? ''));
 
         $adminRole = AdminRole::query()->where('role_value', $role)->first();
         if (! $adminRole) {

@@ -85,7 +85,7 @@
                           <th>Time</th>
                           <th>No.</th>
                           <th>Service</th>
-                          <th>Doctor</th>
+                          <th>Clinical staff</th>
                           <th>Status</th>
                           <th class="w-1"></th>
                         </tr>
@@ -125,7 +125,7 @@
                       };
                       $noteSectionLabels = [
                           'patient_concern' => 'Patient concern',
-                          'doctor_notes' => 'Doctor notes',
+                          'doctor_notes' => 'Clinical notes',
                           'instructions' => 'Take home medications',
                           'alerts' => 'Allergy',
                           'appointment_remarks' => 'Post procedures',

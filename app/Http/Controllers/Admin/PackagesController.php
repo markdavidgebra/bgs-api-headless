@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Service;
 use App\Models\TreatmentPackage;
 use App\Models\TreatmentPackageUsageHistory;
@@ -50,7 +50,7 @@ class PackagesController extends Controller
     public function create(): View
     {
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
-        $doctors = Doctor::query()->orderBy('name')->get(['id', 'name']);
+        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.packages.create', compact('services', 'doctors'));
     }
@@ -103,7 +103,7 @@ class PackagesController extends Controller
             ->findOrFail($id);
 
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
-        $doctors = Doctor::query()->orderBy('name')->get(['id', 'name']);
+        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.packages.edit', compact('package', 'services', 'doctors'));
     }
@@ -216,7 +216,7 @@ class PackagesController extends Controller
             'expiry_rule' => ['nullable', 'string', 'in:after_purchase,after_first_use'],
             'max_usage_per_day' => ['nullable', 'integer', 'min:1'],
             'assigned_doctors' => ['nullable', 'array'],
-            'assigned_doctors.*' => ['integer', 'exists:doctors,id'],
+            'assigned_doctors.*' => ['integer', 'exists:clinical_staff,id'],
             'before_care' => ['nullable', 'string'],
             'aftercare' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],

@@ -63,7 +63,7 @@
                           <p class="mb-0">{{ $treatment?->category ?: '—' }}</p>
                         </div>
                         <div class="col-md-6 mb-15">
-                          <h6 class="text-muted font-sm text-uppercase mb-5">Doctor</h6>
+                          <h6 class="text-muted font-sm text-uppercase mb-5">Clinical staff</h6>
                           <p class="mb-0">{{ $doctorLabel }}</p>
                         </div>
                         <div class="col-md-6 mb-15">

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Models\Appointment;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Support\AppointmentBookingRules;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -22,7 +22,7 @@ trait BooksAppointments
      */
     protected function bookableDoctorsQuery(?string $appointmentDate = null, int|array|null $serviceId = null): Builder
     {
-        $q = Doctor::query()
+        $q = ClinicalStaff::query()
             ->where('status', 'active')
             ->whereHas('weeklySchedules', fn (Builder $sub) => $sub->where('is_active', true));
 
@@ -31,7 +31,7 @@ trait BooksAppointments
             : ($serviceId !== null ? [(int) $serviceId] : []);
 
         foreach ($serviceIds as $sid) {
-            if ($sid > 0 && DB::table('doctor_service')->where('service_id', $sid)->exists()) {
+            if ($sid > 0 && DB::table('clinical_staff_service')->where('service_id', $sid)->exists()) {
                 $q->whereHas('services', fn (Builder $sub) => $sub->where('services.id', $sid));
             }
         }

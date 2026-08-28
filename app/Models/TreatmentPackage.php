@@ -83,10 +83,10 @@ class TreatmentPackage extends Model
     public function doctors(): BelongsToMany
     {
         return $this->belongsToMany(
-            Doctor::class,
-            'treatment_doctor_package',
+            ClinicalStaff::class,
+            'treatment_clinical_staff_package',
             'treatment_package_id',
-            'doctor_id'
+            'clinical_staff_id'
         )->withTimestamps();
     }
 

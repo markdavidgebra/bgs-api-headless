@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\MembershipPlan;
 use App\Models\Patient;
 use App\Models\PatientSubscription;
@@ -303,10 +303,10 @@ class ReportsController extends Controller
         ];
 
         $byDoctor = (clone $base)
-            ->join('doctors', 'doctors.id', '=', 'appointments.doctor_id')
-            ->select('doctors.id', 'doctors.name')
+            ->join('clinical_staff', 'clinical_staff.id', '=', 'appointments.clinical_staff_id')
+            ->select('clinical_staff.id', 'clinical_staff.name')
             ->selectRaw('COUNT(appointments.id) as appointment_count')
-            ->groupBy('doctors.id', 'doctors.name')
+            ->groupBy('clinical_staff.id', 'clinical_staff.name')
             ->orderByDesc('appointment_count')
             ->limit(15)
             ->get();
@@ -318,7 +318,7 @@ class ReportsController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $doctors = Doctor::query()->orderBy('name')->get(['id', 'name']);
+        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
 
         $statusOptions = [
@@ -364,7 +364,7 @@ class ReportsController extends Controller
         }
 
         if ($request->filled('doctor_id')) {
-            $query->where('doctor_id', (int) $request->input('doctor_id'));
+            $query->where('clinical_staff_id', (int) $request->input('doctor_id'));
         }
 
         if ($request->filled('service_id')) {

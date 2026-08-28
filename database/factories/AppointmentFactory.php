@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Admin;
 use App\Models\Appointment;
-use App\Models\Doctor;
+use App\Models\ClinicalStaff;
 use App\Models\Patient;
 use App\Models\Service;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -21,7 +21,7 @@ class AppointmentFactory extends Factory
         return [
             'appointment_no' => 'APT-'.fake()->unique()->numerify('########'),
             'patient_id' => Patient::factory(),
-            'doctor_id' => Doctor::factory(),
+            'doctor_id' => ClinicalStaff::factory(),
             'service_id' => Service::factory(),
             'appointment_date' => fake()->dateTimeBetween('now', '+2 months')->format('Y-m-d'),
             'appointment_time' => fake()->time('H:i:s'),

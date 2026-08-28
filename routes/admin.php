@@ -13,8 +13,8 @@ use App\Http\Controllers\Admin\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Admin\Auth\VerifyEmailController;
 use App\Http\Controllers\Admin\BlogsController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\DoctorRolesController;
-use App\Http\Controllers\Admin\DoctorsController;
+use App\Http\Controllers\Admin\ClinicalStaffRolesController;
+use App\Http\Controllers\Admin\ClinicalStaffController;
 use App\Http\Controllers\Admin\FaqsController;
 use App\Http\Controllers\Admin\FooterSettingsController;
 use App\Http\Controllers\Admin\InquiriesController;
@@ -115,21 +115,21 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::post('staff/{id}/status', [StaffsController::class, 'updateStatus'])->name('staffs.status');
     });
     Route::middleware('admin_permission:doctors.manage')->group(function () {
-        Route::get('doctor-roles', [DoctorRolesController::class, 'index'])->name('doctor-roles.index');
-        Route::get('doctor-roles/create', [DoctorRolesController::class, 'create'])->name('doctor-roles.create');
-        Route::post('doctor-roles', [DoctorRolesController::class, 'store'])->name('doctor-roles.store');
-        Route::get('doctor-roles/{id}/edit', [DoctorRolesController::class, 'edit'])->name('doctor-roles.edit');
-        Route::put('doctor-roles/{id}', [DoctorRolesController::class, 'update'])->name('doctor-roles.update');
+        Route::get('doctor-roles', [ClinicalStaffRolesController::class, 'index'])->name('doctor-roles.index');
+        Route::get('doctor-roles/create', [ClinicalStaffRolesController::class, 'create'])->name('doctor-roles.create');
+        Route::post('doctor-roles', [ClinicalStaffRolesController::class, 'store'])->name('doctor-roles.store');
+        Route::get('doctor-roles/{id}/edit', [ClinicalStaffRolesController::class, 'edit'])->name('doctor-roles.edit');
+        Route::put('doctor-roles/{id}', [ClinicalStaffRolesController::class, 'update'])->name('doctor-roles.update');
 
-        Route::post('doctors/{id}/role', [DoctorsController::class, 'updateRole'])->name('doctors.role');
-        Route::get('doctors', [DoctorsController::class, 'index'])->name('doctors');
-        Route::get('doctors/create', [DoctorsController::class, 'create'])->name('doctors.create');
-        Route::post('doctors', [DoctorsController::class, 'store'])->name('doctors.store');
-        Route::get('doctors/{id}/edit', [DoctorsController::class, 'edit'])->name('doctors.edit');
-        Route::put('doctors/{id}', [DoctorsController::class, 'update'])->name('doctors.update');
-        Route::post('doctors/{id}/status', [DoctorsController::class, 'updateStatus'])->name('doctors.status');
-        Route::delete('doctors/{id}', [DoctorsController::class, 'destroy'])->name('doctors.destroy');
-        Route::get('doctors/{id}', [DoctorsController::class, 'show'])->name('doctors.show');
+        Route::post('doctors/{id}/role', [ClinicalStaffController::class, 'updateRole'])->name('doctors.role');
+        Route::get('doctors', [ClinicalStaffController::class, 'index'])->name('doctors');
+        Route::get('doctors/create', [ClinicalStaffController::class, 'create'])->name('doctors.create');
+        Route::post('doctors', [ClinicalStaffController::class, 'store'])->name('doctors.store');
+        Route::get('doctors/{id}/edit', [ClinicalStaffController::class, 'edit'])->name('doctors.edit');
+        Route::put('doctors/{id}', [ClinicalStaffController::class, 'update'])->name('doctors.update');
+        Route::post('doctors/{id}/status', [ClinicalStaffController::class, 'updateStatus'])->name('doctors.status');
+        Route::delete('doctors/{id}', [ClinicalStaffController::class, 'destroy'])->name('doctors.destroy');
+        Route::get('doctors/{id}', [ClinicalStaffController::class, 'show'])->name('doctors.show');
     });
     Route::middleware('admin_permission:patients.view,patients.manage')->group(function () {
         Route::get('patients', [PatientsController::class, 'index'])->name('patients');

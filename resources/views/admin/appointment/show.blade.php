@@ -63,7 +63,7 @@
         <div class="col-sm-6 col-lg-3">
           <div class="card">
             <div class="card-body">
-              <div class="subheader text-secondary">Doctor</div>
+              <div class="subheader text-secondary">Clinical staff</div>
               <div class="h3 mb-0 text-truncate" title="{{ $appointment->doctor->name ?? '—' }}">
                 {{ $appointment->doctor->name ?? '—' }}</div>
             </div>
@@ -116,7 +116,7 @@
                       <div class="datagrid-content">{{ $appointment->time_display }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Doctor</div>
+                      <div class="datagrid-title">Clinical staff</div>
                       <div class="datagrid-content">{{ $appointment->doctor->name ?? '—' }}</div>
                     </div>
                     <div class="datagrid-item">
@@ -234,7 +234,7 @@
                               </div>
                             </div>
                             <div class="datagrid-item">
-                              <div class="datagrid-title">Doctor notes</div>
+                              <div class="datagrid-title">Clinical notes</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->doctor_notes ?: '—' }}
                                 @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'doctor_notes', $appointment->patient, $appointment->doctor))
@@ -375,7 +375,7 @@
                       <div class="datagrid-content">{{ $appointment->service->name ?? '—' }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Doctor</div>
+                      <div class="datagrid-title">Clinical staff</div>
                       <div class="datagrid-content">{{ $appointment->doctor->name ?? '—' }}</div>
                     </div>
                   </div>

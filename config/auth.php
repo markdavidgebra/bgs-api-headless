@@ -79,7 +79,7 @@ return [
 
         'doctors' => [
             'driver' => 'eloquent',
-            'model' => env('DOCTOR_MODEL', App\Models\Doctor::class),
+            'model' => env('DOCTOR_MODEL', App\Models\ClinicalStaff::class),
         ],
 
         // 'users' => [

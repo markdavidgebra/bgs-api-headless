@@ -74,7 +74,7 @@
                   </tr>
                   <tr><td colspan="2" style="border-top: 1px solid #efdfe9; line-height:0;">&nbsp;</td></tr>
                   <tr>
-                    <td style="padding: 12px 0; font-size: 13px; color:#8a7a85;">Doctor</td>
+                    <td style="padding: 12px 0; font-size: 13px; color:#8a7a85;">Clinical staff</td>
                     <td style="padding: 12px 0; font-size: 14px; font-weight: 600; color:#2f232c; text-align:right;">{{ $appointment->doctor?->name ?? '—' }}</td>
                   </tr>
                 </table>

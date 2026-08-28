@@ -9,7 +9,7 @@
                 <ul class="mb-0">
                     <li>Appointment ID</li>
                     <li>Patient Name</li>
-                    <li>Doctor</li>
+                    <li>Clinical staff</li>
                     <li>Service</li>
                     <li>Date</li>
                     <li>Time</li>

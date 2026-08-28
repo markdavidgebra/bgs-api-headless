@@ -44,7 +44,7 @@ class RegisteredUserController extends Controller
                 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
-                Rule::unique('doctors', 'email'),
+                Rule::unique('clinical_staff', 'email'),
             ],
             'birthdate' => ['required', 'date', 'before_or_equal:today'],
             'gender' => ['required', 'string', Rule::in(['male', 'female', 'other'])],

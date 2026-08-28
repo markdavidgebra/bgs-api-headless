@@ -1,18 +1,18 @@
 <?php
 
-use App\Http\Controllers\Api\DoctorPortalController;
+use App\Http\Controllers\Api\ClinicalStaffPortalController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\PatientPortalController;
 use App\Http\Controllers\Api\PosController;
-use App\Http\Controllers\Doctor\DoctorAppointmentController;
-use App\Http\Controllers\Doctor\DoctorAvailabilityController;
-use App\Http\Controllers\Doctor\DoctorDashboardController;
-use App\Http\Controllers\Doctor\DoctorNotificationController;
-use App\Http\Controllers\Doctor\DoctorPatientRecordController;
-use App\Http\Controllers\Doctor\DoctorProductInventoryController;
-use App\Http\Controllers\Doctor\DoctorProfileController;
-use App\Http\Controllers\Doctor\DoctorServiceController;
-use App\Http\Controllers\Doctor\DoctorTreatmentNoteController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffAppointmentController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffAvailabilityController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffDashboardController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffNotificationController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffPatientRecordController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffProductInventoryController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffProfileController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffServiceController;
+use App\Http\Controllers\ClinicalStaff\ClinicalStaffTreatmentNoteController;
 use App\Http\Controllers\Frontend\ContactInquiryController;
 use App\Http\Controllers\Frontend\FrontEndController;
 use App\Http\Controllers\Patient\PatientAftercareInstructionController;
@@ -25,7 +25,7 @@ use App\Http\Controllers\Patient\PatientPaymentController;
 use App\Http\Controllers\Patient\PatientProfileController;
 use App\Http\Controllers\Patient\PatientPromotionController;
 use App\Http\Controllers\Patient\PatientTreatmentController;
-use App\Http\Middleware\EnsureDoctorPortalPermission;
+use App\Http\Middleware\EnsureClinicalStaffPortalPermission;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -114,19 +114,19 @@ Route::prefix('api')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Doctor portal JSON API (/api/doctor/*)
+| Clinical staff portal JSON API (/api/doctor/*)
 |--------------------------------------------------------------------------
 |
 | Session-based API for a React doctor portal (mirrors /doctor/* web routes).
 |
 */
 Route::prefix('api')->group(function () {
-    Route::get('doctor/clinical-images/{appointment}/{type}', [DoctorPortalController::class, 'clinicalImage'])
+    Route::get('doctor/clinical-images/{appointment}/{type}', [ClinicalStaffPortalController::class, 'clinicalImage'])
         ->middleware('signed')
         ->name('doctor.clinical-image');
 
     Route::middleware('throttle:10,1')->prefix('doctor')->group(function () {
-        Route::post('login', [DoctorPortalController::class, 'login']);
+        Route::post('login', [ClinicalStaffPortalController::class, 'login']);
     });
 
     Route::middleware([
@@ -135,64 +135,64 @@ Route::prefix('api')->group(function () {
         'doctor_approved',
         'verified',
     ])->prefix('doctor')->group(function () {
-        Route::post('logout', [DoctorPortalController::class, 'logout']);
-        Route::get('me', [DoctorPortalController::class, 'me']);
+        Route::post('logout', [ClinicalStaffPortalController::class, 'logout']);
+        Route::get('me', [ClinicalStaffPortalController::class, 'me']);
 
-        Route::middleware('doctor.permission:doctor.dashboard')->get('dashboard', [DoctorPortalController::class, 'dashboard']);
+        Route::middleware('doctor.permission:doctor.dashboard')->get('dashboard', [ClinicalStaffPortalController::class, 'dashboard']);
 
         Route::middleware('doctor.permission:doctor.appointments')->group(function () {
-            Route::get('appointments', [DoctorPortalController::class, 'appointmentsIndex']);
-            Route::get('appointments/{appointment}', [DoctorPortalController::class, 'appointmentShow']);
-            Route::get('appointments/{appointment}/notes-form', [DoctorPortalController::class, 'appointmentNotesForm']);
-            Route::post('appointments/{appointment}/approve', [DoctorPortalController::class, 'appointmentApprove']);
-            Route::post('appointments/{appointment}/start-session', [DoctorPortalController::class, 'appointmentStartSession']);
-            Route::post('appointments/{appointment}/complete', [DoctorPortalController::class, 'appointmentComplete']);
-            Route::post('appointments/{appointment}/session-done', [DoctorPortalController::class, 'appointmentSessionDone']);
-            Route::post('appointments/{appointment}/no-show', [DoctorPortalController::class, 'appointmentNoShow']);
-            Route::post('appointments/{appointment}/reschedule', [DoctorPortalController::class, 'appointmentReschedule']);
-            Route::post('appointments/{appointment}/treatment-progress', [DoctorPortalController::class, 'appointmentTreatmentProgress']);
-            Route::post('appointments/{appointment}/notes', [DoctorPortalController::class, 'appointmentNotes']);
-            Route::post('appointments/{appointment}/assessment', [DoctorPortalController::class, 'appointmentAssessment']);
-            Route::post('appointments/{appointment}/consent', [DoctorPortalController::class, 'appointmentConsent']);
+            Route::get('appointments', [ClinicalStaffPortalController::class, 'appointmentsIndex']);
+            Route::get('appointments/{appointment}', [ClinicalStaffPortalController::class, 'appointmentShow']);
+            Route::get('appointments/{appointment}/notes-form', [ClinicalStaffPortalController::class, 'appointmentNotesForm']);
+            Route::post('appointments/{appointment}/approve', [ClinicalStaffPortalController::class, 'appointmentApprove']);
+            Route::post('appointments/{appointment}/start-session', [ClinicalStaffPortalController::class, 'appointmentStartSession']);
+            Route::post('appointments/{appointment}/complete', [ClinicalStaffPortalController::class, 'appointmentComplete']);
+            Route::post('appointments/{appointment}/session-done', [ClinicalStaffPortalController::class, 'appointmentSessionDone']);
+            Route::post('appointments/{appointment}/no-show', [ClinicalStaffPortalController::class, 'appointmentNoShow']);
+            Route::post('appointments/{appointment}/reschedule', [ClinicalStaffPortalController::class, 'appointmentReschedule']);
+            Route::post('appointments/{appointment}/treatment-progress', [ClinicalStaffPortalController::class, 'appointmentTreatmentProgress']);
+            Route::post('appointments/{appointment}/notes', [ClinicalStaffPortalController::class, 'appointmentNotes']);
+            Route::post('appointments/{appointment}/assessment', [ClinicalStaffPortalController::class, 'appointmentAssessment']);
+            Route::post('appointments/{appointment}/consent', [ClinicalStaffPortalController::class, 'appointmentConsent']);
         });
 
         Route::middleware('doctor.permission:doctor.patient_records')->prefix('patient-records')->group(function () {
-            Route::get('/', [DoctorPortalController::class, 'patientRecordsIndex']);
-            Route::get('{patient}', [DoctorPortalController::class, 'patientRecordShow']);
-            Route::post('{patient}/notes', [DoctorPortalController::class, 'patientRecordStoreNote']);
-            Route::patch('{patient}/packages/{patientPackage}/sessions', [DoctorPortalController::class, 'patientRecordUpdatePackageSessions']);
+            Route::get('/', [ClinicalStaffPortalController::class, 'patientRecordsIndex']);
+            Route::get('{patient}', [ClinicalStaffPortalController::class, 'patientRecordShow']);
+            Route::post('{patient}/notes', [ClinicalStaffPortalController::class, 'patientRecordStoreNote']);
+            Route::patch('{patient}/packages/{patientPackage}/sessions', [ClinicalStaffPortalController::class, 'patientRecordUpdatePackageSessions']);
         });
 
         Route::middleware('doctor.permission:doctor.treatment_notes')->prefix('treatment-notes')->group(function () {
-            Route::get('/', [DoctorPortalController::class, 'treatmentNotesIndex']);
-            Route::get('{appointment}', [DoctorPortalController::class, 'treatmentNoteShow']);
+            Route::get('/', [ClinicalStaffPortalController::class, 'treatmentNotesIndex']);
+            Route::get('{appointment}', [ClinicalStaffPortalController::class, 'treatmentNoteShow']);
         });
 
         Route::middleware('doctor.permission:doctor.notifications')->prefix('notifications')->group(function () {
-            Route::get('/', [DoctorPortalController::class, 'notificationsIndex']);
-            Route::post('mark-all-read', [DoctorPortalController::class, 'notificationsMarkAllRead']);
-            Route::post('clear-read', [DoctorPortalController::class, 'notificationsClearRead']);
-            Route::get('{notification}', [DoctorPortalController::class, 'notificationShow']);
-            Route::patch('{notification}/read', [DoctorPortalController::class, 'notificationMarkRead']);
-            Route::delete('{notification}', [DoctorPortalController::class, 'notificationDestroy']);
+            Route::get('/', [ClinicalStaffPortalController::class, 'notificationsIndex']);
+            Route::post('mark-all-read', [ClinicalStaffPortalController::class, 'notificationsMarkAllRead']);
+            Route::post('clear-read', [ClinicalStaffPortalController::class, 'notificationsClearRead']);
+            Route::get('{notification}', [ClinicalStaffPortalController::class, 'notificationShow']);
+            Route::patch('{notification}/read', [ClinicalStaffPortalController::class, 'notificationMarkRead']);
+            Route::delete('{notification}', [ClinicalStaffPortalController::class, 'notificationDestroy']);
         });
 
-        Route::middleware('doctor.permission:doctor.products')->get('products', [DoctorPortalController::class, 'productsIndex']);
-        Route::middleware('doctor.permission:doctor.services')->get('services', [DoctorPortalController::class, 'servicesIndex']);
+        Route::middleware('doctor.permission:doctor.products')->get('products', [ClinicalStaffPortalController::class, 'productsIndex']);
+        Route::middleware('doctor.permission:doctor.services')->get('services', [ClinicalStaffPortalController::class, 'servicesIndex']);
 
         Route::middleware('doctor.permission:doctor.profile')->group(function () {
-            Route::get('profile', [DoctorPortalController::class, 'profileShow']);
-            Route::patch('profile', [DoctorPortalController::class, 'profileUpdate']);
-            Route::put('profile/password', [DoctorPortalController::class, 'profileUpdatePassword']);
+            Route::get('profile', [ClinicalStaffPortalController::class, 'profileShow']);
+            Route::patch('profile', [ClinicalStaffPortalController::class, 'profileUpdate']);
+            Route::put('profile/password', [ClinicalStaffPortalController::class, 'profileUpdatePassword']);
         });
 
         Route::middleware('doctor.permission:doctor.availability')->prefix('availability')->group(function () {
-            Route::get('/', [DoctorPortalController::class, 'availabilityIndex']);
-            Route::get('weekday/{weekday}', [DoctorPortalController::class, 'availabilityWeekday'])->whereNumber('weekday');
-            Route::patch('weekday/{weekday}', [DoctorPortalController::class, 'availabilityUpdateWeekday'])->whereNumber('weekday');
-            Route::post('weekday/{weekday}/toggle', [DoctorPortalController::class, 'availabilityToggleDay'])->whereNumber('weekday');
-            Route::post('blocked-dates', [DoctorPortalController::class, 'availabilityStoreBlockedDate']);
-            Route::delete('blocked-dates/{blockedDate}', [DoctorPortalController::class, 'availabilityDestroyBlockedDate']);
+            Route::get('/', [ClinicalStaffPortalController::class, 'availabilityIndex']);
+            Route::get('weekday/{weekday}', [ClinicalStaffPortalController::class, 'availabilityWeekday'])->whereNumber('weekday');
+            Route::patch('weekday/{weekday}', [ClinicalStaffPortalController::class, 'availabilityUpdateWeekday'])->whereNumber('weekday');
+            Route::post('weekday/{weekday}/toggle', [ClinicalStaffPortalController::class, 'availabilityToggleDay'])->whereNumber('weekday');
+            Route::post('blocked-dates', [ClinicalStaffPortalController::class, 'availabilityStoreBlockedDate']);
+            Route::delete('blocked-dates/{blockedDate}', [ClinicalStaffPortalController::class, 'availabilityDestroyBlockedDate']);
         });
     });
 });
@@ -319,49 +319,49 @@ Route::group(['middleware' => ['prevent_cross_guard:web', 'auth:web', 'verified'
 
 /*
 *==========================
-* Doctor Dashboard Route
+* Clinical Staff Dashboard Route
 *==========================
 */
 
-Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doctor_approved', EnsureDoctorPortalPermission::class, 'verified'], 'prefix' => 'doctor', 'as' => 'doctor.'], function () {
-    Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/products', [DoctorProductInventoryController::class, 'index'])->name('products');
-    Route::get('/services', [DoctorServiceController::class, 'index'])->name('services');
-    Route::get('/appointments', [DoctorAppointmentController::class, 'index'])->name('appointments');
-    Route::get('/appointments/{appointment}/notes/create', [DoctorAppointmentController::class, 'createNotes'])->name('appointments.notes.create');
-    Route::get('/appointments/{appointment}', [DoctorAppointmentController::class, 'show'])->name('appointments.show');
-    Route::get('/patient-records', [DoctorPatientRecordController::class, 'index'])->name('patient-records');
-    Route::get('/patient-records/{patient}', [DoctorPatientRecordController::class, 'show'])->name('patient-records.show');
-    Route::post('/patient-records/{patient}/notes', [DoctorPatientRecordController::class, 'storeNote'])->name('patient-records.notes.store');
-    Route::patch('/patient-records/{patient}/packages/{patientPackage}/sessions', [DoctorPatientRecordController::class, 'updatePatientPackageSessions'])->name('patient-records.packages.sessions.update');
-    Route::get('/treatment-notes', [DoctorTreatmentNoteController::class, 'index'])->name('treatment-notes');
-    Route::get('/treatment-notes/{appointment}', [DoctorTreatmentNoteController::class, 'show'])->name('treatment-notes.show');
-    Route::get('/notifications', [DoctorNotificationController::class, 'index'])->name('notifications');
-    Route::post('/notifications/mark-all-read', [DoctorNotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
-    Route::post('/notifications/clear-read', [DoctorNotificationController::class, 'clearRead'])->name('notifications.clear-read');
-    Route::get('/notifications/{notification}', [DoctorNotificationController::class, 'show'])->name('notifications.show');
-    Route::patch('/notifications/{notification}/read', [DoctorNotificationController::class, 'markRead'])->name('notifications.read');
-    Route::delete('/notifications/{notification}', [DoctorNotificationController::class, 'destroy'])->name('notifications.destroy');
+Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doctor_approved', EnsureClinicalStaffPortalPermission::class, 'verified'], 'prefix' => 'doctor', 'as' => 'doctor.'], function () {
+    Route::get('/dashboard', [ClinicalStaffDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/products', [ClinicalStaffProductInventoryController::class, 'index'])->name('products');
+    Route::get('/services', [ClinicalStaffServiceController::class, 'index'])->name('services');
+    Route::get('/appointments', [ClinicalStaffAppointmentController::class, 'index'])->name('appointments');
+    Route::get('/appointments/{appointment}/notes/create', [ClinicalStaffAppointmentController::class, 'createNotes'])->name('appointments.notes.create');
+    Route::get('/appointments/{appointment}', [ClinicalStaffAppointmentController::class, 'show'])->name('appointments.show');
+    Route::get('/patient-records', [ClinicalStaffPatientRecordController::class, 'index'])->name('patient-records');
+    Route::get('/patient-records/{patient}', [ClinicalStaffPatientRecordController::class, 'show'])->name('patient-records.show');
+    Route::post('/patient-records/{patient}/notes', [ClinicalStaffPatientRecordController::class, 'storeNote'])->name('patient-records.notes.store');
+    Route::patch('/patient-records/{patient}/packages/{patientPackage}/sessions', [ClinicalStaffPatientRecordController::class, 'updatePatientPackageSessions'])->name('patient-records.packages.sessions.update');
+    Route::get('/treatment-notes', [ClinicalStaffTreatmentNoteController::class, 'index'])->name('treatment-notes');
+    Route::get('/treatment-notes/{appointment}', [ClinicalStaffTreatmentNoteController::class, 'show'])->name('treatment-notes.show');
+    Route::get('/notifications', [ClinicalStaffNotificationController::class, 'index'])->name('notifications');
+    Route::post('/notifications/mark-all-read', [ClinicalStaffNotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+    Route::post('/notifications/clear-read', [ClinicalStaffNotificationController::class, 'clearRead'])->name('notifications.clear-read');
+    Route::get('/notifications/{notification}', [ClinicalStaffNotificationController::class, 'show'])->name('notifications.show');
+    Route::patch('/notifications/{notification}/read', [ClinicalStaffNotificationController::class, 'markRead'])->name('notifications.read');
+    Route::delete('/notifications/{notification}', [ClinicalStaffNotificationController::class, 'destroy'])->name('notifications.destroy');
 
-    Route::get('/profile', [DoctorProfileController::class, 'edit'])->name('profile');
-    Route::patch('/profile', [DoctorProfileController::class, 'update'])->name('profile.update');
-    Route::put('/profile/password', [DoctorProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::get('/profile', [ClinicalStaffProfileController::class, 'edit'])->name('profile');
+    Route::patch('/profile', [ClinicalStaffProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ClinicalStaffProfileController::class, 'updatePassword'])->name('profile.password');
 
-    Route::get('/availability', [DoctorAvailabilityController::class, 'index'])->name('availability');
-    Route::get('/availability/day/{weekday}/edit', [DoctorAvailabilityController::class, 'editWeekday'])->name('availability.day.edit')->whereNumber('weekday');
-    Route::patch('/availability/day/{weekday}', [DoctorAvailabilityController::class, 'updateWeekday'])->name('availability.day.update')->whereNumber('weekday');
-    Route::post('/availability/day/{weekday}/toggle', [DoctorAvailabilityController::class, 'toggleDay'])->name('availability.toggle')->whereNumber('weekday');
-    Route::post('/availability/blocked-dates', [DoctorAvailabilityController::class, 'storeBlockedDate'])->name('availability.blocked.store');
-    Route::delete('/availability/blocked-dates/{blockedDate}', [DoctorAvailabilityController::class, 'destroyBlockedDate'])->name('availability.blocked.destroy');
-    Route::post('/appointments/{appointment}/approve', [DoctorAppointmentController::class, 'approve'])->name('appointments.approve');
-    Route::match(['get', 'post'], '/appointments/{appointment}/start-session', [DoctorAppointmentController::class, 'startSession'])->name('appointments.start-session');
-    Route::post('/appointments/{appointment}/complete', [DoctorAppointmentController::class, 'markCompleted'])->name('appointments.complete');
-    Route::post('/appointments/{appointment}/session-done', [DoctorAppointmentController::class, 'updateSessionDone'])->name('appointments.session-done');
-    Route::post('/appointments/{appointment}/treatment-progress', [DoctorAppointmentController::class, 'updateTreatmentProgress'])->name('appointments.treatment-progress');
-    Route::post('/appointments/{appointment}/notes', [DoctorAppointmentController::class, 'addNotes'])->name('appointments.notes');
-    Route::post('/appointments/{appointment}/notes/assessment', [DoctorAppointmentController::class, 'updateAssessmentChecklist'])->name('appointments.notes.assessment');
-    Route::post('/appointments/{appointment}/reschedule', [DoctorAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
-    Route::post('/appointments/{appointment}/mark-no-show', [DoctorAppointmentController::class, 'markNoShow'])->name('appointments.mark-no-show');
+    Route::get('/availability', [ClinicalStaffAvailabilityController::class, 'index'])->name('availability');
+    Route::get('/availability/day/{weekday}/edit', [ClinicalStaffAvailabilityController::class, 'editWeekday'])->name('availability.day.edit')->whereNumber('weekday');
+    Route::patch('/availability/day/{weekday}', [ClinicalStaffAvailabilityController::class, 'updateWeekday'])->name('availability.day.update')->whereNumber('weekday');
+    Route::post('/availability/day/{weekday}/toggle', [ClinicalStaffAvailabilityController::class, 'toggleDay'])->name('availability.toggle')->whereNumber('weekday');
+    Route::post('/availability/blocked-dates', [ClinicalStaffAvailabilityController::class, 'storeBlockedDate'])->name('availability.blocked.store');
+    Route::delete('/availability/blocked-dates/{blockedDate}', [ClinicalStaffAvailabilityController::class, 'destroyBlockedDate'])->name('availability.blocked.destroy');
+    Route::post('/appointments/{appointment}/approve', [ClinicalStaffAppointmentController::class, 'approve'])->name('appointments.approve');
+    Route::match(['get', 'post'], '/appointments/{appointment}/start-session', [ClinicalStaffAppointmentController::class, 'startSession'])->name('appointments.start-session');
+    Route::post('/appointments/{appointment}/complete', [ClinicalStaffAppointmentController::class, 'markCompleted'])->name('appointments.complete');
+    Route::post('/appointments/{appointment}/session-done', [ClinicalStaffAppointmentController::class, 'updateSessionDone'])->name('appointments.session-done');
+    Route::post('/appointments/{appointment}/treatment-progress', [ClinicalStaffAppointmentController::class, 'updateTreatmentProgress'])->name('appointments.treatment-progress');
+    Route::post('/appointments/{appointment}/notes', [ClinicalStaffAppointmentController::class, 'addNotes'])->name('appointments.notes');
+    Route::post('/appointments/{appointment}/notes/assessment', [ClinicalStaffAppointmentController::class, 'updateAssessmentChecklist'])->name('appointments.notes.assessment');
+    Route::post('/appointments/{appointment}/reschedule', [ClinicalStaffAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+    Route::post('/appointments/{appointment}/mark-no-show', [ClinicalStaffAppointmentController::class, 'markNoShow'])->name('appointments.mark-no-show');
 });
 
 /*

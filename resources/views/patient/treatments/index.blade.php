@@ -82,7 +82,7 @@
                               <a href="{{ route('patient.treatments.show', $row->id) }}">{{ $row->treatment_name }}</a>
                             </h5>
                             <p class="font-sm text-muted mb-5">{{ $row->category ?: '—' }}</p>
-                            <p class="font-sm mb-5"><span class="text-muted">Doctor:</span> {{ $row->doctors_label }}</p>
+                            <p class="font-sm mb-5"><span class="text-muted">Clinical staff:</span> {{ $row->doctors_label }}</p>
                             <p class="font-sm mb-5"><span class="text-muted">Started:</span> {{ $row->date_started }}</p>
                             <p class="font-sm mb-5"><span class="text-muted">Last session:</span> {{ $row->last_session }}</p>
                             <p class="font-sm mb-5">

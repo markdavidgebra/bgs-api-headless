@@ -9,7 +9,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Doctors are stored separately from patients (`users`) with their own columns and auth provider.
+     * Clinical staff are stored separately from patients (`users`) with their own columns and auth provider.
      */
     public function up(): void
     {

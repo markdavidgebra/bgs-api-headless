@@ -258,6 +258,6 @@ class AdminPatientsController extends Controller
     {
         $admin = auth('admin')->user();
 
-        return $admin && in_array(strtolower((string) $admin->role), ['super admin', 'superadmin', 'admin'], true);
+        return AdminPermissions::isFullAccess($admin);
     }
 }

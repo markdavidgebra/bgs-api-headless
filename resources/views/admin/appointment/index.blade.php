@@ -79,7 +79,7 @@
             <thead>
               <tr>
                 <th><button class="table-sort" data-sort="sort-patient">Patient</button></th>
-                <th class="text-secondary"><button class="table-sort" data-sort="sort-doctor">Doctor</button></th>
+                <th class="text-secondary"><button class="table-sort" data-sort="sort-doctor">Clinical staff</button></th>
                 <th><button class="table-sort" data-sort="sort-service">Service</button></th>
                 <th><button class="table-sort" data-sort="sort-date">Date</button></th>
                 <th><button class="table-sort" data-sort="sort-time">Time</button></th>

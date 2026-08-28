@@ -15,7 +15,7 @@
     <strong>{{ __('Date') }}:</strong> {{ $appointment->appointment_date?->format('M j, Y') ?? '—' }}<br>
     <strong>{{ __('Time') }}:</strong> {{ $appointment->time_display }}<br>
     <strong>{{ __('Service') }}:</strong> {{ $appointment->service?->name ?? '—' }}<br>
-    <strong>{{ __('Doctor') }}:</strong> {{ $appointment->doctor?->name ?? '—' }}<br>
+    <strong>{{ __('Clinical staff') }}:</strong> {{ $appointment->doctor?->name ?? '—' }}<br>
     <strong>{{ __('Status') }}:</strong> {{ ucfirst((string) $appointment->status) }}
   </p>
 

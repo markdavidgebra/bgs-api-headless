@@ -100,7 +100,7 @@
                           <p class="mb-0">{{ $appointment?->service_name ?? '—' }}</p>
                         </div>
                         <div class="col-md-4">
-                          <h6 class="text-muted font-sm text-uppercase mb-5">Doctor</h6>
+                          <h6 class="text-muted font-sm text-uppercase mb-5">Clinical staff</h6>
                           <p class="mb-0">{{ $appointment?->doctor_name ?? '—' }}</p>
                         </div>
                       </div>

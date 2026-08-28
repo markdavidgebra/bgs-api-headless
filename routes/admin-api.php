@@ -6,8 +6,8 @@ use App\Http\Controllers\Api\Admin\AdminAppointmentsController;
 use App\Http\Controllers\Api\Admin\AdminAuthController;
 use App\Http\Controllers\Api\Admin\AdminBlogsController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
-use App\Http\Controllers\Api\Admin\AdminDoctorRolesController;
-use App\Http\Controllers\Api\Admin\AdminDoctorsController;
+use App\Http\Controllers\Api\Admin\AdminClinicalStaffRolesController;
+use App\Http\Controllers\Api\Admin\AdminClinicalStaffController;
 use App\Http\Controllers\Api\Admin\AdminFaqsController;
 use App\Http\Controllers\Api\Admin\AdminFooterSettingsController;
 use App\Http\Controllers\Api\Admin\AdminInquiriesController;
@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('api/admin')->group(function () {
     Route::middleware('throttle:10,1')->group(function () {
         Route::post('login', [AdminAuthController::class, 'login']);
+        Route::post('manager/login', [AdminAuthController::class, 'managerLogin']);
         Route::post('forgot-password', [AdminAuthController::class, 'forgotPassword']);
         Route::post('reset-password', [AdminAuthController::class, 'resetPassword']);
     });
@@ -65,6 +66,7 @@ Route::prefix('api/admin')->group(function () {
             Route::get('book-options', [AdminAppointmentsController::class, 'bookOptions']);
             Route::get('bookable-doctors', [AdminAppointmentsController::class, 'bookableDoctors']);
             Route::get('{id}', [AdminAppointmentsController::class, 'show'])->whereNumber('id');
+            Route::post('{id}/approve', [AdminAppointmentsController::class, 'approve'])->whereNumber('id');
         });
 
         Route::middleware('admin_permission:inquiries.manage')->prefix('inquiries')->group(function () {
@@ -92,23 +94,23 @@ Route::prefix('api/admin')->group(function () {
 
         Route::middleware('admin_permission:doctors.manage')->group(function () {
             Route::prefix('doctor-roles')->group(function () {
-                Route::get('/', [AdminDoctorRolesController::class, 'index']);
-                Route::get('create', [AdminDoctorRolesController::class, 'create']);
-                Route::post('/', [AdminDoctorRolesController::class, 'store']);
-                Route::get('{id}/edit', [AdminDoctorRolesController::class, 'edit'])->whereNumber('id');
-                Route::put('{id}', [AdminDoctorRolesController::class, 'update'])->whereNumber('id');
+                Route::get('/', [AdminClinicalStaffRolesController::class, 'index']);
+                Route::get('create', [AdminClinicalStaffRolesController::class, 'create']);
+                Route::post('/', [AdminClinicalStaffRolesController::class, 'store']);
+                Route::get('{id}/edit', [AdminClinicalStaffRolesController::class, 'edit'])->whereNumber('id');
+                Route::put('{id}', [AdminClinicalStaffRolesController::class, 'update'])->whereNumber('id');
             });
 
             Route::prefix('doctors')->group(function () {
-                Route::get('/', [AdminDoctorsController::class, 'index']);
-                Route::get('create', [AdminDoctorsController::class, 'create']);
-                Route::post('/', [AdminDoctorsController::class, 'store']);
-                Route::get('{id}', [AdminDoctorsController::class, 'show'])->whereNumber('id');
-                Route::get('{id}/edit', [AdminDoctorsController::class, 'edit'])->whereNumber('id');
-                Route::put('{id}', [AdminDoctorsController::class, 'update'])->whereNumber('id');
-                Route::delete('{id}', [AdminDoctorsController::class, 'destroy'])->whereNumber('id');
-                Route::post('{id}/status', [AdminDoctorsController::class, 'updateStatus'])->whereNumber('id');
-                Route::post('{id}/role', [AdminDoctorsController::class, 'updateRole'])->whereNumber('id');
+                Route::get('/', [AdminClinicalStaffController::class, 'index']);
+                Route::get('create', [AdminClinicalStaffController::class, 'create']);
+                Route::post('/', [AdminClinicalStaffController::class, 'store']);
+                Route::get('{id}', [AdminClinicalStaffController::class, 'show'])->whereNumber('id');
+                Route::get('{id}/edit', [AdminClinicalStaffController::class, 'edit'])->whereNumber('id');
+                Route::put('{id}', [AdminClinicalStaffController::class, 'update'])->whereNumber('id');
+                Route::delete('{id}', [AdminClinicalStaffController::class, 'destroy'])->whereNumber('id');
+                Route::post('{id}/status', [AdminClinicalStaffController::class, 'updateStatus'])->whereNumber('id');
+                Route::post('{id}/role', [AdminClinicalStaffController::class, 'updateRole'])->whereNumber('id');
             });
         });
 
