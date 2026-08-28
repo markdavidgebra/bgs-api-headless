@@ -124,7 +124,6 @@
                 <th><button class="table-sort" data-sort="sort-category">Summary</button></th>
                 <th><button class="table-sort" data-sort="sort-duration">Duration</button></th>
                 <th class="text-end"><button class="table-sort" data-sort="sort-price">Price</button></th>
-                <th><button class="table-sort" data-sort="sort-doctor">Assigned</button></th>
                 <th><button class="table-sort" data-sort="sort-status">Status</button></th>
                 <th class="w-1"></th>
               </tr>
@@ -153,7 +152,6 @@
                       ₱{{ number_format($service->price, 2) }}
                     @endif
                   </td>
-                  <td class="sort-doctor text-secondary">—</td>
                   <td class="sort-status" data-status="{{ $service->getStatusLabelAttribute() }}">
                     <span class="badge {{ $service->getStatusBadgeAttribute() }}">{{ ucfirst($service->getStatusLabelAttribute()) }}</span>
                   </td>
@@ -171,7 +169,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="7" class="text-center text-secondary py-5">No services found.</td>
+                  <td colspan="6" class="text-center text-secondary py-5">No services found.</td>
                 </tr>
               @endforelse
             </tbody>
@@ -202,7 +200,6 @@
           'sort-category',
           'sort-duration',
           { attr: 'data-price', name: 'sort-price' },
-          'sort-doctor',
           { attr: 'data-status', name: 'sort-status' },
         ]
       });

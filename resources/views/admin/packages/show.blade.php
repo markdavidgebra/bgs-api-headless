@@ -369,7 +369,7 @@
                     <div class="datagrid-item">
                       <div class="datagrid-title">Clinical staff</div>
                       <div class="datagrid-content">
-                        @forelse ($package->doctors as $doc)
+                        @forelse ($package->clinicalStaff as $doc)
                           <div>{{ $doc->name }}</div>
                         @empty
                           <span class="text-secondary">—</span>
@@ -535,9 +535,9 @@
               <div class="card">
                 <div class="card-body">
                   <h3 class="card-title">Assigned doctors</h3>
-                  @if ($package->doctors->isNotEmpty())
+                  @if ($package->clinicalStaff->isNotEmpty())
                     <div>
-                      @foreach ($package->doctors as $doc)
+                      @foreach ($package->clinicalStaff as $doc)
                         @php
                           $docName = $doc->name ?? '?';
                           $initial = strtoupper(substr($docName, 0, 1));

@@ -97,7 +97,7 @@
                             <td>{{ $a->time_display }}</td>
                             <td class="font-monospace">{{ $a->appointment_no ?? '—' }}</td>
                             <td>{{ $a->service?->name ?? '—' }}</td>
-                            <td>{{ $a->doctor?->name ?? '—' }}</td>
+                            <td>{{ $a->clinicalStaff?->name ?? '—' }}</td>
                             <td><span class="badge {{ $a->status_badge }}">{{ $a->status_label }}</span></td>
                             <td class="text-end text-nowrap">
                               <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#doctor-notes-modal-{{ $a->id }}">
@@ -125,7 +125,7 @@
                       };
                       $noteSectionLabels = [
                           'patient_concern' => 'Patient concern',
-                          'doctor_notes' => 'Clinical notes',
+                          'clinical_notes' => 'Clinical notes',
                           'instructions' => 'Take home medications',
                           'alerts' => 'Allergy',
                           'appointment_remarks' => 'Post procedures',
@@ -133,7 +133,7 @@
                       ];
                       $initialNote = [
                           'patient_concern' => $noteField('patient_concern'),
-                          'doctor_notes' => $noteField('doctor_notes'),
+                          'clinical_notes' => $noteField('clinical_notes'),
                           'instructions' => $noteField('instructions'),
                           'alerts' => $noteField('alerts'),
                           'appointment_remarks' => $noteField('appointment_remarks'),
@@ -183,7 +183,7 @@
                                             $sectionAuthors,
                                             $fieldKey,
                                             $a->patient,
-                                            $a->doctor,
+                                            $a->clinicalStaff,
                                         );
                                       @endphp
                                       <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
@@ -232,7 +232,7 @@
                                   <p class="text-secondary small mb-2">{{ $activeFieldLabel }}</p>
                                   @foreach ($noteSectionLabels as $k => $lbl)
                                     @if ($k === $activeFieldKey)
-                                      <textarea id="appt-note-ta-{{ $a->id }}-{{ $activeFieldKey }}" name="{{ $k }}" class="form-control form-control-sm @if ((int) $errApptId === (int) $a->id && $errors->has($k)) is-invalid @endif" rows="{{ $k === 'doctor_notes' ? 5 : 4 }}">{{ $noteField($k) }}</textarea>
+                                      <textarea id="appt-note-ta-{{ $a->id }}-{{ $activeFieldKey }}" name="{{ $k }}" class="form-control form-control-sm @if ((int) $errApptId === (int) $a->id && $errors->has($k)) is-invalid @endif" rows="{{ $k === 'clinical_notes' ? 5 : 4 }}">{{ $noteField($k) }}</textarea>
                                       @if ((int) $errApptId === (int) $a->id)
                                         @error($k)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                       @endif
@@ -529,7 +529,7 @@
 @push('scripts')
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      var noteKeys = ['patient_concern', 'doctor_notes', 'instructions', 'alerts', 'appointment_remarks', 'admin_notes'];
+      var noteKeys = ['patient_concern', 'clinical_notes', 'instructions', 'alerts', 'appointment_remarks', 'admin_notes'];
 
       function applyInitialNoteToApptForms(apptId) {
         var modal = document.getElementById('doctor-notes-modal-' + apptId);

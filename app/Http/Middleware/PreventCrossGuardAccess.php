@@ -10,53 +10,54 @@ use Symfony\Component\HttpFoundation\Response;
 class PreventCrossGuardAccess
 {
     /**
+     * Every portal guard, with the label used in the "sign out first" message and
+     * the route to bounce a conflicting session back to.
+     *
+     * @var array<string, array{label: string, dashboard: string}>
+     */
+    protected const GUARDS = [
+        'admin' => ['label' => 'admin dashboard', 'dashboard' => 'admin.dashboard'],
+        'web' => ['label' => 'patient portal', 'dashboard' => 'patient.dashboard'],
+        'clinical_staff' => ['label' => 'clinical staff portal', 'dashboard' => 'clinical_staff.dashboard'],
+        'doctor' => ['label' => 'doctor portal', 'dashboard' => 'doctor.dashboard'],
+    ];
+
+    /**
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next, string $allowedGuard): Response
     {
-        if ($allowedGuard === 'admin') {
-            // Admin session takes precedence — do not redirect to patient/doctor portals.
-            if (Auth::guard('admin')->check()) {
-                return $next($request);
-            }
-
-            if (Auth::guard('web')->check()) {
-                return $this->blockCrossGuard($request, __('Sign out of the patient portal before using the admin dashboard.'), 'patient.dashboard');
-            }
-
-            if (Auth::guard('doctor')->check()) {
-                return $this->blockCrossGuard($request, __('Sign out of the doctor portal before using the admin dashboard.'), 'doctor.dashboard');
-            }
+        if (! isset(self::GUARDS[$allowedGuard])) {
+            return $next($request);
         }
 
-        if ($allowedGuard === 'web') {
-            if (Auth::guard('web')->check()) {
-                return $next($request);
-            }
-
-            if (Auth::guard('admin')->check()) {
-                return $this->blockCrossGuard($request, __('Sign out of the admin portal before using the patient portal.'), 'admin.dashboard');
-            }
-
-            if (Auth::guard('doctor')->check()) {
-                return $this->blockCrossGuard($request, __('Sign out of the doctor portal before using the patient portal.'), 'doctor.dashboard');
-            }
+        // An active session on the requested guard always wins, even if another
+        // portal's cookie is still lying around.
+        if (Auth::guard($allowedGuard)->check()) {
+            return $next($request);
         }
 
-        if ($allowedGuard === 'doctor') {
-            if (Auth::guard('doctor')->check()) {
-                return $next($request);
+        $target = self::GUARDS[$allowedGuard]['label'];
+
+        foreach (self::GUARDS as $guard => $meta) {
+            if ($guard === $allowedGuard) {
+                continue;
             }
 
-            if (Auth::guard('admin')->check()) {
-                return $this->blockCrossGuard($request, __('Sign out of the admin portal before using the doctor portal.'), 'admin.dashboard');
+            if (! Auth::guard($guard)->check()) {
+                continue;
             }
 
-            if (Auth::guard('web')->check()) {
-                return $this->blockCrossGuard($request, __('Sign out of the patient portal before using the doctor portal.'), 'patient.dashboard');
-            }
+            return $this->blockCrossGuard(
+                $request,
+                __('Sign out of the :current before using the :target.', [
+                    'current' => $meta['label'],
+                    'target' => $target,
+                ]),
+                $meta['dashboard'],
+            );
         }
 
         return $next($request);

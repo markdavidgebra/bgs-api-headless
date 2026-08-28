@@ -16,7 +16,7 @@ class ClinicalStaffNotificationFactory extends Factory
     public function definition(): array
     {
         return [
-            'doctor_id' => ClinicalStaff::factory(),
+            'clinical_staff_id' => ClinicalStaff::factory(),
             'type' => fake()->randomElement(ClinicalStaffNotification::TYPES),
             'title' => fake()->sentence(4),
             'message' => fake()->paragraph(),

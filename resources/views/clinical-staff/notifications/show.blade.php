@@ -12,7 +12,7 @@
         <div class="breadcrumb">
           <a href="{{ route('home') }}" rel="nofollow"><i class="fi-rs-home mr-5"></i>Home</a>
           <span></span>
-          <a href="{{ route('doctor.notifications') }}">Notifications</a>
+          <a href="{{ route('clinical_staff.notifications') }}">Notifications</a>
           <span></span> {{ Str::limit($notification->title, 40) }}
         </div>
       </div>
@@ -58,7 +58,7 @@
                         <dt class="col-sm-4 text-secondary">{{ __('Patient') }}</dt>
                         <dd class="col-sm-8">
                           @if ($notification->patient)
-                            <a href="{{ route('doctor.patient-records.show', $notification->patient) }}">{{ $notification->patient->name }}</a>
+                            <a href="{{ route('clinical_staff.patient-records.show', $notification->patient) }}">{{ $notification->patient->name }}</a>
                           @else
                             &mdash;
                           @endif
@@ -66,7 +66,7 @@
                         <dt class="col-sm-4 text-secondary mt-2">{{ __('Appointment') }}</dt>
                         <dd class="col-sm-8 mt-2 font-monospace">
                           @if ($notification->appointment)
-                            <a href="{{ route('doctor.appointments.show', $notification->appointment) }}">{{ $notification->appointment->appointment_no }}</a>
+                            <a href="{{ route('clinical_staff.appointments.show', $notification->appointment) }}">{{ $notification->appointment->appointment_no }}</a>
                           @else
                             &mdash;
                           @endif
@@ -80,13 +80,13 @@
                       <a href="{{ $notification->primaryActionUrl() }}" class="btn btn-primary">{{ $notification->primaryActionLabel() }}</a>
                     @endif
                     @if ($notification->patient)
-                      <a href="{{ route('doctor.patient-records.show', $notification->patient) }}" class="btn btn-outline-secondary">{{ __('View patient') }}</a>
+                      <a href="{{ route('clinical_staff.patient-records.show', $notification->patient) }}" class="btn btn-outline-secondary">{{ __('View patient') }}</a>
                     @endif
                     @if ($notification->appointment)
-                      <a href="{{ route('doctor.appointments.show', $notification->appointment) }}" class="btn btn-outline-secondary">{{ __('View appointment') }}</a>
+                      <a href="{{ route('clinical_staff.appointments.show', $notification->appointment) }}" class="btn btn-outline-secondary">{{ __('View appointment') }}</a>
                     @endif
-                    <a href="{{ route('doctor.notifications') }}" class="btn btn-light border">{{ __('Back to list') }}</a>
-                    <form action="{{ route('doctor.notifications.destroy', $notification) }}" method="post" class="ms-auto"
+                    <a href="{{ route('clinical_staff.notifications') }}" class="btn btn-light border">{{ __('Back to list') }}</a>
+                    <form action="{{ route('clinical_staff.notifications.destroy', $notification) }}" method="post" class="ms-auto"
                       onsubmit="return confirm('{{ __('Remove this notification?') }}');">
                       @csrf
                       @method('DELETE')

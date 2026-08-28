@@ -21,7 +21,7 @@ class AppointmentFactory extends Factory
         return [
             'appointment_no' => 'APT-'.fake()->unique()->numerify('########'),
             'patient_id' => Patient::factory(),
-            'doctor_id' => ClinicalStaff::factory(),
+            'clinical_staff_id' => ClinicalStaff::factory(),
             'service_id' => Service::factory(),
             'appointment_date' => fake()->dateTimeBetween('now', '+2 months')->format('Y-m-d'),
             'appointment_time' => fake()->time('H:i:s'),

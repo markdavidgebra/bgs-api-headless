@@ -130,7 +130,7 @@
                               @if ($isSunday)
                                 <span class="text-muted small">No bookings</span>
                               @else
-                                <form method="POST" action="{{ route('doctor.availability.toggle', $schedule->weekday) }}" class="m-0">
+                                <form method="POST" action="{{ route('clinical_staff.availability.toggle', $schedule->weekday) }}" class="m-0">
                                   @csrf
                                   <div class="form-check form-switch mb-0">
                                     <input class="form-check-input" type="checkbox" name="is_active" value="1"
@@ -184,7 +184,7 @@
                                 <td>{{ $isSunday ? '—' : $schedule->time_slot_label }}</td>
                                 <td class="text-end">
                                   @unless ($isSunday)
-                                    <a href="{{ route('doctor.availability.day.edit', $schedule->weekday) }}" class="btn btn-xs av-btn av-btn-light">Edit</a>
+                                    <a href="{{ route('clinical_staff.availability.day.edit', $schedule->weekday) }}" class="btn btn-xs av-btn av-btn-light">Edit</a>
                                   @endunless
                                 </td>
                               </tr>
@@ -217,7 +217,7 @@
                                 <td>{{ $blocked->blocked_date?->format('M d, Y') }}</td>
                                 <td>{{ $blocked->reason ?: '—' }}</td>
                                 <td class="text-end">
-                                  <form method="POST" action="{{ route('doctor.availability.blocked.destroy', $blocked) }}" class="d-inline"
+                                  <form method="POST" action="{{ route('clinical_staff.availability.blocked.destroy', $blocked) }}" class="d-inline"
                                     onsubmit="return confirm('Remove this blocked date?')">
                                     @csrf
                                     @method('DELETE')
@@ -236,7 +236,7 @@
                     </div>
                     <div class="card-body border-top">
                       <p class="section-title-sm mb-2">Add block date</p>
-                      <form method="POST" action="{{ route('doctor.availability.blocked.store') }}" class="row g-3 align-items-end">
+                      <form method="POST" action="{{ route('clinical_staff.availability.blocked.store') }}" class="row g-3 align-items-end">
                         @csrf
                         <div class="col-md-4">
                           <label class="form-label">Date</label>

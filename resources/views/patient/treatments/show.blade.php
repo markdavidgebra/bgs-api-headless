@@ -11,7 +11,7 @@
         default => 'text-warning',
     };
 
-    $doctorNames = $treatment?->doctors?->pluck('name')->filter()->unique() ?? collect();
+    $doctorNames = $treatment?->clinicalStaff?->pluck('name')->filter()->unique() ?? collect();
     $doctorLabel = $doctorNames->isNotEmpty() ? $doctorNames->implode(', ') : '—';
 
     $desc = trim(strip_tags((string) ($treatment?->description ?? '')));

@@ -23,7 +23,7 @@ class AppointmentBookedPatientNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $this->appointment->loadMissing(['service:id,name', 'doctor:id,name', 'patient:id,name']);
+        $this->appointment->loadMissing(['service:id,name', 'clinicalStaff:id,name', 'patient:id,name']);
 
         return (new MailMessage)
             ->subject(__('Appointment booking confirmation'))
@@ -54,14 +54,14 @@ class AppointmentBookedPatientNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $this->appointment->loadMissing(['service:id,name', 'doctor:id,name']);
+        $this->appointment->loadMissing(['service:id,name', 'clinicalStaff:id,name']);
 
         return [
             'type' => 'appointment_booked',
             'title' => __('Appointment confirmed'),
             'message' => __('Your appointment :no with :doctor on :date at :time is booked.', [
                 'no' => (string) ($this->appointment->appointment_no ?? '#'.$this->appointment->id),
-                'doctor' => (string) ($this->appointment->doctor?->name ?? __('your doctor')),
+                'doctor' => (string) ($this->appointment->clinicalStaff?->name ?? __('your doctor')),
                 'date' => $this->appointment->appointment_date?->format('M j, Y') ?? '',
                 'time' => (string) $this->appointment->time_display,
             ]),

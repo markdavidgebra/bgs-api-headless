@@ -146,11 +146,11 @@
               </select>
             </div>
             <div class="col-md-6 col-lg-3">
-              <label class="form-label" for="doctor_id">Clinical staff</label>
-              <select id="doctor_id" name="doctor_id" class="form-select">
+              <label class="form-label" for="clinical_staff_id">Clinical staff</label>
+              <select id="clinical_staff_id" name="clinical_staff_id" class="form-select">
                 <option value="">All</option>
-                @foreach ($doctors as $doctor)
-                  <option value="{{ $doctor->id }}" @selected((string) request('doctor_id') === (string) $doctor->id)>
+                @foreach ($clinicalStaff as $doctor)
+                  <option value="{{ $doctor->id }}" @selected((string) request('clinical_staff_id') === (string) $doctor->id)>
                     {{ $doctor->name }}
                   </option>
                 @endforeach
@@ -196,7 +196,7 @@
                     <a href="{{ route('admin.appointments.show', $appt->id) }}">{{ $appt->appointment_no }}</a>
                   </td>
                   <td>{{ $appt->patient->name ?? '—' }}</td>
-                  <td>{{ $appt->doctor->name ?? '—' }}</td>
+                  <td>{{ $appt->clinicalStaff->name ?? '—' }}</td>
                   <td>{{ $appt->service->name ?? '—' }}</td>
                   <td>{{ $appt->appointment_date?->format('M d, Y') ?? '—' }}</td>
                   <td>{{ $appt->time_display }}</td>

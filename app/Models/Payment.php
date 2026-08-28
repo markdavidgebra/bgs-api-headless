@@ -208,13 +208,13 @@ class Payment extends Model
         return $this->referenceService?->name;
     }
 
-    public function getAssignedDoctorNameAttribute(): ?string
+    public function getAssignedClinicalStaffNameAttribute(): ?string
     {
         if ($this->reference_type !== 'appointment' || ! $this->reference_id) {
             return null;
         }
 
-        return $this->referenceAppointment?->doctor?->name;
+        return $this->referenceAppointment?->clinicalStaff?->name;
     }
 
     public function getInitialAttribute(): string

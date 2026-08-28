@@ -231,7 +231,7 @@
 
                   <div class="card mb-25">
                     <div class="card-body">
-                      <form method="GET" action="{{ route('doctor.appointments') }}" class="row g-3">
+                      <form method="GET" action="{{ route('clinical_staff.appointments') }}" class="row g-3">
                         <input type="hidden" name="view" value="{{ $viewMode }}">
                         <div class="col-lg-3 col-md-6">
                           <label for="date_filter" class="form-label">Date filter</label>
@@ -266,18 +266,18 @@
 
                         <div class="col-12 d-flex flex-wrap gap-2 align-items-center mt-2">
                           <button type="submit" class="btn btn-sm">Apply filters</button>
-                          <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Reset</a>
+                          <a href="{{ route('clinical_staff.appointments') }}" class="btn btn-sm btn-outline">Reset</a>
 
                           <div class="ms-auto d-flex gap-2 view-switch">
-                            <a href="{{ route('doctor.appointments', array_merge(request()->query(), ['view' => 'calendar'])) }}"
+                            <a href="{{ route('clinical_staff.appointments', array_merge(request()->query(), ['view' => 'calendar'])) }}"
                               class="btn btn-sm view-btn {{ $viewMode === 'calendar' ? 'is-active' : '' }}">
                               Calendar view
                             </a>
-                            <a href="{{ route('doctor.appointments', array_merge(request()->query(), ['view' => 'table'])) }}"
+                            <a href="{{ route('clinical_staff.appointments', array_merge(request()->query(), ['view' => 'table'])) }}"
                               class="btn btn-sm view-btn {{ $viewMode === 'table' ? 'is-active' : '' }}">
                               Table view
                             </a>
-                            <a href="{{ route('doctor.appointments', array_merge(request()->query(), ['view' => 'timeline'])) }}"
+                            <a href="{{ route('clinical_staff.appointments', array_merge(request()->query(), ['view' => 'timeline'])) }}"
                               class="btn btn-sm view-btn {{ $viewMode === 'timeline' ? 'is-active' : '' }}">
                               Timeline view
                             </a>
@@ -317,12 +317,12 @@
                                       'time' => $timeLabel,
                                       'patient' => (string) ($appt->patient?->name ?? '—'),
                                       'procedure' => (string) ($appt->service?->name ?? '—'),
-                                      'doctor' => (string) ($appt->doctor?->name ?? '—'),
+                                      'clinical_staff' => (string) ($appt->clinicalStaff?->name ?? '—'),
                                       'status' => ucfirst($status),
                                       'badge' => $badge,
                                       'showUrl' => $appt->patient_id
-                                          ? route('doctor.patient-records.show', $appt->patient_id)
-                                          : route('doctor.appointments.show', $appt->id),
+                                          ? route('clinical_staff.patient-records.show', $appt->patient_id)
+                                          : route('clinical_staff.appointments.show', $appt->id),
                                   ];
                               })
                               ->values();
@@ -344,11 +344,11 @@
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-20">
                           <div class="h4 mb-0">{{ $monthCursor->format('F Y') }}</div>
                           <div class="d-flex flex-wrap gap-2">
-                            <a href="{{ route('doctor.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => $prevMonth])) }}"
+                            <a href="{{ route('clinical_staff.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => $prevMonth])) }}"
                               class="btn btn-sm btn-outline">Previous</a>
-                            <a href="{{ route('doctor.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => now()->format('Y-m')])) }}"
+                            <a href="{{ route('clinical_staff.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => now()->format('Y-m')])) }}"
                               class="btn btn-sm btn-outline">Current month</a>
-                            <a href="{{ route('doctor.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => $nextMonth])) }}"
+                            <a href="{{ route('clinical_staff.appointments', array_merge(request()->except('page'), ['view' => 'calendar', 'month' => $nextMonth])) }}"
                               class="btn btn-sm btn-outline">Next</a>
                           </div>
                         </div>
@@ -491,7 +491,7 @@
                 <td class="font-monospace">${escapeHtml(row.time || '—')}</td>
                 <td>${escapeHtml(row.patient || '—')}</td>
                 <td>${escapeHtml(row.procedure || '—')}</td>
-                <td>${escapeHtml(row.doctor || '—')}</td>
+                <td>${escapeHtml(row.clinical_staff || '—')}</td>
                 <td><span class="badge ${escapeHtml(row.badge || 'bg-secondary')}">${escapeHtml(row.status || '—')}</span></td>
                 <td class="text-end"><a href="${escapeHtml(row.showUrl || '#')}" class="btn btn-sm btn-primary">View</a></td>
               </tr>
@@ -537,7 +537,7 @@
                               @forelse ($slotAppointments as $appointment)
                                 <div class="calendar-item mb-2">
                                   <div><strong>{{ $appointment->time_display }}</strong> - {{ $appointment->patient_name }}</div>
-                                  <div class="text-muted">{{ $appointment->service_name }} · {{ $appointment->doctor_name }} · {{ $appointment->status_label }}</div>
+                                  <div class="text-muted">{{ $appointment->service_name }} · {{ $appointment->clinical_staff_name }} · {{ $appointment->status_label }}</div>
                                 </div>
                               @empty
                                 <span class="small text-muted">No schedule</span>
@@ -582,7 +582,7 @@
                                   <small class="text-muted">{{ $appointment->date_display }}</small>
                                 </td>
                                 <td>{{ $appointment->patient_name }}</td>
-                                <td>{{ $appointment->doctor_name }}</td>
+                                <td>{{ $appointment->clinical_staff_name }}</td>
                                 <td>{{ $appointment->service_name }}</td>
                                 <td>
                                   <div class="status-cell {{ $appointment->status_badge }}">
@@ -591,29 +591,29 @@
                                   </div>
                                 </td>
                                 <td style="min-width: 220px;">
-                                  {{ \Illuminate\Support\Str::limit((string) optional($appointment->note)->doctor_notes, 70, '...') ?: 'No notes yet' }}
+                                  {{ \Illuminate\Support\Str::limit((string) optional($appointment->note)->clinical_notes, 70, '...') ?: 'No notes yet' }}
                                 </td>
                                 <td style="min-width: 320px;">
                                   <div class="d-flex flex-wrap gap-2 actions-wrap">
-                                    <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-xs action-btn action-view">
+                                    <a href="{{ route('clinical_staff.appointments.show', $appointment) }}" class="btn btn-xs action-btn action-view">
                                       View
                                     </a>
 
                                     @if ($canStart)
-                                      <form method="POST" action="{{ route('doctor.appointments.start-session', $appointment) }}">
+                                      <form method="POST" action="{{ route('clinical_staff.appointments.start-session', $appointment) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-xs action-btn action-start">Start Session</button>
                                       </form>
                                     @endif
 
                                     @if ($canComplete)
-                                      <form method="POST" action="{{ route('doctor.appointments.complete', $appointment) }}">
+                                      <form method="POST" action="{{ route('clinical_staff.appointments.complete', $appointment) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-xs action-btn action-complete">Mark as Completed</button>
                                       </form>
                                     @endif
 
-                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}"
+                                    <a href="{{ route('clinical_staff.appointments.notes.create', $appointment) }}"
                                       class="btn btn-xs action-btn action-notes">
                                       Add Notes
                                     </a>
@@ -623,7 +623,7 @@
                                       Reschedule
                                     </button>
 
-                                    <form method="POST" action="{{ route('doctor.appointments.mark-no-show', $appointment) }}"
+                                    <form method="POST" action="{{ route('clinical_staff.appointments.mark-no-show', $appointment) }}"
                                       onsubmit="return confirm('Mark this appointment as no-show?')">
                                       @csrf
                                       <button type="submit" class="btn btn-xs action-btn action-noshow">Mark No-show</button>
@@ -634,12 +634,12 @@
 
                               <tr id="notes-{{ $appointment->id }}" class="d-none">
                                 <td colspan="8">
-                                  <form method="POST" action="{{ route('doctor.appointments.notes', $appointment) }}" class="row g-2 align-items-end">
+                                  <form method="POST" action="{{ route('clinical_staff.appointments.notes', $appointment) }}" class="row g-2 align-items-end">
                                     @csrf
                                     <div class="col-md-9">
                                       <label class="form-label mb-1">Clinical Notes</label>
-                                      <textarea name="doctor_notes" rows="2" class="form-control"
-                                        placeholder="Write short notes for this appointment...">{{ old('doctor_notes', optional($appointment->note)->doctor_notes) }}</textarea>
+                                      <textarea name="clinical_notes" rows="2" class="form-control"
+                                        placeholder="Write short notes for this appointment...">{{ old('clinical_notes', optional($appointment->note)->clinical_notes) }}</textarea>
                                     </div>
                                     <div class="col-md-3">
                                       <button type="submit" class="btn btn-sm w-100">Save Notes</button>
@@ -650,7 +650,7 @@
 
                               <tr id="reschedule-{{ $appointment->id }}" class="d-none">
                                 <td colspan="8">
-                                  <form method="POST" action="{{ route('doctor.appointments.reschedule', $appointment) }}" class="row g-2 align-items-end">
+                                  <form method="POST" action="{{ route('clinical_staff.appointments.reschedule', $appointment) }}" class="row g-2 align-items-end">
                                     @csrf
                                     <div class="col-md-4">
                                       <label class="form-label mb-1">New date</label>

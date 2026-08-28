@@ -18,7 +18,7 @@
   $serviceSessionsFromPackage = $package->services
       ->mapWithKeys(fn ($s) => [(string) $s->id => (string) $s->pivot->sessions])
       ->all();
-  $selectedDoctors = collect(old('assigned_doctors', $package->doctors->pluck('id')->all()))->map(fn ($v) => (string) $v)->all();
+  $selectedDoctors = collect(old('assigned_clinical_staff', $package->clinicalStaff->pluck('id')->all()))->map(fn ($v) => (string) $v)->all();
 @endphp
 
 @section('content')
@@ -274,16 +274,16 @@
                   </div>
                   <div class="col-12">
                     <span id="edit-assigned-doctors-label" class="form-label d-block">Assigned doctors</span>
-                    @if ($doctors->isEmpty())
+                    @if ($clinicalStaff->isEmpty())
                       <p class="text-secondary small mb-0">No doctors in the system yet.</p>
                     @else
                       <div
-                        class="border rounded p-3 bg-secondary-lt row row-cols-1 row-cols-md-2 g-2 @error('assigned_doctors') border-danger @enderror"
+                        class="border rounded p-3 bg-secondary-lt row row-cols-1 row-cols-md-2 g-2 @error('assigned_clinical_staff') border-danger @enderror"
                         role="group" aria-labelledby="edit-assigned-doctors-label">
-                        @foreach ($doctors as $doc)
+                        @foreach ($clinicalStaff as $doc)
                           <div class="col">
                             <label class="form-check mb-0">
-                              <input type="checkbox" class="form-check-input" name="assigned_doctors[]"
+                              <input type="checkbox" class="form-check-input" name="assigned_clinical_staff[]"
                                 value="{{ $doc->id }}" id="edit-assigned-doctor-{{ $doc->id }}"
                                 @checked(in_array((string) $doc->id, $selectedDoctors, true))>
                               <span class="form-check-label">{{ $doc->name }}</span>
@@ -293,7 +293,7 @@
                       </div>
                     @endif
                     <small class="form-hint">Optional — check all doctors who may deliver this package.</small>
-                    @error('assigned_doctors')
+                    @error('assigned_clinical_staff')
                       <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                   </div>

@@ -98,7 +98,7 @@ class PaymentsController extends Controller
             'appointment' => $payment->load([
                 'referenceAppointment' => static fn ($q) => $q->with([
                     'service:id,name',
-                    'doctor:id,name',
+                    'clinicalStaff:id,name',
                 ]),
             ]),
             'package' => $payment->load('referencePackage:id,name'),

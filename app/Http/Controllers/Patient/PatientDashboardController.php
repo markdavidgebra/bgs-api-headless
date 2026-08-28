@@ -32,7 +32,7 @@ class PatientDashboardController extends Controller
             ->where('patient_id', $patientId)
             ->whereIn('status', ['pending', 'confirmed', 'rescheduled'])
             ->whereDate('appointment_date', '>=', now()->toDateString())
-            ->with(['doctor', 'service'])
+            ->with(['clinicalStaff', 'service'])
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
             ->first();
@@ -83,7 +83,7 @@ class PatientDashboardController extends Controller
 
         $recentAppointments = Appointment::query()
             ->where('patient_id', $patientId)
-            ->with(['doctor', 'service'])
+            ->with(['clinicalStaff', 'service'])
             ->orderByDesc('appointment_date')
             ->orderByDesc('appointment_time')
             ->limit(15)

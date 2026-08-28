@@ -57,7 +57,13 @@ class ClinicalStaffPortalController extends Controller
             'password' => (string) $request->input('password'),
         ];
 
-        if (! Auth::guard('doctor')->attempt($credentials, true)) {
+        foreach (['web', 'admin', 'doctor'] as $otherGuard) {
+            if (Auth::guard($otherGuard)->check()) {
+                Auth::guard($otherGuard)->logout();
+            }
+        }
+
+        if (! Auth::guard('clinical_staff')->attempt($credentials, true)) {
             throw ValidationException::withMessages([
                 'email' => ['Invalid credentials.'],
             ]);
@@ -65,9 +71,9 @@ class ClinicalStaffPortalController extends Controller
 
         $request->session()->regenerate();
 
-        $doctor = Auth::guard('doctor')->user();
+        $doctor = Auth::guard('clinical_staff')->user();
         if (! $doctor || strtolower((string) ($doctor->status ?? 'pending')) !== 'active') {
-            Auth::guard('doctor')->logout();
+            Auth::guard('clinical_staff')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
@@ -79,13 +85,13 @@ class ClinicalStaffPortalController extends Controller
         return response()->json([
             'message' => __('Clinical staff login successful.'),
             'csrf_token' => csrf_token(),
-            'doctor' => $this->doctorPayload($doctor),
+            'clinical_staff' => $this->clinicalStaffPayload($doctor),
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        Auth::guard('doctor')->logout();
+        Auth::guard('clinical_staff')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -98,17 +104,17 @@ class ClinicalStaffPortalController extends Controller
     {
         return response()->json([
             'csrf_token' => csrf_token(),
-            'doctor' => $this->doctorPayload($request->user('doctor')),
+            'clinical_staff' => $this->clinicalStaffPayload($request->user('clinical_staff')),
         ]);
     }
 
     public function dashboard(): JsonResponse
     {
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $today = now()->toDateString();
 
         $baseQuery = Appointment::query()
-            ->with(['patient:id,name', 'service:id,name', 'note', 'doctor:id,name']);
+            ->with(['patient:id,name', 'service:id,name', 'note', 'clinicalStaff:id,name']);
 
         $todayAppointmentsCount = (clone $baseQuery)->whereDate('appointment_date', $today)->count();
         $upcomingAppointmentsCount = (clone $baseQuery)
@@ -144,7 +150,7 @@ class ClinicalStaffPortalController extends Controller
             ->get();
 
         $notificationsUnreadCount = ClinicalStaffNotification::query()
-            ->forDoctor((int) $doctor->id)
+            ->forClinicalStaff((int) $doctor->id)
             ->unread()
             ->count();
 
@@ -172,7 +178,7 @@ class ClinicalStaffPortalController extends Controller
         $limit = max(1, min((int) $request->integer('limit', 10), 50));
 
         $baseQuery = Appointment::query()
-            ->with(['patient:id,name', 'service:id,name', 'note', 'doctor:id,name']);
+            ->with(['patient:id,name', 'service:id,name', 'note', 'clinicalStaff:id,name']);
 
         if ($status) {
             $baseQuery->where('status', $status);
@@ -249,7 +255,7 @@ class ClinicalStaffPortalController extends Controller
 
     public function appointmentShow(Appointment $appointment): JsonResponse
     {
-        $appointment->load(['patient', 'service', 'note', 'timelines', 'prescribedProducts', 'doctor:id,name']);
+        $appointment->load(['patient', 'service', 'note', 'timelines', 'prescribedProducts', 'clinicalStaff:id,name']);
 
         $patientPackages = TreatmentPatientPackage::query()
             ->where('patient_id', $appointment->patient_id)
@@ -288,7 +294,7 @@ class ClinicalStaffPortalController extends Controller
             ], 422);
         }
 
-        $appointment->load(['patient', 'service', 'note', 'prescribedProducts', 'doctor:id,name']);
+        $appointment->load(['patient', 'service', 'note', 'prescribedProducts', 'clinicalStaff:id,name']);
 
         $products = Product::query()
             ->where('status', 'active')
@@ -374,7 +380,7 @@ class ClinicalStaffPortalController extends Controller
 
     public function patientRecordsIndex(Request $request): JsonResponse
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
         $search = trim($request->string('search')->toString());
         $limit = max(1, min((int) $request->integer('limit', 20), 50));
 
@@ -480,10 +486,10 @@ class ClinicalStaffPortalController extends Controller
 
     public function patientRecordShow(Patient $patient): JsonResponse
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
 
         $myAppointments = Appointment::query()
-            ->with(['service:id,name', 'doctor:id,name', 'note'])
+            ->with(['service:id,name', 'clinicalStaff:id,name', 'note'])
             ->where('clinical_staff_id', $doctorId)
             ->where('patient_id', $patient->id)
             ->orderByDesc('appointment_date')
@@ -491,7 +497,7 @@ class ClinicalStaffPortalController extends Controller
             ->get();
 
         $appointments = Appointment::query()
-            ->with(['service:id,name', 'doctor:id,name', 'note'])
+            ->with(['service:id,name', 'clinicalStaff:id,name', 'note'])
             ->where('patient_id', $patient->id)
             ->orderByDesc('appointment_date')
             ->orderByDesc('appointment_time')
@@ -598,7 +604,7 @@ class ClinicalStaffPortalController extends Controller
 
     public function treatmentNotesIndex(Request $request): JsonResponse
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
         $search = trim($request->string('search')->toString());
         $date = $request->string('date')->toString();
         $limit = max(1, min((int) $request->integer('limit', 12), 50));
@@ -642,7 +648,7 @@ class ClinicalStaffPortalController extends Controller
 
     public function treatmentNoteShow(Appointment $appointment): JsonResponse
     {
-        abort_unless((int) $appointment->doctor_id === (int) auth('doctor')->id(), 403);
+        abort_unless((int) $appointment->clinical_staff_id === (int) auth('clinical_staff')->id(), 403);
         $appointment->load(['patient:id,name,email,phone', 'service:id,name', 'note', 'prescribedProducts']);
         abort_unless($appointment->note !== null, 404);
 
@@ -654,14 +660,14 @@ class ClinicalStaffPortalController extends Controller
 
     public function notificationsIndex(Request $request): JsonResponse
     {
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $tab = in_array($request->query('tab'), ['all', 'unread', 'appointments', 'follow_ups', 'reminders'], true)
             ? $request->query('tab')
             : 'all';
         $limit = max(1, min((int) $request->integer('limit', 15), 50));
 
         $paginator = ClinicalStaffNotification::query()
-            ->forDoctor((int) $doctor->id)
+            ->forClinicalStaff((int) $doctor->id)
             ->with(['appointment:id,appointment_no,patient_id,service_id,appointment_date,appointment_time', 'patient:id,name'])
             ->tab($tab)
             ->orderByDesc('created_at')
@@ -669,7 +675,7 @@ class ClinicalStaffPortalController extends Controller
             ->withQueryString();
 
         $unreadCount = ClinicalStaffNotification::query()
-            ->forDoctor((int) $doctor->id)
+            ->forClinicalStaff((int) $doctor->id)
             ->unread()
             ->count();
 
@@ -683,7 +689,7 @@ class ClinicalStaffPortalController extends Controller
 
     public function notificationShow(ClinicalStaffNotification $notification): JsonResponse
     {
-        abort_unless($notification->doctor_id === (int) auth('doctor')->id(), 403);
+        abort_unless($notification->clinical_staff_id === (int) auth('clinical_staff')->id(), 403);
 
         if ($notification->read_at === null) {
             $notification->forceFill(['read_at' => now()])->save();
@@ -732,8 +738,7 @@ class ClinicalStaffPortalController extends Controller
 
     public function servicesIndex(): JsonResponse
     {
-        $doctor = auth('doctor')->user();
-        $services = $doctor?->services()->orderBy('name')->get() ?? collect();
+        $services = Service::query()->orderBy('name')->get();
         $activeCount = $services->where('status', 'active')->count();
         $avgPrice = (float) $services
             ->map(fn ($service) => $service->promo_price ?? $service->price)
@@ -753,7 +758,7 @@ class ClinicalStaffPortalController extends Controller
     public function profileShow(): JsonResponse
     {
         return response()->json([
-            'doctor' => $this->doctorPayload(auth('doctor')->user()),
+            'clinical_staff' => $this->clinicalStaffPayload(auth('clinical_staff')->user()),
         ]);
     }
 
@@ -769,7 +774,7 @@ class ClinicalStaffPortalController extends Controller
 
     public function availabilityIndex(): JsonResponse
     {
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $this->ensureDefaultWeeklySchedule((int) $doctor->id);
 
         $weeklySchedules = ClinicalStaffWeeklySchedule::query()
@@ -793,7 +798,7 @@ class ClinicalStaffPortalController extends Controller
     {
         abort_unless($weekday >= 1 && $weekday <= 7, 404);
 
-        $doctorId = (int) auth('doctor')->id();
+        $doctorId = (int) auth('clinical_staff')->id();
         $this->ensureDefaultWeeklySchedule($doctorId);
 
         $schedule = ClinicalStaffWeeklySchedule::query()
@@ -888,7 +893,7 @@ class ClinicalStaffPortalController extends Controller
         for ($d = 1; $d <= 7; $d++) {
             $isUnavailable = $d >= 6 || $d === AppointmentBookingRules::CLOSED_WEEKDAY;
             ClinicalStaffWeeklySchedule::query()->create([
-                'doctor_id' => $doctorId,
+                'clinical_staff_id' => $doctorId,
                 'weekday' => $d,
                 'is_active' => ! $isUnavailable,
                 'start_time' => $isUnavailable ? null : '09:00:00',

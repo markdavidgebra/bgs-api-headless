@@ -70,6 +70,14 @@ class RedirectIfAuthenticated
             return route('patient.dashboard');
         }
 
+        if ($guard === 'clinical_staff' && Route::has('clinical_staff.dashboard')) {
+            return route('clinical_staff.dashboard');
+        }
+
+        if ($guard === 'doctor' && Route::has('doctor.dashboard')) {
+            return route('doctor.dashboard');
+        }
+
         if ($guard === 'doctor' && Route::has('doctor.dashboard')) {
             return route('doctor.dashboard');
         }

@@ -56,7 +56,7 @@ class DashboardController extends Controller
             ->sum('amount');
 
         $todaysSchedule = Appointment::query()
-            ->with(['patient:id,name', 'doctor:id,name', 'service:id,name'])
+            ->with(['patient:id,name', 'clinicalStaff:id,name', 'service:id,name'])
             ->whereDate('appointment_date', $today)
             ->orderBy('appointment_time')
             ->orderBy('id')

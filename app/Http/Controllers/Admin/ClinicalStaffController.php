@@ -23,7 +23,7 @@ class ClinicalStaffController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = ClinicalStaff::query()->with('doctorRole')->orderBy('name');
+        $query = ClinicalStaff::query()->with('role')->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -43,29 +43,29 @@ class ClinicalStaffController extends Controller
             $query->where('specialty', 'like', '%'.$request->string('specialty').'%');
         }
 
-        $doctors = $query->paginate(15)->withQueryString();
+        $clinicalStaff = $query->paginate(15)->withQueryString();
 
-        return view('admin.clinical-staff.index', compact('doctors'));
+        return view('admin.clinical-staff.index', compact('clinicalStaff'));
     }
 
     public function create(): View
     {
-        $doctorRoles = ClinicalStaffRole::query()->orderBy('name')->get();
+        $clinicalStaffRoles = ClinicalStaffRole::query()->orderBy('name')->get();
 
-        return view('admin.clinical-staff.create', compact('doctorRoles'));
+        return view('admin.clinical-staff.create', compact('clinicalStaffRoles'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $request->merge([
-            'doctor_role_id' => $request->filled('doctor_role_id') ? $request->integer('doctor_role_id') : null,
+            'clinical_staff_role_id' => $request->filled('clinical_staff_role_id') ? $request->integer('clinical_staff_role_id') : null,
         ]);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.ClinicalStaff::class],
             'phone' => ['nullable', 'string', 'max:32'],
-            'doctor_role_id' => ['nullable', 'integer', Rule::exists('clinical_staff_roles', 'id')],
+            'clinical_staff_role_id' => ['nullable', 'integer', Rule::exists('clinical_staff_roles', 'id')],
         ]);
 
         $plainPassword = Str::password(12);
@@ -74,7 +74,7 @@ class ClinicalStaffController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
-            'doctor_role_id' => $validated['doctor_role_id'],
+            'clinical_staff_role_id' => $validated['clinical_staff_role_id'],
             'password' => Str::password(32),
             'pending_password_plain' => Crypt::encryptString($plainPassword),
             'status' => 'pending',
@@ -82,11 +82,11 @@ class ClinicalStaffController extends Controller
         ]);
 
         $notifyEmails = array_values(array_unique(array_merge(
-            AdminNotificationRecipients::emailsForPermission('doctors.manage'),
+            AdminNotificationRecipients::emailsForPermission('clinical_staff.manage'),
             AdminNotificationRecipients::superAdminEmails(),
         )));
         $redirect = redirect()
-            ->route('admin.doctors.show', $doctor)
+            ->route('admin.clinical-staff.show', $doctor)
             ->with('status', __('Clinical staff created and saved as pending approval.'));
 
         if ($notifyEmails !== []) {
@@ -112,20 +112,31 @@ class ClinicalStaffController extends Controller
 
     public function edit(int $id): View
     {
-        $doctor = ClinicalStaff::query()->with('doctorRole')->findOrFail($id);
-        $doctorRoles = ClinicalStaffRole::query()->orderBy('name')->get();
+        $doctor = ClinicalStaff::query()->with('role')->findOrFail($id);
+        $clinicalStaffRoles = ClinicalStaffRole::query()->orderBy('name')->get();
 
-        return view('admin.clinical-staff.edit', compact('doctor', 'doctorRoles'));
+        return view('admin.clinical-staff.edit', compact('doctor', 'clinicalStaffRoles'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
     {
         $doctor = ClinicalStaff::query()->findOrFail($id);
 
-        $request->merge([
-            'doctor_role_id' => $request->filled('doctor_role_id') ? $request->integer('doctor_role_id') : null,
-            'experience_years' => $request->filled('experience_years') ? $request->integer('experience_years') : null,
-        ]);
+        if ($request->exists('experience_years')) {
+            $request->merge([
+                'experience_years' => $request->filled('experience_years')
+                    ? $request->integer('experience_years')
+                    : null,
+            ]);
+        }
+
+        if ($request->exists('clinical_staff_role_id')) {
+            $request->merge([
+                'clinical_staff_role_id' => $request->filled('clinical_staff_role_id')
+                    ? $request->integer('clinical_staff_role_id')
+                    : null,
+            ]);
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -135,13 +146,23 @@ class ClinicalStaffController extends Controller
             'license_no' => ['nullable', 'string', 'max:255'],
             'experience_years' => ['nullable', 'integer', 'min:0', 'max:80'],
             'bio' => ['nullable', 'string', 'max:5000'],
-            'doctor_role_id' => ['nullable', 'integer', Rule::exists('clinical_staff_roles', 'id')],
+            'clinical_staff_role_id' => ['nullable', 'integer', Rule::exists('clinical_staff_roles', 'id')],
             'photo' => ['nullable', 'image', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
             'password' => ['nullable', 'string', 'min:8'],
         ]);
 
         $data = collect($validated)->except(['photo', 'remove_photo', 'password'])->all();
+
+        if (! $request->exists('clinical_staff_role_id')) {
+            unset($data['clinical_staff_role_id']);
+        }
+
+        foreach (['specialty', 'license_no', 'experience_years'] as $optionalField) {
+            if (! $request->exists($optionalField)) {
+                unset($data[$optionalField]);
+            }
+        }
 
         if (! empty($validated['password'])) {
             if (strtolower((string) ($doctor->status ?? 'pending')) === 'active') {
@@ -176,7 +197,7 @@ class ClinicalStaffController extends Controller
         $doctor->update($data);
 
         return redirect()
-            ->route('admin.doctors.show', $doctor)
+            ->route('admin.clinical-staff.show', $doctor)
             ->with('status', __('Clinical staff updated.'));
     }
 
@@ -219,7 +240,7 @@ class ClinicalStaffController extends Controller
 
         $doctor->update($payload);
 
-        $redirect = redirect()->route('admin.doctors')->with('status', __('Clinical staff status updated.'));
+        $redirect = redirect()->route('admin.clinical-staff')->with('status', __('Clinical staff status updated.'));
 
         // Send welcome email when moving into "active", not only when wasChanged() reports it (avoids missed sends).
         if ($targetStatus === 'active' && $previousStatus !== 'active') {
@@ -251,7 +272,7 @@ class ClinicalStaffController extends Controller
 
                 return $redirect
                     ->with('warning', $warning)
-                    ->with('doctor_portal_credentials', [
+                    ->with('clinical_staff_portal_credentials', [
                         'email' => $email,
                         'password' => (string) $approvalPassword,
                         'login_url' => url('/login?tab=staff'),
@@ -268,7 +289,7 @@ class ClinicalStaffController extends Controller
 
         if (Appointment::query()->where('clinical_staff_id', $doctor->id)->exists()) {
             return redirect()
-                ->route('admin.doctors')
+                ->route('admin.clinical-staff')
                 ->with('error', __('This clinical staff member cannot be deleted while they have appointments. Reassign or remove those appointments first.'));
         }
 
@@ -279,7 +300,7 @@ class ClinicalStaffController extends Controller
         });
 
         return redirect()
-            ->route('admin.doctors')
+            ->route('admin.clinical-staff')
             ->with('status', __('Clinical staff deleted.'));
     }
 
@@ -288,26 +309,26 @@ class ClinicalStaffController extends Controller
         $doctor = ClinicalStaff::query()->findOrFail($id);
 
         $request->merge([
-            'doctor_role_id' => $request->filled('doctor_role_id') ? $request->integer('doctor_role_id') : null,
+            'clinical_staff_role_id' => $request->filled('clinical_staff_role_id') ? $request->integer('clinical_staff_role_id') : null,
         ]);
 
         $validated = $request->validate([
-            'doctor_role_id' => ['nullable', 'integer', Rule::exists('clinical_staff_roles', 'id')],
+            'clinical_staff_role_id' => ['nullable', 'integer', Rule::exists('clinical_staff_roles', 'id')],
         ]);
 
         $doctor->update([
-            'doctor_role_id' => $validated['doctor_role_id'],
+            'clinical_staff_role_id' => $validated['clinical_staff_role_id'],
         ]);
 
         return redirect()
-            ->route('admin.doctors.show', $doctor)
+            ->route('admin.clinical-staff.show', $doctor)
             ->with('status', __('Clinical portal role updated.'));
     }
 
     public function show(int $id): View
     {
         $doctor = ClinicalStaff::query()
-            ->with(['weeklySchedules', 'services', 'doctorRole'])
+            ->with(['weeklySchedules', 'services', 'role'])
             ->findOrFail($id);
 
         $doctor->assigned_services = $doctor->services->pluck('name')->all();
@@ -328,7 +349,7 @@ class ClinicalStaffController extends Controller
             ])
             ->all();
 
-        $doctorRoles = ClinicalStaffRole::query()->orderBy('name')->get();
+        $clinicalStaffRoles = ClinicalStaffRole::query()->orderBy('name')->get();
 
         $decryptedPendingPassword = null;
         if (! empty($doctor->pending_password_plain)) {
@@ -339,7 +360,7 @@ class ClinicalStaffController extends Controller
             }
         }
 
-        return view('admin.clinical-staff.show', compact('doctor', 'doctorRoles', 'decryptedPendingPassword'));
+        return view('admin.clinical-staff.show', compact('doctor', 'clinicalStaffRoles', 'decryptedPendingPassword'));
     }
 
     private function removeStoredDoctorImage(?string $path): void

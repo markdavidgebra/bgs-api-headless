@@ -65,7 +65,7 @@ class PatientPortalController extends Controller
 
         $credentials = $request->only('email', 'password');
 
-        if (Auth::guard('admin')->validate($credentials) || Auth::guard('doctor')->validate($credentials)) {
+        if (Auth::guard('admin')->validate($credentials) || Auth::guard('clinical_staff')->validate($credentials) || Auth::guard('doctor')->validate($credentials)) {
             throw ValidationException::withMessages([
                 'email' => [__('Use the staff portal to sign in with this email.')],
             ]);
@@ -223,7 +223,7 @@ class PatientPortalController extends Controller
             ->where('patient_id', $patientId)
             ->whereIn('status', ['pending', 'confirmed', 'rescheduled'])
             ->whereDate('appointment_date', '>=', now()->toDateString())
-            ->with(['doctor', 'service'])
+            ->with(['clinicalStaff', 'service'])
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
             ->first();
@@ -258,14 +258,14 @@ class PatientPortalController extends Controller
 
         $tablePayment = Payment::query()
             ->where('patient_id', $patientId)
-            ->with(['referenceAppointment.doctor', 'referenceAppointment.service'])
+            ->with(['referenceAppointment.clinicalStaff', 'referenceAppointment.service'])
             ->orderByDesc('payment_date')
             ->orderByDesc('id')
             ->first();
 
         $appointmentInvoice = AppointmentPayment::query()
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.doctor', 'appointment.service'])
+            ->with(['appointment.clinicalStaff', 'appointment.service'])
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
             ->first();
@@ -302,7 +302,7 @@ class PatientPortalController extends Controller
             ->where('patient_id', $patientId)
             ->whereIn('status', ['pending', 'confirmed', 'rescheduled'])
             ->whereDate('appointment_date', '>=', now()->toDateString())
-            ->with(['doctor', 'service'])
+            ->with(['clinicalStaff', 'service'])
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
             ->get();
@@ -313,7 +313,7 @@ class PatientPortalController extends Controller
                 $q->whereDate('appointment_date', '<', now()->toDateString())
                     ->orWhereIn('status', ['completed', 'cancelled']);
             })
-            ->with(['doctor', 'service'])
+            ->with(['clinicalStaff', 'service'])
             ->orderByDesc('appointment_date')
             ->orderByDesc('appointment_time')
             ->paginate(15);
@@ -333,7 +333,7 @@ class PatientPortalController extends Controller
     public function appointment(Request $request, Appointment $appointment): JsonResponse
     {
         $this->ensurePatientOwnsAppointment($request, $appointment);
-        $appointment->load(['doctor', 'service']);
+        $appointment->load(['clinicalStaff', 'service']);
 
         return response()->json(['appointment' => $this->appointmentPayload($appointment)]);
     }
@@ -363,7 +363,7 @@ class PatientPortalController extends Controller
 
         $date = $request->query('date');
         $serviceId = $request->query('service_id');
-        $doctors = $this->bookableDoctorsQuery($date, $serviceId ? (int) $serviceId : null)
+        $clinicalStaff = $this->bookableClinicalStaffQuery($date, $serviceId ? (int) $serviceId : null)
             ->get(['id', 'name', 'specialty']);
 
         return response()->json([
@@ -394,7 +394,7 @@ class PatientPortalController extends Controller
                 'unit' => (string) ($p->unit ?? ''),
                 'in_stock' => (int) ($p->stock_quantity ?? 0) > 0,
             ])->values(),
-            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
+            'clinical_staff' => $clinicalStaff->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -402,7 +402,7 @@ class PatientPortalController extends Controller
         ]);
     }
 
-    public function bookableDoctors(Request $request): JsonResponse
+    public function bookableClinicalStaff(Request $request): JsonResponse
     {
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
@@ -416,11 +416,11 @@ class PatientPortalController extends Controller
             $data['service_ids'] ?? (isset($data['service_id']) ? [$data['service_id']] : [])
         )));
 
-        $doctors = $this->bookableDoctorsQuery($data['date'], $serviceIds !== [] ? $serviceIds : null)
+        $clinicalStaff = $this->bookableClinicalStaffQuery($data['date'], $serviceIds !== [] ? $serviceIds : null)
             ->get(['id', 'name', 'specialty']);
 
         return response()->json([
-            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
+            'clinical_staff' => $clinicalStaff->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -438,7 +438,7 @@ class PatientPortalController extends Controller
             'package_ids.*' => ['integer', 'exists:treatment_packages,id'],
             'product_ids' => ['nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
-            'doctor_id' => ['required', 'exists:clinical_staff,id'],
+            'clinical_staff_id' => ['required', 'exists:clinical_staff,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
             'patient_concern' => ['nullable', 'string', 'max:2000'],
@@ -476,12 +476,12 @@ class PatientPortalController extends Controller
             ]);
         }
 
-        if (! $this->bookableDoctorsQuery($data['appointment_date'], $serviceIds)
-            ->whereKey((int) $data['doctor_id'])
+        if (! $this->bookableClinicalStaffQuery($data['appointment_date'], $serviceIds)
+            ->whereKey((int) $data['clinical_staff_id'])
             ->exists()
         ) {
             throw ValidationException::withMessages([
-                'doctor_id' => 'This clinical staff member is not available on the selected date for the selected service(s).',
+                'clinical_staff_id' => 'This clinical staff member is not available on the selected date for the selected service(s).',
             ]);
         }
 
@@ -515,7 +515,7 @@ class PatientPortalController extends Controller
                 $appointment = Appointment::create([
                     'appointment_no' => $this->generateAppointmentNo(),
                     'patient_id' => $patientId,
-                    'doctor_id' => (int) $data['doctor_id'],
+                    'clinical_staff_id' => (int) $data['clinical_staff_id'],
                     'service_id' => $serviceId,
                     'appointment_date' => $data['appointment_date'],
                     'appointment_time' => $data['appointment_time'],
@@ -550,12 +550,12 @@ class PatientPortalController extends Controller
         });
 
         foreach ($appointments as $appointment) {
-            $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+            $appointment->load(['patient:id,name,email', 'clinicalStaff:id,name', 'service:id,name']);
             try {
                 if ($appointment->patient) {
                     Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
                 }
-                ClinicalStaffAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+                ClinicalStaffAppointmentAlerts::notifyClinicalStaffOfNewBooking($appointment);
             } catch (\Throwable $e) {
                 report($e);
             }
@@ -591,7 +591,7 @@ class PatientPortalController extends Controller
             'reminder_sent_at' => null,
         ])->save();
 
-        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+        $appointment->load(['patient:id,name,email', 'clinicalStaff:id,name', 'service:id,name']);
         try {
             if ($appointment->patient) {
                 Notification::send($appointment->patient, new AppointmentRescheduledPatientNotification($appointment));
@@ -615,7 +615,7 @@ class PatientPortalController extends Controller
 
         return response()->json([
             'message' => 'Appointment cancelled.',
-            'appointment' => $this->appointmentPayload($appointment->fresh(['doctor', 'service'])),
+            'appointment' => $this->appointmentPayload($appointment->fresh(['clinicalStaff', 'service'])),
         ]);
     }
 
@@ -777,7 +777,7 @@ class PatientPortalController extends Controller
         $packages = TreatmentPatientPackage::query()
             ->where('patient_id', $request->user('web')->id)
             ->with([
-                'treatmentPackage.doctors',
+                'treatmentPackage.clinicalStaff',
                 'usageHistories' => fn ($q) => $q->whereNotNull('used_on')->orderByDesc('used_on'),
             ])
             ->orderByDesc('start_date')
@@ -804,7 +804,7 @@ class PatientPortalController extends Controller
         }
 
         $patientPackage->load([
-            'treatmentPackage.doctors',
+            'treatmentPackage.clinicalStaff',
             'treatmentPackage.services',
             'usageHistories' => fn ($q) => $q->with('service')->orderByDesc('used_on')->orderByDesc('id'),
         ]);
@@ -842,7 +842,7 @@ class PatientPortalController extends Controller
                 'description' => (string) ($treatment->description ?? ''),
                 'aftercare' => (string) ($treatment->aftercare ?? ''),
                 'price' => $treatment->price !== null ? (float) $treatment->price : null,
-                'doctors' => $treatment->doctors->map(fn (ClinicalStaff $d) => [
+                'clinical_staff' => $treatment->clinicalStaff->map(fn (ClinicalStaff $d) => [
                     'id' => (int) $d->id,
                     'name' => (string) $d->name,
                 ])->values(),
@@ -934,7 +934,7 @@ class PatientPortalController extends Controller
         $posPayments = Payment::query()
             ->where('patient_id', $patientId)
             ->with([
-                'referenceAppointment.doctor',
+                'referenceAppointment.clinicalStaff',
                 'referenceAppointment.service',
                 'referencePackage',
                 'referenceMembership',
@@ -951,7 +951,7 @@ class PatientPortalController extends Controller
 
         $appointmentPayments = AppointmentPayment::query()
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.doctor', 'appointment.service'])
+            ->with(['appointment.clinicalStaff', 'appointment.service'])
             ->get()
             ->map(function (AppointmentPayment $p) {
                 $payload = $this->appointmentPaymentPayload($p);
@@ -1005,7 +1005,7 @@ class PatientPortalController extends Controller
                 ->whereKey($payment)
                 ->where('patient_id', $patientId)
                 ->with([
-                    'referenceAppointment.doctor',
+                    'referenceAppointment.clinicalStaff',
                     'referenceAppointment.service',
                     'referencePackage',
                     'referenceMembership',
@@ -1024,7 +1024,7 @@ class PatientPortalController extends Controller
             $record = AppointmentPayment::query()
                 ->whereKey($payment)
                 ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-                ->with(['appointment.doctor', 'appointment.service'])
+                ->with(['appointment.clinicalStaff', 'appointment.service'])
                 ->firstOrFail();
 
             $payload = $this->appointmentPaymentPayload($record);
@@ -1104,7 +1104,7 @@ class PatientPortalController extends Controller
 
         $appointmentInstructions = AppointmentNote::query()
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.service', 'appointment.doctor'])
+            ->with(['appointment.service', 'appointment.clinicalStaff'])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->get()
@@ -1209,9 +1209,9 @@ class PatientPortalController extends Controller
             'date_display' => $a->appointment_date ? $a->appointment_date->format('F j, Y') : '—',
             'time_display' => $timeIso ? Carbon::parse($timeIso)->format('g:i A') : '—',
             'service_id' => $a->service_id,
-            'doctor_id' => $a->doctor_id,
+            'clinical_staff_id' => $a->clinical_staff_id,
             'service_name' => (string) ($a->service?->name ?? '—'),
-            'doctor_name' => (string) ($a->doctor?->name ?? '—'),
+            'clinical_staff_name' => (string) ($a->clinicalStaff?->name ?? '—'),
             'status' => (string) ($a->status ?? 'pending'),
             'status_label' => ucfirst((string) ($a->status ?? 'pending')),
         ];
@@ -1349,7 +1349,7 @@ class PatientPortalController extends Controller
     protected function treatmentRowPayload(TreatmentPatientPackage $p): array
     {
         $treatment = $p->treatmentPackage;
-        $doctorNames = $treatment?->doctors?->pluck('name')->filter()->unique();
+        $doctorNames = $treatment?->clinicalStaff?->pluck('name')->filter()->unique();
 
         $started = $p->start_date ?? $p->purchased_at;
         $lastSession = $p->usageHistories->first()?->used_on;
@@ -1360,7 +1360,7 @@ class PatientPortalController extends Controller
             'id' => (int) $p->id,
             'treatment_name' => (string) ($treatment?->name ?? 'Treatment package'),
             'category' => (string) ($treatment?->category ?? ''),
-            'doctors_label' => $doctorNames && $doctorNames->isNotEmpty() ? $doctorNames->implode(', ') : '—',
+            'clinical_staff_label' => $doctorNames && $doctorNames->isNotEmpty() ? $doctorNames->implode(', ') : '—',
             'date_started' => $started ? Carbon::parse((string) $started)->format('M j, Y') : '—',
             'last_session' => $lastSession ? Carbon::parse((string) $lastSession)->format('M j, Y') : '—',
             'total_sessions' => (int) $p->total_sessions,
@@ -1417,7 +1417,7 @@ class PatientPortalController extends Controller
         $note = AppointmentNote::query()
             ->whereKey($record)
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.service', 'appointment.doctor'])
+            ->with(['appointment.service', 'appointment.clinicalStaff'])
             ->first();
 
         return $note && filled($note->instructions) ? $this->aftercareFromAppointmentNote($note) : null;

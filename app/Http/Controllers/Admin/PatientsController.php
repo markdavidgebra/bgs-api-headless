@@ -175,7 +175,7 @@ class PatientsController extends Controller
         }
 
         $appointments = Appointment::query()
-            ->with(['service:id,name', 'doctor:id,name', 'patient:id,name', 'note'])
+            ->with(['service:id,name', 'clinicalStaff:id,name', 'patient:id,name', 'note'])
             ->where('patient_id', $patient->id)
             ->orderByDesc('appointment_date')
             ->orderByDesc('id')
@@ -509,7 +509,7 @@ class PatientsController extends Controller
             ->where('patient_id', $patient)
             ->firstOrFail();
 
-        $keys = ['patient_concern', 'doctor_notes', 'instructions', 'alerts', 'appointment_remarks', 'admin_notes'];
+        $keys = ['patient_concern', 'clinical_notes', 'instructions', 'alerts', 'appointment_remarks', 'admin_notes'];
         $rules = [];
         foreach ($keys as $key) {
             $rules[$key] = ['nullable', 'string', 'max:65535'];
@@ -583,7 +583,7 @@ class PatientsController extends Controller
 
     public function clearAppointmentNoteField(int $patient, int $appointment, string $field): RedirectResponse
     {
-        $allowed = ['patient_concern', 'doctor_notes', 'instructions', 'alerts', 'appointment_remarks', 'admin_notes'];
+        $allowed = ['patient_concern', 'clinical_notes', 'instructions', 'alerts', 'appointment_remarks', 'admin_notes'];
         if (! in_array($field, $allowed, true)) {
             abort(404);
         }

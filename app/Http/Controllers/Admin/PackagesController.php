@@ -22,7 +22,7 @@ class PackagesController extends Controller
     {
         $query = TreatmentPackage::query()
             ->with('services')
-            ->withCount(['services', 'doctors'])
+            ->withCount(['services', 'clinicalStaff'])
             ->orderByDesc('updated_at');
 
         if ($request->filled('search')) {
@@ -50,9 +50,9 @@ class PackagesController extends Controller
     public function create(): View
     {
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
-        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
+        $clinicalStaff = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
 
-        return view('admin.packages.create', compact('services', 'doctors'));
+        return view('admin.packages.create', compact('services', 'clinicalStaff'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -89,7 +89,7 @@ class PackagesController extends Controller
         ]);
 
         $this->syncServicePivotFromRequest($package, $request);
-        $package->doctors()->sync($request->input('assigned_doctors', []));
+        $package->clinicalStaff()->sync($request->input('assigned_clinical_staff', []));
 
         return redirect()
             ->route('admin.packages.show', $package)
@@ -99,13 +99,13 @@ class PackagesController extends Controller
     public function edit(string $id): View
     {
         $package = TreatmentPackage::query()
-            ->with(['services', 'doctors'])
+            ->with(['services', 'clinicalStaff'])
             ->findOrFail($id);
 
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
-        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
+        $clinicalStaff = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
 
-        return view('admin.packages.edit', compact('package', 'services', 'doctors'));
+        return view('admin.packages.edit', compact('package', 'services', 'clinicalStaff'));
     }
 
     public function show(string $id): View
@@ -113,7 +113,7 @@ class PackagesController extends Controller
         $package = TreatmentPackage::query()
             ->with([
                 'services',
-                'doctors',
+                'clinicalStaff',
                 'patientPackages' => fn ($q) => $q->orderByDesc('purchased_at')->orderByDesc('id'),
                 'patientPackages.patient',
             ])
@@ -166,7 +166,7 @@ class PackagesController extends Controller
         $package->update($payload);
 
         $this->syncServicePivotFromRequest($package, $request);
-        $package->doctors()->sync($request->input('assigned_doctors', []));
+        $package->clinicalStaff()->sync($request->input('assigned_clinical_staff', []));
 
         return redirect()
             ->route('admin.packages.show', $package)
@@ -186,7 +186,7 @@ class PackagesController extends Controller
         $this->deleteStoredPackageImage($package->image);
 
         $package->services()->detach();
-        $package->doctors()->detach();
+        $package->clinicalStaff()->detach();
         $package->delete();
 
         return redirect()
@@ -215,8 +215,8 @@ class PackagesController extends Controller
             'validity_unit' => ['nullable', 'string', 'in:days,months,years'],
             'expiry_rule' => ['nullable', 'string', 'in:after_purchase,after_first_use'],
             'max_usage_per_day' => ['nullable', 'integer', 'min:1'],
-            'assigned_doctors' => ['nullable', 'array'],
-            'assigned_doctors.*' => ['integer', 'exists:clinical_staff,id'],
+            'assigned_clinical_staff' => ['nullable', 'array'],
+            'assigned_clinical_staff.*' => ['integer', 'exists:clinical_staff,id'],
             'before_care' => ['nullable', 'string'],
             'aftercare' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],

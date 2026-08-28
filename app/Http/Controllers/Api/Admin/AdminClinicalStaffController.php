@@ -18,7 +18,7 @@ class AdminClinicalStaffController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = ClinicalStaff::query()->with('doctorRole')->orderBy('name');
+        $query = ClinicalStaff::query()->with('role')->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -43,7 +43,7 @@ class AdminClinicalStaffController extends Controller
 
         return response()->json([
             'data' => $paginator->getCollection()
-                ->map(fn (ClinicalStaff $d) => $this->doctorPayload($d))
+                ->map(fn (ClinicalStaff $d) => $this->clinicalStaffPayload($d))
                 ->values(),
             'meta' => $this->paginationMeta($paginator),
         ]);
@@ -52,7 +52,7 @@ class AdminClinicalStaffController extends Controller
     public function create(): JsonResponse
     {
         return response()->json([
-            'doctor_roles' => ClinicalStaffRole::query()->orderBy('name')->get()->map(fn (ClinicalStaffRole $r) => [
+            'clinical_staff_roles' => ClinicalStaffRole::query()->orderBy('name')->get()->map(fn (ClinicalStaffRole $r) => [
                 'id' => $r->id,
                 'name' => $r->name,
                 'role_value' => $r->role_value,
@@ -71,12 +71,12 @@ class AdminClinicalStaffController extends Controller
     public function show(int $id): JsonResponse
     {
         $doctor = ClinicalStaff::query()
-            ->with(['weeklySchedules', 'services', 'doctorRole'])
+            ->with(['weeklySchedules', 'services', 'role'])
             ->findOrFail($id);
 
         return response()->json([
-            'doctor' => $this->doctorShowPayload($doctor),
-            'doctor_roles' => ClinicalStaffRole::query()->orderBy('name')->get()->map(fn (ClinicalStaffRole $r) => [
+            'clinical_staff' => $this->clinicalStaffShowPayload($doctor),
+            'clinical_staff_roles' => ClinicalStaffRole::query()->orderBy('name')->get()->map(fn (ClinicalStaffRole $r) => [
                 'id' => $r->id,
                 'name' => $r->name,
                 'role_value' => $r->role_value,
@@ -86,11 +86,11 @@ class AdminClinicalStaffController extends Controller
 
     public function edit(int $id): JsonResponse
     {
-        $doctor = ClinicalStaff::query()->with('doctorRole')->findOrFail($id);
+        $doctor = ClinicalStaff::query()->with('role')->findOrFail($id);
 
         return response()->json([
-            'doctor' => $this->doctorPayload($doctor),
-            'doctor_roles' => ClinicalStaffRole::query()->orderBy('name')->get()->map(fn (ClinicalStaffRole $r) => [
+            'clinical_staff' => $this->clinicalStaffPayload($doctor),
+            'clinical_staff_roles' => ClinicalStaffRole::query()->orderBy('name')->get()->map(fn (ClinicalStaffRole $r) => [
                 'id' => $r->id,
                 'name' => $r->name,
                 'role_value' => $r->role_value,

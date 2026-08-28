@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\AliasesLegacyStaffId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,13 +10,11 @@ class ClinicalStaffWeeklySchedule extends Model
 {
     /** @use HasFactory<\Database\Factories\ClinicalStaffWeeklyScheduleFactory> */
     use HasFactory;
-    use AliasesLegacyStaffId;
 
     protected $table = 'clinical_staff_weekly_schedules';
 
     protected $fillable = [
         'clinical_staff_id',
-        'doctor_id',
         'weekday',
         'is_active',
         'start_time',
@@ -33,7 +30,7 @@ class ClinicalStaffWeeklySchedule extends Model
         ];
     }
 
-    public function doctor(): BelongsTo
+    public function clinicalStaff(): BelongsTo
     {
         return $this->belongsTo(ClinicalStaff::class, 'clinical_staff_id');
     }

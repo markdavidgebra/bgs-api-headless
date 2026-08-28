@@ -81,7 +81,7 @@
                                 <td>{{ $appt->date_display }}</td>
                                 <td>{{ $appt->time_display }}</td>
                                 <td>{{ $appt->service_name }}</td>
-                                <td>{{ $appt->doctor_name }}</td>
+                                <td>{{ $appt->clinical_staff_name }}</td>
                                 <td><span class="{{ $statusClass($appt->status) }}">{{ $appt->status_label }}</span></td>
                                 <td class="text-end">
                                   <a href="{{ route('patient.appointments.show', $appt) }}" class="btn btn-sm btn-outline-primary mb-5">
@@ -140,7 +140,7 @@
                                 <td>{{ $appt->date_display }}</td>
                                 <td>{{ $appt->time_display }}</td>
                                 <td>{{ $appt->service_name }}</td>
-                                <td>{{ $appt->doctor_name }}</td>
+                                <td>{{ $appt->clinical_staff_name }}</td>
                                 <td><span class="{{ $statusClass($appt->status) }}">{{ $appt->status_label }}</span></td>
                                 <td class="text-end">
                                   <a href="{{ route('patient.appointments.show', $appt) }}" class="btn btn-sm btn-outline-primary mb-5">

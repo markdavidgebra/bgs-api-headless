@@ -27,7 +27,7 @@ class PatientPaymentController extends Controller
 
         $payments = AppointmentPayment::query()
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.doctor', 'appointment.service'])
+            ->with(['appointment.clinicalStaff', 'appointment.service'])
             ->orderByDesc('created_at')
             ->paginate(15)
             ->withQueryString();
@@ -45,7 +45,7 @@ class PatientPaymentController extends Controller
         $paymentRecord = AppointmentPayment::query()
             ->whereKey($payment)
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.doctor', 'appointment.service'])
+            ->with(['appointment.clinicalStaff', 'appointment.service'])
             ->firstOrFail();
 
         return view('patient.payments.show', [

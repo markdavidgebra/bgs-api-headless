@@ -20,7 +20,7 @@ class ClinicalStaffPatientRecordController extends Controller
 {
     public function index(Request $request): View
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
         $search = trim($request->string('search')->toString());
 
         $patientsPaginator = Patient::query()
@@ -124,10 +124,10 @@ class ClinicalStaffPatientRecordController extends Controller
 
     public function show(Patient $patient): View
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
 
         $myAppointments = Appointment::query()
-            ->with(['service:id,name', 'doctor:id,name', 'note'])
+            ->with(['service:id,name', 'clinicalStaff:id,name', 'note'])
             ->where('clinical_staff_id', $doctorId)
             ->where('patient_id', $patient->id)
             ->orderByDesc('appointment_date')
@@ -135,7 +135,7 @@ class ClinicalStaffPatientRecordController extends Controller
             ->get();
 
         $appointments = Appointment::query()
-            ->with(['service:id,name', 'doctor:id,name', 'note'])
+            ->with(['service:id,name', 'clinicalStaff:id,name', 'note'])
             ->where('patient_id', $patient->id)
             ->orderByDesc('appointment_date')
             ->orderByDesc('appointment_time')
@@ -229,7 +229,7 @@ class ClinicalStaffPatientRecordController extends Controller
                 $query->where('clinical_staff_id', $doctorId)
                     ->where('patient_id', $patient->id);
             })
-            ->with('appointment:id,appointment_no,doctor_id,patient_id')
+            ->with('appointment:id,appointment_no,clinical_staff_id,patient_id')
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
             ->limit(20)
@@ -405,7 +405,7 @@ class ClinicalStaffPatientRecordController extends Controller
             return (object) [
                 'appointment' => $appt,
                 'mobility_label' => $appt->note?->mobilityLabel(),
-                'can_edit' => (int) $appt->doctor_id === (int) $doctorId,
+                'can_edit' => (int) $appt->clinical_staff_id === (int) $doctorId,
             ];
         })->values();
 
@@ -437,7 +437,7 @@ class ClinicalStaffPatientRecordController extends Controller
 
     public function storeNote(Request $request, Patient $patient): RedirectResponse
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
 
         $validated = $request->validate([
             'appointment_id' => ['required', 'integer'],
@@ -466,20 +466,20 @@ class ClinicalStaffPatientRecordController extends Controller
 
         $existing = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
 
-        $fieldKeys = ['doctor_notes', 'appointment_remarks', 'instructions', 'alerts'];
+        $fieldKeys = ['clinical_notes', 'appointment_remarks', 'instructions', 'alerts'];
         $oldSnapshot = [];
         foreach ($fieldKeys as $key) {
             $oldSnapshot[$key] = $existing?->{$key};
         }
 
         $newPayload = [
-            'doctor_notes' => $validated['observation'] ?? null,
+            'clinical_notes' => $validated['observation'] ?? null,
             'appointment_remarks' => $validated['procedure_done'] ?? null,
             'instructions' => $validated['recommendation'] ?? null,
             'alerts' => $validated['follow_up'] ?? null,
         ];
 
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $newPayload['section_authors'] = AppointmentNote::mergeAuthorsOnFieldChanges(
             is_array($existing?->section_authors) ? $existing->section_authors : null,
             $oldSnapshot,
@@ -494,7 +494,7 @@ class ClinicalStaffPatientRecordController extends Controller
         );
 
         return redirect()
-            ->route('doctor.patient-records.show', $patient)
+            ->route('clinical_staff.patient-records.show', $patient)
             ->with('success', 'Treatment note saved successfully.');
     }
 
@@ -626,7 +626,7 @@ class ClinicalStaffPatientRecordController extends Controller
     private function redirectAfterPatientPackageSessionsSave(Patient $patient): RedirectResponse
     {
         return redirect()
-            ->route('doctor.patient-records.show', $patient)
+            ->route('clinical_staff.patient-records.show', $patient)
             ->with('success', 'Package session progress updated.')
             ->withFragment('tab-packages');
     }

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\AliasesLegacyStaffId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,13 +13,11 @@ class Appointment extends Model
 {
     /** @use HasFactory<\Database\Factories\AppointmentFactory> */
     use HasFactory;
-    use AliasesLegacyStaffId;
 
     protected $fillable = [
         'appointment_no',
         'patient_id',
         'clinical_staff_id',
-        'doctor_id',
         'service_id',
         'appointment_date',
         'appointment_time',
@@ -43,7 +40,7 @@ class Appointment extends Model
         return $this->belongsTo(Patient::class, 'patient_id');
     }
 
-    public function doctor(): BelongsTo
+    public function clinicalStaff(): BelongsTo
     {
         return $this->belongsTo(ClinicalStaff::class, 'clinical_staff_id');
     }
@@ -78,6 +75,16 @@ class Appointment extends Model
         return $this->hasMany(AppointmentPayment::class)->orderByDesc('id');
     }
 
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class, 'appointment_id')->orderByDesc('id');
+    }
+
+    public function doctorNotes(): HasMany
+    {
+        return $this->hasMany(DoctorNote::class, 'appointment_id')->orderByDesc('id');
+    }
+
     /**
      * Products prescribed during this visit (doctor treatment notes).
      */
@@ -109,9 +116,9 @@ class Appointment extends Model
         return $this->patient?->name ?? '—';
     }
 
-    public function getDoctorNameAttribute()
+    public function getClinicalStaffNameAttribute()
     {
-        return $this->doctor?->name ?? '—';
+        return $this->clinicalStaff?->name ?? '—';
     }
 
     public function getServiceNameAttribute()

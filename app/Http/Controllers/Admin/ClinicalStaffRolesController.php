@@ -40,7 +40,7 @@ class ClinicalStaffRolesController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100', Rule::unique('doctor_roles', 'name')],
+            'name' => ['required', 'string', 'max:100', Rule::unique('clinical_staff_roles', 'name')],
             'role_value' => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string', 'max:255'],
             'permissions' => ['nullable', 'array'],
@@ -72,7 +72,7 @@ class ClinicalStaffRolesController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.doctor-roles.index')
+            ->route('admin.clinical-staff-roles.index')
             ->with('status', __('Clinical role created.'));
     }
 
@@ -91,7 +91,7 @@ class ClinicalStaffRolesController extends Controller
         $role = ClinicalStaffRole::query()->findOrFail($id);
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100', Rule::unique('doctor_roles', 'name')->ignore($role->id)],
+            'name' => ['required', 'string', 'max:100', Rule::unique('clinical_staff_roles', 'name')->ignore($role->id)],
             'role_value' => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string', 'max:255'],
             'permissions' => ['nullable', 'array'],
@@ -123,7 +123,7 @@ class ClinicalStaffRolesController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.doctor-roles.index')
+            ->route('admin.clinical-staff-roles.index')
             ->with('status', __('Clinical role updated.'));
     }
 

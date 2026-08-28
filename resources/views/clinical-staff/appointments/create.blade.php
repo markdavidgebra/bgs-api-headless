@@ -32,9 +32,9 @@
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                       @if ($appointment->patient_id)
-                        <a href="{{ route('doctor.patient-records.show', $appointment->patient_id) }}" class="btn btn-sm btn-outline-primary">Patient History</a>
+                        <a href="{{ route('clinical_staff.patient-records.show', $appointment->patient_id) }}" class="btn btn-sm btn-outline-primary">Patient History</a>
                       @endif
-                      <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline">Back to appointment</a>
+                      <a href="{{ route('clinical_staff.appointments.show', $appointment) }}" class="btn btn-sm btn-outline">Back to appointment</a>
                     </div>
                   </div>
 
@@ -57,7 +57,7 @@
                     $mobilityForm = old('mobility', optional($appointmentNote)->mobility);
                   @endphp
 
-                  <form method="POST" action="{{ route('doctor.appointments.notes', $appointment) }}" enctype="multipart/form-data">
+                  <form method="POST" action="{{ route('clinical_staff.appointments.notes', $appointment) }}" enctype="multipart/form-data">
                     @csrf
 
                   <div class="card mb-25 shadow-sm border-0" id="notes-create-doc" style="border-radius: 12px;"
@@ -89,9 +89,9 @@
                               placeholder="Enter medical history...">{{ old('admin_notes', optional($appointmentNote)->admin_notes) }}</textarea>
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label for="doctor_notes" class="form-label">Clinical notes</label>
-                            <textarea id="doctor_notes" name="doctor_notes" rows="3" class="form-control"
-                              placeholder="Enter clinical notes...">{{ old('doctor_notes', optional($appointmentNote)->doctor_notes) }}</textarea>
+                            <label for="clinical_notes" class="form-label">Clinical notes</label>
+                            <textarea id="clinical_notes" name="clinical_notes" rows="3" class="form-control"
+                              placeholder="Enter clinical notes...">{{ old('clinical_notes', optional($appointmentNote)->clinical_notes) }}</textarea>
                           </div>
                           <div class="col-md-6 mb-3">
                             <label for="alerts" class="form-label">Allergy</label>
@@ -357,7 +357,7 @@
                             <span class="prescribe-total-pill__label">Estimated total</span>
                             <span class="prescribe-total-pill__value" id="prescribe-products-total">₱0.00</span>
                           </div>
-                          <a href="{{ route('doctor.products') }}" class="btn btn-sm btn-outline-primary flex-shrink-0">
+                          <a href="{{ route('clinical_staff.products') }}" class="btn btn-sm btn-outline-primary flex-shrink-0">
                             View full inventory
                           </a>
                         </div>
@@ -432,7 +432,7 @@
                     <div class="card-footer bg-white border-top py-15">
                         <div class="d-flex flex-wrap gap-2">
                           <button type="submit" class="btn btn-sm btn-primary">Save notes &amp; prescriptions</button>
-                          <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Cancel</a>
+                          <a href="{{ route('clinical_staff.appointments') }}" class="btn btn-sm btn-outline">Cancel</a>
                         </div>
                     </div>
                   </div>

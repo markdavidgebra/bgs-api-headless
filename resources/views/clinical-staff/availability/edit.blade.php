@@ -23,7 +23,7 @@
                 <div class="account dashboard-content pl-50">
                   <div class="section-title mb-20 d-flex justify-content-between align-items-center">
                     <h3 class="mb-0">Edit {{ $schedule->day_label }}</h3>
-                    <a href="{{ route('doctor.availability') }}" class="btn btn-sm btn-outline">Back</a>
+                    <a href="{{ route('clinical_staff.availability') }}" class="btn btn-sm btn-outline">Back</a>
                   </div>
 
                   @if ($errors->any())
@@ -38,7 +38,7 @@
 
                   <div class="card">
                     <div class="card-body">
-                      <form method="POST" action="{{ route('doctor.availability.day.update', $schedule->weekday) }}">
+                      <form method="POST" action="{{ route('clinical_staff.availability.day.update', $schedule->weekday) }}">
                         @csrf
                         @method('PATCH')
 

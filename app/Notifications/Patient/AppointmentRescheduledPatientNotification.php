@@ -23,7 +23,7 @@ class AppointmentRescheduledPatientNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $this->appointment->loadMissing(['service:id,name', 'doctor:id,name']);
+        $this->appointment->loadMissing(['service:id,name', 'clinicalStaff:id,name']);
 
         return (new MailMessage)
             ->subject(__('Your appointment was rescheduled'))
@@ -40,7 +40,7 @@ class AppointmentRescheduledPatientNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $this->appointment->loadMissing(['service:id,name', 'doctor:id,name']);
+        $this->appointment->loadMissing(['service:id,name', 'clinicalStaff:id,name']);
 
         return [
             'type' => 'appointment_rescheduled',

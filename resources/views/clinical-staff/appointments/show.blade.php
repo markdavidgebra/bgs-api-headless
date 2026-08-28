@@ -78,16 +78,16 @@
               <div class="col-12">
                 <div class="account dashboard-content pl-50">
                   @php
-                    $notesCreateUrl = route('doctor.appointments.notes.create', $appointment);
+                    $notesCreateUrl = route('clinical_staff.appointments.notes.create', $appointment);
                   @endphp
                   <div class="section-title mb-20 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h3 class="mb-0">Appointment #{{ $appointment->appointment_no }}</h3>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                       <a href="{{ $notesCreateUrl }}" class="btn btn-sm">{{ __('Add notes') }}</a>
                       @if ($appointment->patient_id)
-                        <a href="{{ route('doctor.patient-records.show', $appointment->patient_id) }}" class="btn btn-sm btn-outline-primary">Patient History</a>
+                        <a href="{{ route('clinical_staff.patient-records.show', $appointment->patient_id) }}" class="btn btn-sm btn-outline-primary">Patient History</a>
                       @endif
-                      <a href="{{ route('doctor.appointments') }}" class="btn btn-sm btn-outline">Back to list</a>
+                      <a href="{{ route('clinical_staff.appointments') }}" class="btn btn-sm btn-outline">Back to list</a>
                     </div>
                   </div>
 
@@ -104,7 +104,7 @@
                   @endphp
                   @if ($canStartSession)
                     <div class="mb-20">
-                      <form method="POST" action="{{ route('doctor.appointments.start-session', $appointment) }}" class="d-inline">
+                      <form method="POST" action="{{ route('clinical_staff.appointments.start-session', $appointment) }}" class="d-inline">
                         @csrf
                         <button type="submit" class="btn btn-sm btn-primary">{{ __('Start session') }}</button>
                       </form>
@@ -117,7 +117,7 @@
                         <div class="col-md-6 mb-2"><strong>Date:</strong> {{ $appointment->date_display }}</div>
                         <div class="col-md-6 mb-2"><strong>Time:</strong> {{ $appointment->time_display }}</div>
                         <div class="col-md-6 mb-2"><strong>Patient:</strong> {{ $appointment->patient_name }}</div>
-                        <div class="col-md-6 mb-2"><strong>Clinician:</strong> {{ $appointment->doctor_name }}</div>
+                        <div class="col-md-6 mb-2"><strong>Clinician:</strong> {{ $appointment->clinical_staff_name }}</div>
                         <div class="col-md-6 mb-2"><strong>Service:</strong> {{ $appointment->service_name }}</div>
                         <div class="col-md-6 mb-2"><strong>Status:</strong> {{ $appointment->status_label }}</div>
                         <div class="col-md-6 mb-2">
@@ -129,7 +129,7 @@
                           @endif
                         </div>
                         <div class="col-md-6 mb-2">
-                          <form method="POST" action="{{ route('doctor.appointments.session-done', $appointment) }}" class="d-inline-block">
+                          <form method="POST" action="{{ route('clinical_staff.appointments.session-done', $appointment) }}" class="d-inline-block">
                             @csrf
                             <div class="form-check">
                               <input
@@ -166,7 +166,7 @@
                           <strong>Sessions:</strong> {{ (int) $patientPackage->used_sessions }} / {{ (int) $patientPackage->total_sessions }} done
                         </p>
 
-                        <form method="POST" action="{{ route('doctor.appointments.treatment-progress', $appointment) }}">
+                        <form method="POST" action="{{ route('clinical_staff.appointments.treatment-progress', $appointment) }}">
                           @csrf
                           @php
                             $serviceGroups = collect($serviceChecklist)->groupBy('service_name');
@@ -251,10 +251,10 @@
                         <div class="col-md-6 mb-3">
                           <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
                             <label class="form-label mb-0">Clinical notes</label>
-                            <a href="{{ $notesCreateUrl }}#doctor_notes" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
+                            <a href="{{ $notesCreateUrl }}#clinical_notes" class="btn btn-xs btn-outline flex-shrink-0">Add</a>
                           </div>
                           <div class="form-control bg-light" style="min-height: 44px;">
-                            {{ optional($appointment->note)->doctor_notes ?: '—' }}
+                            {{ optional($appointment->note)->clinical_notes ?: '—' }}
                           </div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -366,7 +366,7 @@
                       </div>
 
                       <div class="appt-tab-panel" id="appt-tab-panel-assessment" data-appt-tab-panel="assessment" role="tabpanel" aria-labelledby="appt-tab-assessment-btn">
-                        <form method="POST" action="{{ route('doctor.appointments.notes.assessment', $appointment) }}">
+                        <form method="POST" action="{{ route('clinical_staff.appointments.notes.assessment', $appointment) }}">
                           @csrf
                           <label class="form-label fw-semibold d-block mb-2">{{ __('Mobility') }}</label>
                           <div class="appt-mobility-options">

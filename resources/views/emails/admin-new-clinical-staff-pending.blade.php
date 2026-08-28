@@ -10,6 +10,6 @@
     <strong>{{ __('Name') }}:</strong> {{ $doctor->name }}<br>
     <strong>{{ __('Email') }}:</strong> {{ $doctor->email }}
   </p>
-  <p><a href="{{ route('admin.doctors.show', $doctor->id) }}">{{ __('Review clinical staff') }}</a></p>
+  <p><a href="{{ route('admin.clinical-staff.show', $doctor->id) }}">{{ __('Review clinical staff') }}</a></p>
 </body>
 </html>

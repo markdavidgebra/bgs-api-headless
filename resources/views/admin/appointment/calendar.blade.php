@@ -28,11 +28,11 @@
                 return [
                     'id' => (int) $appt->id,
                     'patient_id' => (int) ($appt->patient_id ?? 0),
-                    'doctor_id' => (int) ($appt->doctor_id ?? 0),
+                    'clinical_staff_id' => (int) ($appt->clinical_staff_id ?? 0),
                     'time' => $timeLabel,
                     'patient' => (string) ($appt->patient?->name ?? '—'),
                     'procedure' => (string) ($appt->service?->name ?? '—'),
-                    'doctor' => (string) ($appt->doctor?->name ?? '—'),
+                    'clinical_staff' => (string) ($appt->clinicalStaff?->name ?? '—'),
                     'status' => ucfirst($status),
                     'badge' => $badge,
                     'showUrl' => route('admin.appointments.show', $appt->id),
@@ -40,7 +40,7 @@
             })
             ->groupBy(fn ($row) => implode('|', [
                 (string) $row['patient_id'],
-                (string) $row['doctor_id'],
+                (string) $row['clinical_staff_id'],
                 (string) $row['time'],
             ]))
             ->map(function ($group) {
@@ -59,7 +59,7 @@
                     'patient' => $primary['patient'],
                     'procedure' => implode(', ', $procedures) ?: ($primary['procedure'] ?? '—'),
                     'procedures' => $procedures,
-                    'doctor' => $primary['doctor'],
+                    'clinical_staff' => $primary['clinical_staff'],
                     'status' => $primary['status'],
                     'badge' => $primary['badge'],
                     'showUrl' => $primary['showUrl'],
@@ -250,7 +250,7 @@
                 <td class="font-monospace">${escapeHtml(row.time || '—')}</td>
                 <td>${escapeHtml(row.patient || '—')}</td>
                 <td>${procedureHtml}</td>
-                <td>${escapeHtml(row.doctor || '—')}</td>
+                <td>${escapeHtml(row.clinical_staff || '—')}</td>
                 <td><span class="badge ${escapeHtml(row.badge || 'bg-secondary-lt')}">${escapeHtml(row.status || '—')}</span></td>
                 <td><a href="${escapeHtml(row.showUrl || '#')}" class="btn btn-sm btn-primary">View</a></td>
               </tr>

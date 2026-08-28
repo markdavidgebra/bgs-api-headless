@@ -19,7 +19,7 @@
           <ul class="list-inline list-inline-dots text-secondary mb-0">
             <li class="list-inline-item"><strong class="text-body">{{ $appointment->patient->name ?? '—' }}</strong></li>
             <li class="list-inline-item">{{ $appointment->service->name ?? '—' }}</li>
-            <li class="list-inline-item">{{ $appointment->doctor->name ?? '—' }}</li>
+            <li class="list-inline-item">{{ $appointment->clinicalStaff->name ?? '—' }}</li>
           </ul>
         </div>
         <div class="col-auto ms-auto">
@@ -35,7 +35,15 @@
   <div class="page-body">
     <div class="container-xl">
       <div class="row row-deck row-cards mb-3">
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader text-secondary">Booked at</div>
+              <div class="h3 mb-0">{{ $appointment->created_at?->timezone(config('app.timezone'))->format('M j, Y g:i A') ?? '—' }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg">
           <div class="card">
             <div class="card-body">
               <div class="subheader text-secondary">Date</div>
@@ -43,7 +51,7 @@
             </div>
           </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
           <div class="card">
             <div class="card-body">
               <div class="subheader text-secondary">Time</div>
@@ -51,7 +59,7 @@
             </div>
           </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
           <div class="card">
             <div class="card-body">
               <div class="subheader text-secondary">Service</div>
@@ -60,12 +68,12 @@
             </div>
           </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
           <div class="card">
             <div class="card-body">
               <div class="subheader text-secondary">Clinical staff</div>
-              <div class="h3 mb-0 text-truncate" title="{{ $appointment->doctor->name ?? '—' }}">
-                {{ $appointment->doctor->name ?? '—' }}</div>
+              <div class="h3 mb-0 text-truncate" title="{{ $appointment->clinicalStaff->name ?? '—' }}">
+                {{ $appointment->clinicalStaff->name ?? '—' }}</div>
             </div>
           </div>
         </div>
@@ -108,6 +116,10 @@
                       </div>
                     </div>
                     <div class="datagrid-item">
+                      <div class="datagrid-title">Booked at</div>
+                      <div class="datagrid-content">{{ $appointment->created_at?->timezone(config('app.timezone'))->format('M j, Y g:i A') ?? '—' }}</div>
+                    </div>
+                    <div class="datagrid-item">
                       <div class="datagrid-title">Date</div>
                       <div class="datagrid-content">{{ $appointment->appointment_date?->format('Y-m-d') ?? '—' }}</div>
                     </div>
@@ -117,7 +129,7 @@
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Clinical staff</div>
-                      <div class="datagrid-content">{{ $appointment->doctor->name ?? '—' }}</div>
+                      <div class="datagrid-content">{{ $appointment->clinicalStaff->name ?? '—' }}</div>
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Service</div>
@@ -134,10 +146,6 @@
                     <div class="datagrid-item">
                       <div class="datagrid-title">Updated by</div>
                       <div class="datagrid-content">{{ $appointment->updatedByAdmin?->name ?? '—' }}</div>
-                    </div>
-                    <div class="datagrid-item">
-                      <div class="datagrid-title">Created</div>
-                      <div class="datagrid-content">{{ $appointment->created_at?->format('Y-m-d H:i') ?? '—' }}</div>
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Updated</div>
@@ -210,7 +218,7 @@
                               <div class="datagrid-title">Patient concern</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->patient_concern ?: '—' }}
-                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'patient_concern', $appointment->patient, $appointment->doctor))
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'patient_concern', $appointment->patient, $appointment->clinicalStaff))
                                   <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
                                 @endif
                               </div>
@@ -219,7 +227,7 @@
                               <div class="datagrid-title">Post procedures</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->appointment_remarks ?: '—' }}
-                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'appointment_remarks', $appointment->patient, $appointment->doctor))
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'appointment_remarks', $appointment->patient, $appointment->clinicalStaff))
                                   <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
                                 @endif
                               </div>
@@ -228,7 +236,7 @@
                               <div class="datagrid-title">Medical history</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->admin_notes ?: '—' }}
-                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'admin_notes', $appointment->patient, $appointment->doctor))
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'admin_notes', $appointment->patient, $appointment->clinicalStaff))
                                   <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
                                 @endif
                               </div>
@@ -236,8 +244,8 @@
                             <div class="datagrid-item">
                               <div class="datagrid-title">Clinical notes</div>
                               <div class="datagrid-content">
-                                {{ $appointmentNote?->doctor_notes ?: '—' }}
-                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'doctor_notes', $appointment->patient, $appointment->doctor))
+                                {{ $appointmentNote?->clinical_notes ?: '—' }}
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'clinical_notes', $appointment->patient, $appointment->clinicalStaff))
                                   <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
                                 @endif
                               </div>
@@ -246,7 +254,7 @@
                               <div class="datagrid-title">Take home medications</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->instructions ?: '—' }}
-                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'instructions', $appointment->patient, $appointment->doctor))
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'instructions', $appointment->patient, $appointment->clinicalStaff))
                                   <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
                                 @endif
                               </div>
@@ -255,7 +263,7 @@
                               <div class="datagrid-title">Allergy</div>
                               <div class="datagrid-content">
                                 {{ $appointmentNote?->alerts ?: '—' }}
-                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'alerts', $appointment->patient, $appointment->doctor))
+                                @if ($lbl = \App\Models\AppointmentNote::creatorLabelForSection($apptNoteAuthors, 'alerts', $appointment->patient, $appointment->clinicalStaff))
                                   <div class="text-secondary small mt-1">{{ __('By :name', ['name' => $lbl]) }}</div>
                                 @endif
                               </div>
@@ -376,7 +384,7 @@
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Clinical staff</div>
-                      <div class="datagrid-content">{{ $appointment->doctor->name ?? '—' }}</div>
+                      <div class="datagrid-content">{{ $appointment->clinicalStaff->name ?? '—' }}</div>
                     </div>
                   </div>
                 </div>

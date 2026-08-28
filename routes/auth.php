@@ -12,7 +12,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('guest:web,admin,doctor')->group(function () {
+Route::middleware('guest:web,admin,clinical_staff,doctor')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 
@@ -36,7 +36,7 @@ Route::middleware('guest:web,admin,doctor')->group(function () {
         ->name('password.store');
 });
 
-Route::middleware('auth:web,doctor')->group(function () {
+Route::middleware('auth:web,clinical_staff')->group(function () {
     Route::match(['get', 'post'], 'logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });

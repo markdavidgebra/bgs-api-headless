@@ -1,6 +1,9 @@
 @extends('admin.layouts.master')
 
 @section('content')
+  @php
+    $canManageClinicalStaff = \App\Support\AdminPermissions::canAccess(auth('admin')->user(), 'clinical_staff.manage');
+  @endphp
   <div class="page-header d-print-none">
     <div class="container-xl">
       <div class="row g-2 align-items-center">
@@ -25,7 +28,9 @@
               </svg>
               Filters
             </a>
-            <a href="{{ route('admin.doctors.create') }}" class="btn btn-primary">New doctor</a>
+            @if ($canManageClinicalStaff)
+              <a href="{{ route('admin.clinical-staff.create') }}" class="btn btn-primary">New doctor</a>
+            @endif
           </div>
         </div>
       </div>
@@ -40,9 +45,9 @@
       @if (session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
       @endif
-      @if (session('doctor_portal_credentials'))
+      @if (session('clinical_staff_portal_credentials'))
         @php
-          $cred = session('doctor_portal_credentials');
+          $cred = session('clinical_staff_portal_credentials');
         @endphp
         <div class="alert alert-info alert-dismissible" role="alert">
           <strong>{{ __('Share with the doctor (email did not deliver)') }}</strong>
@@ -72,7 +77,7 @@
                   value="{{ request('search') }}">
               </div>
             </div>
-            <div class="col-lg-3">
+            <div class="col-lg-4">
               <label class="form-label" for="status">Status</label>
               <select id="status" class="form-select" name="status">
                 <option value="">All</option>
@@ -81,12 +86,7 @@
                 <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
               </select>
             </div>
-            <div class="col-lg-2">
-              <label class="form-label" for="specialty">Specialty</label>
-              <input id="specialty" type="text" class="form-control" name="specialty" value="{{ request('specialty') }}"
-                placeholder="e.g. Dermatology">
-            </div>
-            <div class="col-lg-1 d-grid">
+            <div class="col-lg-2 d-grid">
               <button type="submit" class="btn btn-primary">Apply</button>
             </div>
           </form>
@@ -99,14 +99,12 @@
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
-                <th>Specialty</th>
-                <th>Role</th>
                 <th>Status</th>
                 <th class="w-1"></th>
               </tr>
             </thead>
             <tbody>
-              @forelse($doctors as $doctor)
+              @forelse($clinicalStaff as $doctor)
                 @php
                   $status = strtolower((string) ($doctor->status ?? 'pending'));
                   $imageUrl = $doctor->image_url;
@@ -122,7 +120,7 @@
                         <span class="avatar me-2 rounded bg-azure-lt text-azure">{{ $initial }}</span>
                       @endif
                       <div class="fw-medium">
-                        <a href="{{ route('admin.doctors.show', $doctor->id) }}" class="text-reset">{{ $doctor->name }}</a>
+                        <a href="{{ route('admin.clinical-staff.show', $doctor->id) }}" class="text-reset">{{ $doctor->name }}</a>
                       </div>
                     </div>
                   </td>
@@ -140,54 +138,52 @@
                       —
                     @endif
                   </td>
-                  <td>{{ $doctor->specialty ?? '—' }}</td>
-                  <td class="text-secondary">
-                    @if ($doctor->doctorRole)
-                      <span class="text-reset">{{ $doctor->doctorRole->name }}</span>
+                  <td>
+                    @if ($canManageClinicalStaff)
+                      <form method="POST" action="{{ route('admin.clinical-staff.status', $doctor->id) }}">
+                        @csrf
+                        <select
+                          name="status"
+                          class="form-select form-select-sm"
+                          onchange="this.form.submit()"
+                          aria-label="Update doctor status"
+                        >
+                          <option value="pending" @selected($status === 'pending')>Pending</option>
+                          <option value="active" @selected($status === 'active')>Active</option>
+                          <option value="inactive" @selected($status === 'inactive')>Inactive</option>
+                        </select>
+                      </form>
                     @else
-                      <span class="text-muted" title="{{ __('No clinical role assigned; doctor portal uses full access.') }}">{{ __('Full access') }}</span>
+                      <span class="text-reset">{{ ucfirst($status) }}</span>
                     @endif
                   </td>
                   <td>
-                    <form method="POST" action="{{ route('admin.doctors.status', $doctor->id) }}">
-                      @csrf
-                      <select
-                        name="status"
-                        class="form-select form-select-sm"
-                        onchange="this.form.submit()"
-                        aria-label="Update doctor status"
-                      >
-                        <option value="pending" @selected($status === 'pending')>Pending</option>
-                        <option value="active" @selected($status === 'active')>Approved</option>
-                        <option value="inactive" @selected($status === 'inactive')>Disapproved</option>
-                      </select>
-                    </form>
-                  </td>
-                  <td>
                     <div class="btn-list flex-nowrap">
-                      <a href="{{ route('admin.doctors.show', $doctor->id) }}" class="btn btn-ghost-primary btn-sm">{{ __('View') }}</a>
-                      <a href="{{ route('admin.doctors.edit', $doctor->id) }}" class="btn btn-ghost-secondary btn-sm">{{ __('Edit') }}</a>
-                      <form method="POST" action="{{ route('admin.doctors.destroy', $doctor->id) }}" class="d-inline"
-                        onsubmit="return confirm(@json(__('Delete this doctor? This cannot be undone.')));">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-ghost-danger btn-sm">Delete</button>
-                      </form>
+                      <a href="{{ route('admin.clinical-staff.show', $doctor->id) }}" class="btn btn-ghost-primary btn-sm">{{ __('View') }}</a>
+                      @if ($canManageClinicalStaff)
+                        <a href="{{ route('admin.clinical-staff.edit', $doctor->id) }}" class="btn btn-ghost-secondary btn-sm">{{ __('Edit') }}</a>
+                        <form method="POST" action="{{ route('admin.clinical-staff.destroy', $doctor->id) }}" class="d-inline"
+                          onsubmit="return confirm(@json(__('Delete this doctor? This cannot be undone.')));">
+                          @csrf
+                          @method('DELETE')
+                          <button type="submit" class="btn btn-ghost-danger btn-sm">Delete</button>
+                        </form>
+                      @endif
                     </div>
                   </td>
                 </tr>
               @empty
                 <tr>
-                  <td colspan="7" class="text-center text-secondary py-4">No doctors found.</td>
+                  <td colspan="5" class="text-center text-secondary py-4">No doctors found.</td>
                 </tr>
               @endforelse
             </tbody>
           </table>
         </div>
 
-        @if ($doctors instanceof \Illuminate\Pagination\LengthAwarePaginator && $doctors->hasPages())
+        @if ($clinicalStaff instanceof \Illuminate\Pagination\LengthAwarePaginator && $clinicalStaff->hasPages())
           <div class="card-footer d-flex align-items-center">
-            {{ $doctors->links() }}
+            {{ $clinicalStaff->links() }}
           </div>
         @endif
       </div>

@@ -21,7 +21,7 @@ trait ClinicalStaffPortalResponses
     /**
      * @return array<string, mixed>
      */
-    protected function doctorPayload(?ClinicalStaff $doctor): ?array
+    protected function clinicalStaffPayload(?ClinicalStaff $doctor): ?array
     {
         if (! $doctor) {
             return null;
@@ -39,7 +39,7 @@ trait ClinicalStaffPortalResponses
             'status' => $doctor->status,
             'image_url' => $doctor->image_url,
             'social_links' => $doctor->social_links,
-            'permissions' => ClinicalStaffPermissions::forDoctor($doctor),
+            'permissions' => ClinicalStaffPermissions::forClinicalStaff($doctor),
         ];
     }
 
@@ -52,7 +52,7 @@ trait ClinicalStaffPortalResponses
             'id' => $appointment->id,
             'appointment_no' => $appointment->appointment_no,
             'patient_id' => $appointment->patient_id,
-            'doctor_id' => $appointment->doctor_id,
+            'clinical_staff_id' => $appointment->clinical_staff_id,
             'service_id' => $appointment->service_id,
             'appointment_date' => $appointment->appointment_date?->toDateString(),
             'appointment_time' => $this->formatAppointmentTime($appointment->appointment_time),
@@ -68,8 +68,8 @@ trait ClinicalStaffPortalResponses
             'service' => $appointment->relationLoaded('service') && $appointment->service
                 ? ['id' => $appointment->service->id, 'name' => $appointment->service->name]
                 : null,
-            'doctor' => $appointment->relationLoaded('doctor') && $appointment->doctor
-                ? ['id' => $appointment->doctor->id, 'name' => $appointment->doctor->name]
+            'clinical_staff' => $appointment->relationLoaded('clinicalStaff') && $appointment->clinicalStaff
+                ? ['id' => $appointment->clinicalStaff->id, 'name' => $appointment->clinicalStaff->name]
                 : null,
             'has_note' => $appointment->relationLoaded('note')
                 ? $appointment->note !== null
@@ -117,7 +117,7 @@ trait ClinicalStaffPortalResponses
             'patient_concern' => $note->patient_concern,
             'appointment_remarks' => $note->appointment_remarks,
             'admin_notes' => $note->admin_notes,
-            'doctor_notes' => $note->doctor_notes,
+            'clinical_notes' => $note->clinical_notes,
             'instructions' => $note->instructions,
             'alerts' => $note->alerts,
             'mobility' => $note->mobility,
@@ -235,6 +235,10 @@ trait ClinicalStaffPortalResponses
             'price' => $service->price !== null ? (float) $service->price : null,
             'promo_price' => $service->promo_price !== null ? (float) $service->promo_price : null,
             'effective_price' => (float) ($service->promo_price ?? $service->price ?? 0),
+            'duration_minutes' => $service->duration_minutes,
+            'duration_label' => $service->duration_label,
+            'summary' => $service->summary_text,
+            'is_featured' => (bool) $service->is_featured,
         ];
     }
 

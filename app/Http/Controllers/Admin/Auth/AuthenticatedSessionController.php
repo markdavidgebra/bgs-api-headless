@@ -28,8 +28,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        if (Auth::guard('doctor')->check()) {
-            return redirect()->intended(route('doctor.dashboard', absolute: false));
+        if (Auth::guard('clinical_staff')->check()) {
+            return redirect()->intended(route('clinical_staff.dashboard', absolute: false));
         }
 
         return redirect()->intended(route('admin.dashboard', absolute: false));

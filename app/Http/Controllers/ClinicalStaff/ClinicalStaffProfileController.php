@@ -16,13 +16,13 @@ class ClinicalStaffProfileController extends Controller
     public function edit(): View
     {
         return view('clinical-staff.profile.edit', [
-            'doctor' => auth('doctor')->user(),
+            'clinicalStaff' => auth('clinical_staff')->user(),
         ]);
     }
 
     public function update(Request $request): RedirectResponse
     {
-        $doctor = $request->user('doctor');
+        $doctor = $request->user('clinical_staff');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -41,6 +41,12 @@ class ClinicalStaffProfileController extends Controller
         ]);
 
         $data = collect($validated)->except(['photo', 'social_links'])->all();
+
+        foreach (['specialty', 'license_no', 'experience_years'] as $optionalField) {
+            if (! $request->exists($optionalField)) {
+                unset($data[$optionalField]);
+            }
+        }
 
         $normalizedSocialLinks = [];
         foreach ((array) ($validated['social_existing'] ?? []) as $platform => $url) {
@@ -83,12 +89,12 @@ class ClinicalStaffProfileController extends Controller
         $doctor->fill($data);
         $doctor->save();
 
-        return redirect()->route('doctor.profile')->with('success', __('Profile updated successfully.'));
+        return redirect()->route('clinical_staff.profile')->with('success', __('Profile updated successfully.'));
     }
 
     public function updatePassword(Request $request): RedirectResponse
     {
-        $doctor = $request->user('doctor');
+        $doctor = $request->user('clinical_staff');
 
         $validated = $request->validate([
             'current_password' => ['required', 'string'],
@@ -105,7 +111,7 @@ class ClinicalStaffProfileController extends Controller
             'password' => $validated['password'],
         ])->save();
 
-        return redirect()->route('doctor.profile')->with('success', __('Password updated successfully.'));
+        return redirect()->route('clinical_staff.profile')->with('success', __('Password updated successfully.'));
     }
 
     private function removeStoredDoctorImage(?string $path): void

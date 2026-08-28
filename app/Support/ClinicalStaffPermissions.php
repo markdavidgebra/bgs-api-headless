@@ -15,15 +15,15 @@ class ClinicalStaffPermissions
     {
         return [
             'Portal' => [
-                ['key' => 'doctor.dashboard', 'label' => 'Dashboard'],
-                ['key' => 'doctor.appointments', 'label' => 'Appointments & schedule (all clinic)'],
-                ['key' => 'doctor.patient_records', 'label' => 'Patient records'],
-                ['key' => 'doctor.treatment_notes', 'label' => 'Treatment notes'],
-                ['key' => 'doctor.products', 'label' => 'Clinic products & stock'],
-                ['key' => 'doctor.services', 'label' => 'My services'],
-                ['key' => 'doctor.availability', 'label' => 'Availability'],
-                ['key' => 'doctor.notifications', 'label' => 'Notifications'],
-                ['key' => 'doctor.profile', 'label' => 'Profile & password'],
+                ['key' => 'clinical_staff.dashboard', 'label' => 'Dashboard'],
+                ['key' => 'clinical_staff.appointments', 'label' => 'Appointments & schedule (all clinic)'],
+                ['key' => 'clinical_staff.patient_records', 'label' => 'Patient records'],
+                ['key' => 'clinical_staff.treatment_notes', 'label' => 'Treatment notes'],
+                ['key' => 'clinical_staff.products', 'label' => 'Clinic products & stock'],
+                ['key' => 'clinical_staff.services', 'label' => 'My services'],
+                ['key' => 'clinical_staff.availability', 'label' => 'Availability'],
+                ['key' => 'clinical_staff.notifications', 'label' => 'Notifications'],
+                ['key' => 'clinical_staff.profile', 'label' => 'Profile & password'],
             ],
         ];
     }
@@ -56,13 +56,13 @@ class ClinicalStaffPermissions
     /**
      * @return list<string>
      */
-    public static function forDoctor(?ClinicalStaff $doctor): array
+    public static function forClinicalStaff(?ClinicalStaff $doctor): array
     {
-        if (! $doctor || $doctor->doctor_role_id === null) {
+        if (! $doctor || $doctor->clinical_staff_role_id === null) {
             return self::allKeys();
         }
 
-        $role = $doctor->doctorRole;
+        $role = $doctor->role;
         if (! $role) {
             return self::allKeys();
         }
@@ -75,8 +75,8 @@ class ClinicalStaffPermissions
             return self::allKeys();
         }
 
-        if (! in_array('doctor.appointments', $allowed, true)) {
-            $allowed[] = 'doctor.appointments';
+        if (! in_array('clinical_staff.appointments', $allowed, true)) {
+            $allowed[] = 'clinical_staff.appointments';
         }
 
         return array_values(array_unique($allowed));
@@ -88,28 +88,28 @@ class ClinicalStaffPermissions
             return false;
         }
 
-        return in_array($permission, self::forDoctor($doctor), true);
+        return in_array($permission, self::forClinicalStaff($doctor), true);
     }
 
     /**
-     * Map Laravel route name (doctor.*) to a portal permission key.
+     * Map Laravel route name (clinical_staff.*) to a portal permission key.
      */
     public static function permissionForRouteName(?string $routeName): ?string
     {
-        if ($routeName === null || ! str_starts_with($routeName, 'doctor.')) {
+        if ($routeName === null || ! str_starts_with($routeName, 'clinical_staff.')) {
             return null;
         }
 
         return match (true) {
-            str_starts_with($routeName, 'doctor.dashboard') => 'doctor.dashboard',
-            str_starts_with($routeName, 'doctor.appointments') => 'doctor.appointments',
-            str_starts_with($routeName, 'doctor.patient-records') => 'doctor.patient_records',
-            str_starts_with($routeName, 'doctor.treatment-notes') => 'doctor.treatment_notes',
-            str_starts_with($routeName, 'doctor.products') => 'doctor.products',
-            str_starts_with($routeName, 'doctor.services') => 'doctor.services',
-            str_starts_with($routeName, 'doctor.availability') => 'doctor.availability',
-            str_starts_with($routeName, 'doctor.notifications') => 'doctor.notifications',
-            str_starts_with($routeName, 'doctor.profile') => 'doctor.profile',
+            str_starts_with($routeName, 'clinical_staff.dashboard') => 'clinical_staff.dashboard',
+            str_starts_with($routeName, 'clinical_staff.appointments') => 'clinical_staff.appointments',
+            str_starts_with($routeName, 'clinical_staff.patient-records') => 'clinical_staff.patient_records',
+            str_starts_with($routeName, 'clinical_staff.treatment-notes') => 'clinical_staff.treatment_notes',
+            str_starts_with($routeName, 'clinical_staff.products') => 'clinical_staff.products',
+            str_starts_with($routeName, 'clinical_staff.services') => 'clinical_staff.services',
+            str_starts_with($routeName, 'clinical_staff.availability') => 'clinical_staff.availability',
+            str_starts_with($routeName, 'clinical_staff.notifications') => 'clinical_staff.notifications',
+            str_starts_with($routeName, 'clinical_staff.profile') => 'clinical_staff.profile',
             default => null,
         };
     }

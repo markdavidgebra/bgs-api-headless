@@ -58,7 +58,7 @@
 
                   <div class="card mb-25">
                     <div class="card-body">
-                      <form method="GET" action="{{ route('doctor.treatment-notes') }}" class="row g-3 align-items-end">
+                      <form method="GET" action="{{ route('clinical_staff.treatment-notes') }}" class="row g-3 align-items-end">
                         <div class="col-md-6">
                           <label for="search" class="form-label">Search</label>
                           <input type="text" id="search" name="search" class="form-control"
@@ -70,7 +70,7 @@
                         </div>
                         <div class="col-md-3 d-flex gap-2">
                           <button type="submit" class="btn btn-sm tn-btn tn-btn-primary">Apply</button>
-                          <a href="{{ route('doctor.treatment-notes') }}" class="btn btn-sm tn-btn tn-btn-light">Reset</a>
+                          <a href="{{ route('clinical_staff.treatment-notes') }}" class="btn btn-sm tn-btn tn-btn-light">Reset</a>
                         </div>
                       </form>
                     </div>
@@ -101,7 +101,7 @@
                                 <td>{{ $appointment->patient_name }}</td>
                                 <td>{{ $appointment->service_name }}</td>
                                 <td>
-                                  <a href="{{ route('doctor.treatment-notes.show', $appointment) }}" class="btn btn-xs tn-btn tn-btn-light">View</a>
+                                  <a href="{{ route('clinical_staff.treatment-notes.show', $appointment) }}" class="btn btn-xs tn-btn tn-btn-light">View</a>
                                 </td>
                               </tr>
                             @empty

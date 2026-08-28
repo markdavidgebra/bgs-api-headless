@@ -6,7 +6,7 @@
   <div class="mobile-header-wrapper-inner">
     <div class="mobile-header-top">
       <div class="mobile-header-logo">
-        <a href="{{ route('doctor.dashboard') }}"><img src="{{ $pd('imgs/theme/bgs.png') }}" alt="{{ config('app.name', 'BGS') }}" /></a>
+        <a href="{{ route('clinical_staff.dashboard') }}"><img src="{{ $pd('imgs/theme/bgs.png') }}" alt="{{ config('app.name', 'BGS') }}" /></a>
       </div>
       <div class="mobile-menu-close close-style-wrap close-style-position-inherit">
         <button type="button" class="close-style search-close" aria-label="{{ __('Close menu') }}">

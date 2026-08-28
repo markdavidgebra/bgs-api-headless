@@ -51,7 +51,7 @@ trait AdminPortalResponses
             'id' => $appointment->id,
             'appointment_no' => $appointment->appointment_no,
             'patient_id' => $appointment->patient_id,
-            'doctor_id' => $appointment->doctor_id,
+            'clinical_staff_id' => $appointment->clinical_staff_id,
             'service_id' => $appointment->service_id,
             'appointment_date' => $appointment->appointment_date?->toDateString(),
             'appointment_time' => $this->formatAppointmentTime($appointment->appointment_time),
@@ -60,8 +60,8 @@ trait AdminPortalResponses
             'patient' => $appointment->relationLoaded('patient') && $appointment->patient
                 ? $this->patientSummaryPayload($appointment->patient)
                 : null,
-            'doctor' => $appointment->relationLoaded('doctor') && $appointment->doctor
-                ? ['id' => $appointment->doctor->id, 'name' => $appointment->doctor->name]
+            'clinical_staff' => $appointment->relationLoaded('clinicalStaff') && $appointment->clinicalStaff
+                ? ['id' => $appointment->clinicalStaff->id, 'name' => $appointment->clinicalStaff->name]
                 : null,
             'service' => $appointment->relationLoaded('service') && $appointment->service
                 ? ['id' => $appointment->service->id, 'name' => $appointment->service->name]
@@ -93,7 +93,7 @@ trait AdminPortalResponses
             'patient_concern' => $note->patient_concern,
             'appointment_remarks' => $note->appointment_remarks,
             'admin_notes' => $note->admin_notes,
-            'doctor_notes' => $note->doctor_notes,
+            'clinical_notes' => $note->clinical_notes,
             'instructions' => $note->instructions,
             'alerts' => $note->alerts,
             'section_authors' => $note->section_authors,
@@ -167,7 +167,7 @@ trait AdminPortalResponses
     /**
      * @return array<string, mixed>
      */
-    protected function doctorPayload(ClinicalStaff $doctor): array
+    protected function clinicalStaffPayload(ClinicalStaff $doctor): array
     {
         return [
             'id' => $doctor->id,
@@ -181,9 +181,9 @@ trait AdminPortalResponses
             'status' => $doctor->status,
             'image_url' => $doctor->image_url,
             'image_path' => $doctor->image_path,
-            'doctor_role_id' => $doctor->doctor_role_id,
-            'doctor_role' => $doctor->relationLoaded('doctorRole') && $doctor->doctorRole
-                ? ['id' => $doctor->doctorRole->id, 'name' => $doctor->doctorRole->name]
+            'clinical_staff_role_id' => $doctor->clinical_staff_role_id,
+            'clinical_staff_role' => $doctor->relationLoaded('role') && $doctor->role
+                ? ['id' => $doctor->role->id, 'name' => $doctor->role->name]
                 : null,
             'approved_at' => $doctor->approved_at?->toIso8601String(),
             'created_at' => $doctor->created_at?->toIso8601String(),
@@ -195,9 +195,9 @@ trait AdminPortalResponses
      *
      * @return array<string, mixed>
      */
-    protected function doctorShowPayload(ClinicalStaff $doctor): array
+    protected function clinicalStaffShowPayload(ClinicalStaff $doctor): array
     {
-        $payload = $this->doctorPayload($doctor);
+        $payload = $this->clinicalStaffPayload($doctor);
 
         $payload['assigned_services'] = $doctor->relationLoaded('services')
             ? $doctor->services->pluck('name')->values()->all()

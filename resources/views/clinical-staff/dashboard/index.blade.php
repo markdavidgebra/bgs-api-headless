@@ -3,7 +3,7 @@
 @section('title', 'Clinical staff dashboard')
 
 @section('content')
-  @php($doctor = auth('doctor')->user())
+  @php($doctor = auth('clinical_staff')->user())
   <main class="main pages">
     <div class="page-header breadcrumb-wrap">
       <div class="container">
@@ -86,7 +86,7 @@
                                   <tr>
                                     <td>{{ $appointment->time_display }}</td>
                                     <td>{{ $appointment->patient_name }}</td>
-                                    <td>{{ $appointment->doctor_name }}</td>
+                                    <td>{{ $appointment->clinical_staff_name }}</td>
                                     <td>{{ $appointment->service_name }}</td>
                                     <td><span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span></td>
                                   </tr>
@@ -106,7 +106,7 @@
                       <div class="card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center">
                           <h5 class="mb-0">Notifications</h5>
-                          <a href="{{ route('doctor.notifications') }}" class="small">Inbox
+                          <a href="{{ route('clinical_staff.notifications') }}" class="small">Inbox
                             @if (($notificationsUnreadCount ?? 0) > 0)
                               ({{ $notificationsUnreadCount }} unread)
                             @endif
@@ -122,14 +122,14 @@
                           @else
                             <p class="text-secondary mb-3 mb-0">No dashboard alerts right now.</p>
                           @endif
-                          <a href="{{ route('doctor.notifications') }}" class="btn btn-sm btn-outline-primary">Open notification inbox</a>
+                          <a href="{{ route('clinical_staff.notifications') }}" class="btn btn-sm btn-outline-primary">Open notification inbox</a>
                         </div>
                       </div>
 
                       <div class="card mb-0">
                         <div class="card-header d-flex justify-content-between align-items-center">
                           <h5 class="mb-0">Upcoming Appointments</h5>
-                          <a href="{{ route('doctor.appointments') }}" class="small">View all</a>
+                          <a href="{{ route('clinical_staff.appointments') }}" class="small">View all</a>
                         </div>
                         <div class="card-body">
                           @if (($upcomingAppointments ?? collect())->isNotEmpty())
@@ -137,7 +137,7 @@
                               @foreach ($upcomingAppointments as $appointment)
                                 <li class="mb-2">
                                   {{ $appointment->date_display }} {{ $appointment->time_display }} — {{ $appointment->patient_name }}
-                                  <span class="text-muted">({{ $appointment->doctor_name }})</span>
+                                  <span class="text-muted">({{ $appointment->clinical_staff_name }})</span>
                                 </li>
                               @endforeach
                             </ul>

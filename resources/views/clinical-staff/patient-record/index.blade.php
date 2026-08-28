@@ -29,7 +29,7 @@
 
                   <div class="card mb-25">
                     <div class="card-body">
-                      <form method="GET" action="{{ route('doctor.patient-records') }}" class="row g-3 align-items-end">
+                      <form method="GET" action="{{ route('clinical_staff.patient-records') }}" class="row g-3 align-items-end">
                         <div class="col-md-8">
                           <label for="search" class="form-label">Search patient</label>
                           <input type="text" id="search" name="search" class="form-control"
@@ -37,7 +37,7 @@
                         </div>
                         <div class="col-md-4 d-flex gap-2">
                           <button type="submit" class="btn btn-sm">Search</button>
-                          <a href="{{ route('doctor.patient-records') }}" class="btn btn-sm btn-outline">Reset</a>
+                          <a href="{{ route('clinical_staff.patient-records') }}" class="btn btn-sm btn-outline">Reset</a>
                         </div>
                       </form>
                     </div>

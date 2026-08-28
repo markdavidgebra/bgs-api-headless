@@ -29,7 +29,7 @@ class AppointmentsController extends Controller
             ->with([
                 'patient:id,name',
                 'service:id,name',
-                'doctor:id,name',
+                'clinicalStaff:id,name',
             ])
             ->whereBetween('appointment_date', [$start->toDateString(), $end->toDateString()])
             ->orderBy('appointment_date')
@@ -58,11 +58,11 @@ class AppointmentsController extends Controller
         $query = Appointment::query()
             ->with([
                 'patient:id,name,email',
-                'doctor:id,name',
+                'clinicalStaff:id,name',
                 'service:id,name',
             ])
-            ->orderByDesc('appointment_date')
-            ->orderBy('appointment_time');
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -72,7 +72,7 @@ class AppointmentsController extends Controller
                         $q->where('name', 'like', '%'.$term.'%')
                             ->orWhere('email', 'like', '%'.$term.'%');
                     })
-                    ->orWhereHas('doctor', fn ($q) => $q->where('name', 'like', '%'.$term.'%'))
+                    ->orWhereHas('clinicalStaff', fn ($q) => $q->where('name', 'like', '%'.$term.'%'))
                     ->orWhereHas('service', fn ($q) => $q->where('name', 'like', '%'.$term.'%'));
             });
         }
@@ -95,7 +95,7 @@ class AppointmentsController extends Controller
         $appointment = Appointment::query()
             ->with([
                 'patient',
-                'doctor',
+                'clinicalStaff',
                 'service',
                 'createdByAdmin:id,name',
                 'updatedByAdmin:id,name',
@@ -110,7 +110,7 @@ class AppointmentsController extends Controller
                 'patient_concern',
                 'appointment_remarks',
                 'admin_notes',
-                'doctor_notes',
+                'clinical_notes',
                 'instructions',
                 'alerts',
                 'section_authors',

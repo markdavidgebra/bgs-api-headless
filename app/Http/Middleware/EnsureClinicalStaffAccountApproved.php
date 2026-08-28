@@ -16,14 +16,14 @@ class EnsureClinicalStaffAccountApproved
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $doctor = Auth::guard('doctor')->user();
+        $doctor = Auth::guard('clinical_staff')->user();
 
         if ($doctor !== null && strtolower((string) ($doctor->status ?? 'pending')) !== 'active') {
-            Auth::guard('doctor')->logout();
+            Auth::guard('clinical_staff')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            if ($request->expectsJson() || $request->is('api/doctor/*')) {
+            if ($request->expectsJson() || $request->is('api/clinical-staff/*')) {
                 return response()->json([
                     'message' => __('Your doctor account is not approved yet.'),
                 ], 403);

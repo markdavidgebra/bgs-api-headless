@@ -14,7 +14,7 @@ class ClinicalStaffAvailabilityController extends Controller
 {
     public function index(): View
     {
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $this->ensureDefaultWeeklySchedule($doctor->id);
 
         $weeklySchedules = ClinicalStaffWeeklySchedule::query()
@@ -32,7 +32,7 @@ class ClinicalStaffAvailabilityController extends Controller
 
     public function editWeekday(int $weekday): View
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
         abort_unless($weekday >= 1 && $weekday <= 7, 404);
         abort_if($weekday === AppointmentBookingRules::CLOSED_WEEKDAY, 404);
 
@@ -48,12 +48,12 @@ class ClinicalStaffAvailabilityController extends Controller
 
     public function updateWeekday(Request $request, int $weekday): RedirectResponse
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
         abort_unless($weekday >= 1 && $weekday <= 7, 404);
 
         if ($weekday === AppointmentBookingRules::CLOSED_WEEKDAY && $request->boolean('is_active')) {
             return redirect()
-                ->route('doctor.availability')
+                ->route('clinical_staff.availability')
                 ->with('info', 'Sunday is closed for bookings and cannot be enabled.');
         }
 
@@ -86,18 +86,18 @@ class ClinicalStaffAvailabilityController extends Controller
         $schedule->save();
 
         return redirect()
-            ->route('doctor.availability')
+            ->route('clinical_staff.availability')
             ->with('success', 'Weekly schedule updated.');
     }
 
     public function toggleDay(Request $request, int $weekday): RedirectResponse
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
         abort_unless($weekday >= 1 && $weekday <= 7, 404);
 
         if ($weekday === AppointmentBookingRules::CLOSED_WEEKDAY && $request->boolean('is_active')) {
             return redirect()
-                ->route('doctor.availability')
+                ->route('clinical_staff.availability')
                 ->with('info', 'Sunday is closed for bookings and cannot be enabled.');
         }
 
@@ -119,13 +119,13 @@ class ClinicalStaffAvailabilityController extends Controller
         $schedule->save();
 
         return redirect()
-            ->route('doctor.availability')
+            ->route('clinical_staff.availability')
             ->with('success', 'Day availability updated.');
     }
 
     public function storeBlockedDate(Request $request): RedirectResponse
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
 
         $validated = $request->validate([
             'blocked_date' => ['required', 'date', 'after_or_equal:today'],
@@ -134,24 +134,24 @@ class ClinicalStaffAvailabilityController extends Controller
 
         ClinicalStaffBlockedDate::query()->updateOrCreate(
             [
-                'doctor_id' => $doctorId,
+                'clinical_staff_id' => $doctorId,
                 'blocked_date' => $validated['blocked_date'],
             ],
             ['reason' => $validated['reason'] ?? null]
         );
 
         return redirect()
-            ->route('doctor.availability')
+            ->route('clinical_staff.availability')
             ->with('success', 'Blocked date saved.');
     }
 
     public function destroyBlockedDate(ClinicalStaffBlockedDate $blockedDate): RedirectResponse
     {
-        abort_unless((int) $blockedDate->doctor_id === (int) auth('doctor')->id(), 403);
+        abort_unless((int) $blockedDate->clinical_staff_id === (int) auth('clinical_staff')->id(), 403);
         $blockedDate->delete();
 
         return redirect()
-            ->route('doctor.availability')
+            ->route('clinical_staff.availability')
             ->with('success', 'Blocked date removed.');
     }
 
@@ -165,7 +165,7 @@ class ClinicalStaffAvailabilityController extends Controller
         for ($d = 1; $d <= 7; $d++) {
             $isUnavailable = $d >= 6 || $d === AppointmentBookingRules::CLOSED_WEEKDAY;
             ClinicalStaffWeeklySchedule::query()->create([
-                'doctor_id' => $doctorId,
+                'clinical_staff_id' => $doctorId,
                 'weekday' => $d,
                 'is_active' => ! $isUnavailable,
                 'start_time' => $isWeekend ? null : '09:00:00',

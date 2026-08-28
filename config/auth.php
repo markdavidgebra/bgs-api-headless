@@ -40,6 +40,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'clinical_staff' => [
+            'driver' => 'session',
+            'provider' => 'clinical_staff',
+        ],
         'doctor' => [
             'driver' => 'session',
             'provider' => 'doctors',
@@ -77,9 +81,14 @@ return [
             'model' => env('ADMIN_MODEL', App\Models\Admin::class),
         ],
 
+        'clinical_staff' => [
+            'driver' => 'eloquent',
+            'model' => env('CLINICAL_STAFF_MODEL', App\Models\ClinicalStaff::class),
+        ],
+
         'doctors' => [
             'driver' => 'eloquent',
-            'model' => env('DOCTOR_MODEL', App\Models\ClinicalStaff::class),
+            'model' => env('DOCTOR_MODEL', App\Models\Doctor::class),
         ],
 
         // 'users' => [
@@ -116,6 +125,13 @@ return [
         ],
         'admins' => [
             'provider' => 'admins',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        'clinical_staff' => [
+            'provider' => 'clinical_staff',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

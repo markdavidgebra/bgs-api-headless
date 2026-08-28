@@ -42,6 +42,10 @@ class AdminAuthController extends Controller
             Auth::guard('web')->logout();
         }
 
+        if (Auth::guard('clinical_staff')->check()) {
+            Auth::guard('clinical_staff')->logout();
+        }
+
         if (Auth::guard('doctor')->check()) {
             Auth::guard('doctor')->logout();
         }

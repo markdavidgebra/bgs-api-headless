@@ -41,9 +41,9 @@
     <!-- Contact -->
   
 
-    @if(auth('web')->check() || auth('doctor')->check())
+    @if(auth('web')->check() || auth('clinical_staff')->check())
     <li class="{{ Request::is('patient', 'patient/*', 'doctor', 'doctor/*') ? 'current' : '' }}">
-        <a href="{{ auth('doctor')->check() ? route('doctor.dashboard') : route('patient.dashboard') }}">Dashboard</a>
+        <a href="{{ auth('clinical_staff')->check() ? route('clinical_staff.dashboard') : route('patient.dashboard') }}">Dashboard</a>
     </li>
     @else
     <!-- Members Dropdown -->

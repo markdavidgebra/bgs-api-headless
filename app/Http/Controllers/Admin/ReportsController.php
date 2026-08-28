@@ -318,7 +318,7 @@ class ReportsController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
+        $clinicalStaff = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
 
         $statusOptions = [
@@ -340,7 +340,7 @@ class ReportsController extends Controller
             'byStatus',
             'byDoctor',
             'appointments',
-            'doctors',
+            'clinicalStaff',
             'services',
             'statusOptions',
         ));
@@ -349,7 +349,7 @@ class ReportsController extends Controller
     private function appointmentsReportBaseQuery(Request $request): Builder
     {
         $query = Appointment::query()
-            ->with(['patient:id,name', 'doctor:id,name', 'service:id,name']);
+            ->with(['patient:id,name', 'clinicalStaff:id,name', 'service:id,name']);
 
         if ($request->filled('from')) {
             $query->whereDate('appointment_date', '>=', $request->date('from'));
@@ -363,8 +363,8 @@ class ReportsController extends Controller
             $query->where('status', $request->string('status')->toString());
         }
 
-        if ($request->filled('doctor_id')) {
-            $query->where('clinical_staff_id', (int) $request->input('doctor_id'));
+        if ($request->filled('clinical_staff_id')) {
+            $query->where('clinical_staff_id', (int) $request->input('clinical_staff_id'));
         }
 
         if ($request->filled('service_id')) {

@@ -41,7 +41,7 @@ class DemoDataSeeder extends Seeder
     public function run(): void
     {
         $services = Service::factory()->count(8)->create();
-        $doctors = ClinicalStaff::factory()->count(4)->create();
+        $clinicalStaff = ClinicalStaff::factory()->count(4)->create();
         $patients = Patient::factory()->count(15)->create();
 
         About::factory()->count(2)->create();
@@ -54,7 +54,7 @@ class DemoDataSeeder extends Seeder
         $this->attachMembershipPlanServices($membershipPlans, $services);
 
         $treatmentPackages = TreatmentPackage::factory()->count(4)->create();
-        $this->attachTreatmentPackageRelations($treatmentPackages, $services, $doctors);
+        $this->attachTreatmentPackageRelations($treatmentPackages, $services, $clinicalStaff);
 
         $categories = ProductCategory::factory()->count(4)->create();
         $products = Collection::times(12, fn () => Product::factory()->create([
@@ -72,7 +72,7 @@ class DemoDataSeeder extends Seeder
 
         $appointments = Collection::times(30, fn () => Appointment::factory()->create([
             'patient_id' => $patients->random()->id,
-            'doctor_id' => $doctors->random()->id,
+            'clinical_staff_id' => $clinicalStaff->random()->id,
             'service_id' => $services->random()->id,
             'appointment_date' => fake()->dateTimeBetween('+1 day', '+4 months')->format('Y-m-d'),
         ]));
@@ -107,14 +107,14 @@ class DemoDataSeeder extends Seeder
 
         foreach (range(1, 8) as $_) {
             ClinicalStaffNotification::factory()->create([
-                'doctor_id' => $doctors->random()->id,
+                'clinical_staff_id' => $clinicalStaff->random()->id,
             ]);
         }
 
-        foreach ($doctors as $doctor) {
+        foreach ($clinicalStaff as $doctor) {
             for ($weekday = 1; $weekday <= 7; $weekday++) {
                 ClinicalStaffWeeklySchedule::factory()->create([
-                    'doctor_id' => $doctor->id,
+                    'clinical_staff_id' => $doctor->id,
                     'weekday' => $weekday,
                     'is_active' => $weekday <= 5,
                     'start_time' => $weekday <= 5 ? '09:00:00' : null,
@@ -125,7 +125,7 @@ class DemoDataSeeder extends Seeder
 
         foreach (range(1, 6) as $dayOffset) {
             ClinicalStaffBlockedDate::factory()->create([
-                'doctor_id' => $doctors->random()->id,
+                'clinical_staff_id' => $clinicalStaff->random()->id,
                 'blocked_date' => now()->addDays($dayOffset * 4)->format('Y-m-d'),
             ]);
         }
@@ -154,15 +154,15 @@ class DemoDataSeeder extends Seeder
     /**
      * @param  Collection<int, TreatmentPackage>  $treatmentPackages
      * @param  Collection<int, Service>  $services
-     * @param  Collection<int, ClinicalStaff>  $doctors
+     * @param  Collection<int, ClinicalStaff>  $clinicalStaff
      */
     private function attachTreatmentPackageRelations(
         Collection $treatmentPackages,
         Collection $services,
-        Collection $doctors
+        Collection $clinicalStaff
     ): void {
         $serviceTake = min(3, $services->count());
-        $doctorTake = min(2, $doctors->count());
+        $doctorTake = min(2, $clinicalStaff->count());
         if ($serviceTake === 0) {
             return;
         }
@@ -174,10 +174,10 @@ class DemoDataSeeder extends Seeder
             }
             $package->services()->sync($sync);
 
-            if ($doctors->isNotEmpty()) {
-                $n = max(1, min($doctorTake, $doctors->count()));
-                $package->doctors()->sync(
-                    $doctors->random($n)->pluck('id')->all()
+            if ($clinicalStaff->isNotEmpty()) {
+                $n = max(1, min($doctorTake, $clinicalStaff->count()));
+                $package->clinicalStaff()->sync(
+                    $clinicalStaff->random($n)->pluck('id')->all()
                 );
             }
         }

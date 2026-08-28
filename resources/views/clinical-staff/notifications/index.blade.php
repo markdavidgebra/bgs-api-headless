@@ -133,18 +133,18 @@
                       @foreach ($tabLinks as $key => $label)
                         <li class="nav-item">
                           <a class="nav-link {{ $tab === $key ? 'active' : '' }}"
-                            href="{{ route('doctor.notifications', ['tab' => $key]) }}">{{ $label }}</a>
+                            href="{{ route('clinical_staff.notifications', ['tab' => $key]) }}">{{ $label }}</a>
                         </li>
                       @endforeach
                     </ul>
                     <div class="d-flex flex-wrap gap-2">
-                      <form action="{{ route('doctor.notifications.mark-all-read') }}" method="post" class="m-0">
+                      <form action="{{ route('clinical_staff.notifications.mark-all-read') }}" method="post" class="m-0">
                         @csrf
                         <input type="hidden" name="tab" value="{{ $tab }}">
                         <button type="submit" class="btn btn-sm btn-outline-primary"
                           {{ $unreadCount === 0 ? 'disabled' : '' }}>Mark all as read</button>
                       </form>
-                      <form action="{{ route('doctor.notifications.clear-read') }}" method="post" class="m-0"
+                      <form action="{{ route('clinical_staff.notifications.clear-read') }}" method="post" class="m-0"
                         onsubmit="return confirm('{{ __('Remove all notifications you have already read?') }}');">
                         @csrf
                         <input type="hidden" name="tab" value="{{ $tab }}">
@@ -156,7 +156,7 @@
                   <div class="d-flex flex-column gap-3">
                     @forelse ($notifications as $notification)
                       @php
-                        $url = $notification->primaryActionUrl() ?? route('doctor.notifications.show', $notification);
+                        $url = $notification->primaryActionUrl() ?? route('clinical_staff.notifications.show', $notification);
                       @endphp
                       <div
                         class="notif-card p-20 {{ $notification->is_read ? 'notif-card--read' : 'notif-card--unread' }}">
@@ -177,10 +177,10 @@
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                               <span class="text-muted small">{{ $notification->created_at->diffForHumans() }}</span>
                               <div class="d-flex flex-wrap gap-2">
-                                <a href="{{ route('doctor.notifications.show', $notification) }}"
+                                <a href="{{ route('clinical_staff.notifications.show', $notification) }}"
                                   class="btn btn-sm btn-light notif-action-btn border">{{ __('Details') }}</a>
                                 <a href="{{ $url }}" class="btn btn-sm btn-primary notif-action-btn">{{ $notification->primaryActionLabel() }}</a>
-                                <form action="{{ route('doctor.notifications.destroy', $notification) }}" method="post" class="d-inline m-0"
+                                <form action="{{ route('clinical_staff.notifications.destroy', $notification) }}" method="post" class="d-inline m-0"
                                   onsubmit="return confirm('{{ __('Remove this notification?') }}');">
                                   @csrf
                                   @method('DELETE')

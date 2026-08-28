@@ -45,11 +45,19 @@ class LoginRequest extends FormRequest
         $credentials = $this->only('email', 'password');
         $remember = $this->boolean('remember');
 
-        if (Auth::guard('admin')->validate($credentials) || Auth::guard('doctor')->validate($credentials)) {
+        if (Auth::guard('admin')->validate($credentials) || Auth::guard('clinical_staff')->validate($credentials)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'email' => __('Use the Staff tab to sign in with this email.'),
+            ]);
+        }
+
+        if (Auth::guard('doctor')->validate($credentials)) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => __('Use the doctor portal to sign in with this email.'),
             ]);
         }
 

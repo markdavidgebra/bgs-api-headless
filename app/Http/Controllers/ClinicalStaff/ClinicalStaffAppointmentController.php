@@ -32,7 +32,7 @@ class ClinicalStaffAppointmentController extends Controller
         $viewMode = $request->string('view')->toString() ?: 'calendar';
 
         $baseQuery = Appointment::query()
-            ->with(['patient:id,name', 'service:id,name', 'note', 'doctor:id,name']);
+            ->with(['patient:id,name', 'service:id,name', 'note', 'clinicalStaff:id,name']);
 
         if ($status) {
             $baseQuery->where('status', $status);
@@ -141,7 +141,7 @@ class ClinicalStaffAppointmentController extends Controller
 
     public function show(Appointment $appointment): View
     {
-        $appointment = $appointment->load(['patient', 'service', 'note', 'timelines', 'prescribedProducts', 'doctor:id,name']);
+        $appointment = $appointment->load(['patient', 'service', 'note', 'timelines', 'prescribedProducts', 'clinicalStaff:id,name']);
         $patientPackages = TreatmentPatientPackage::query()
             ->where('patient_id', $appointment->patient_id)
             ->with('treatmentPackage:id,name')
@@ -201,7 +201,7 @@ class ClinicalStaffAppointmentController extends Controller
             return back()->with('info', __('Please wait for a manager to approve this appointment before adding a note.'));
         }
 
-        $appointment = $appointment->load(['patient', 'service', 'note', 'prescribedProducts', 'doctor:id,name']);
+        $appointment = $appointment->load(['patient', 'service', 'note', 'prescribedProducts', 'clinicalStaff:id,name']);
         $appointmentNote = $appointment->note;
 
         $products = Product::query()
@@ -230,7 +230,7 @@ class ClinicalStaffAppointmentController extends Controller
     {
         if ($request->isMethod('get')) {
             return redirect()
-                ->route('doctor.appointments.show', $appointment)
+                ->route('clinical_staff.appointments.show', $appointment)
                 ->with('info', __('Opening this link in the browser does not start the session. Use the “Start session” button below or on the appointments list.'));
         }
 
@@ -386,7 +386,7 @@ class ClinicalStaffAppointmentController extends Controller
             'patient_concern' => ['nullable', 'string', 'max:2000'],
             'appointment_remarks' => ['nullable', 'string', 'max:2000'],
             'admin_notes' => ['nullable', 'string', 'max:2000'],
-            'doctor_notes' => ['nullable', 'string', 'max:2000'],
+            'clinical_notes' => ['nullable', 'string', 'max:2000'],
             'instructions' => ['nullable', 'string', 'max:2000'],
             'alerts' => ['nullable', 'string', 'max:1000'],
             'observations' => ['nullable', 'string', 'max:2000'],
@@ -459,7 +459,7 @@ class ClinicalStaffAppointmentController extends Controller
             $validated['patient_concern'] ?? null,
             $validated['appointment_remarks'] ?? null,
             $validated['admin_notes'] ?? null,
-            $validated['doctor_notes'] ?? null,
+            $validated['clinical_notes'] ?? null,
             $validated['instructions'] ?? null,
             $validated['alerts'] ?? null,
             $validated['observations'] ?? null,
@@ -487,7 +487,7 @@ class ClinicalStaffAppointmentController extends Controller
         }
 
         $noteFieldKeys = array_merge(
-            ['patient_concern', 'appointment_remarks', 'admin_notes', 'doctor_notes', 'instructions', 'alerts', 'mobility'],
+            ['patient_concern', 'appointment_remarks', 'admin_notes', 'clinical_notes', 'instructions', 'alerts', 'mobility'],
             AppointmentNote::vitalSignFieldKeys(),
         );
 
@@ -500,7 +500,7 @@ class ClinicalStaffAppointmentController extends Controller
             'patient_concern' => $validated['patient_concern'] ?? $existingNote?->patient_concern,
             'appointment_remarks' => $validated['appointment_remarks'] ?? $validated['procedure_done'] ?? $existingNote?->appointment_remarks,
             'admin_notes' => $validated['admin_notes'] ?? $existingNote?->admin_notes,
-            'doctor_notes' => $validated['doctor_notes'] ?? $validated['observations'] ?? $existingNote?->doctor_notes,
+            'clinical_notes' => $validated['clinical_notes'] ?? $validated['observations'] ?? $existingNote?->clinical_notes,
             'instructions' => $validated['instructions'] ?? $validated['recommendation'] ?? $existingNote?->instructions,
             'alerts' => $validated['alerts'] ?? $validated['follow_up_needed'] ?? $existingNote?->alerts,
             'vital_blood_pressure' => $flatVitals['vital_blood_pressure'],
@@ -589,14 +589,22 @@ class ClinicalStaffAppointmentController extends Controller
         }
         $newPayload['micro_needling_image_path'] = $microNeedlingPath;
 
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
+        $staffAuthor = AppointmentNote::authorPayloadFromUserName(
+            'clinical_staff',
+            $doctor?->name,
+            $doctor?->id,
+        );
         $newPayload['section_authors'] = AppointmentNote::mergeAuthorsOnFieldChanges(
             is_array($existingNote?->section_authors) ? $existingNote->section_authors : null,
             $oldSnapshot,
             $newPayload,
             $noteFieldKeys,
-            AppointmentNote::authorPayloadFromUserName('doctor', $doctor?->name),
+            $staffAuthor,
         );
+        if ($hasVitalRequest) {
+            $newPayload['section_authors']['vital_signs'] = $staffAuthor;
+        }
 
         AppointmentNote::query()->updateOrCreate(
             ['appointment_id' => $appointment->id],
@@ -677,7 +685,7 @@ class ClinicalStaffAppointmentController extends Controller
             'reaction_md' => AppointmentNote::normalizeNoteValue($validated['reaction_md'] ?? null),
         ];
 
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $newSnapshot = [];
         foreach ($fieldKeys as $key) {
             $newSnapshot[$key] = $normalizeForAuthor($key, $newPayload[$key]);
@@ -687,7 +695,7 @@ class ClinicalStaffAppointmentController extends Controller
             $oldSnapshot,
             $newSnapshot,
             $fieldKeys,
-            AppointmentNote::authorPayloadFromUserName('doctor', $doctor?->name),
+            AppointmentNote::authorPayloadFromUserName('clinical_staff', $doctor?->name, $doctor?->id),
         );
 
         AppointmentNote::query()->updateOrCreate(
@@ -699,7 +707,7 @@ class ClinicalStaffAppointmentController extends Controller
         );
 
         return redirect()
-            ->route('doctor.appointments.show', $appointment)
+            ->route('clinical_staff.appointments.show', $appointment)
             ->with('success', __('Assessment checklist saved.'))
             ->withFragment('clinical-notes-assessment');
     }
@@ -747,7 +755,7 @@ class ClinicalStaffAppointmentController extends Controller
         );
 
         return redirect()
-            ->route('doctor.appointments.show', $appointment)
+            ->route('clinical_staff.appointments.show', $appointment)
             ->with('success', __('Consent saved.'))
             ->withFragment('clinical-notes-assessment');
     }
@@ -766,7 +774,7 @@ class ClinicalStaffAppointmentController extends Controller
             'reminder_sent_at' => null,
         ]);
 
-        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+        $appointment->load(['patient:id,name,email', 'clinicalStaff:id,name', 'service:id,name']);
         if ($appointment->patient && filled($appointment->patient->email)) {
             Notification::send($appointment->patient, new AppointmentRescheduledPatientNotification($appointment));
         }

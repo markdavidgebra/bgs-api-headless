@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
-use App\Models\ClinicalStaff;
 use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +18,7 @@ class ServicesController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Service::query()->withCount('doctors')->orderBy('name');
+        $query = Service::query()->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -58,14 +57,12 @@ class ServicesController extends Controller
 
     public function create(): View
     {
-        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
-
-        return view('admin.services.create', compact('doctors'));
+        return view('admin.services.create');
     }
 
     public function edit(int|string $id): View
     {
-        $service = Service::query()->with('doctors:id,name')->findOrFail($id);
+        $service = Service::query()->findOrFail($id);
 
         $draftName = old('name', $service->name);
         $oldSlug = old('slug', $service->slug ?? ($draftName !== '' ? \Illuminate\Support\Str::slug($draftName) : ''));
@@ -74,14 +71,12 @@ class ServicesController extends Controller
         $featuredChecked = old('is_featured') === '1' || (old('is_featured') === null && $service->is_featured && ! session()->has('errors'));
         $bookableChecked = old('is_bookable') === '1' || (old('is_bookable') === null && $service->is_bookable && ! session()->has('errors'));
 
-        $doctors = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
-
-        return view('admin.services.edit', compact('service', 'doctors', 'draftName', 'oldSlug', 'status', 'badge', 'featuredChecked', 'bookableChecked'));
+        return view('admin.services.edit', compact('service', 'draftName', 'oldSlug', 'status', 'badge', 'featuredChecked', 'bookableChecked'));
     }
 
     public function show(int|string $id): View
     {
-        $service = Service::query()->with('doctors:id,name')->findOrFail($id);
+        $service = Service::query()->findOrFail($id);
 
         return view('admin.services.show', compact('service'));
     }
@@ -105,8 +100,6 @@ class ServicesController extends Controller
             'before_care' => ['nullable', 'string'],
             'after_care' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'assigned_doctors' => ['nullable', 'array'],
-            'assigned_doctors.*' => ['integer', 'exists:clinical_staff,id'],
         ]);
 
         $slug = Str::slug((string) ($validated['slug'] ?? '')) !== ''
@@ -146,8 +139,6 @@ class ServicesController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        $service->doctors()->sync($request->input('assigned_doctors', []));
-
         return redirect()->route('admin.services')->with('status', __('Service created.'));
     }
 
@@ -178,8 +169,6 @@ class ServicesController extends Controller
             'before_care' => ['nullable', 'string'],
             'after_care' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'assigned_doctors' => ['nullable', 'array'],
-            'assigned_doctors.*' => ['integer', 'exists:clinical_staff,id'],
         ]);
 
         $slug = Str::slug((string) ($validated['slug'] ?? '')) !== ''
@@ -222,8 +211,6 @@ class ServicesController extends Controller
         }
 
         $service->update($payload);
-
-        $service->doctors()->sync($request->input('assigned_doctors', []));
 
         return redirect()
             ->route('admin.services.show', $service)

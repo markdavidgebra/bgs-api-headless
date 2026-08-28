@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,7 +21,6 @@ class AppointmentNote extends Model
         'appointment_remarks',
         'admin_notes',
         'clinical_notes',
-        'doctor_notes',
         'instructions',
         'alerts',
         'vital_blood_pressure',
@@ -80,14 +78,6 @@ class AppointmentNote extends Model
         ];
     }
 
-    protected function doctorNotes(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->attributes['clinical_notes'] ?? null,
-            set: fn ($value) => ['clinical_notes' => $value],
-        );
-    }
-
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
@@ -142,7 +132,7 @@ class AppointmentNote extends Model
         }
 
         return URL::temporarySignedRoute(
-            'doctor.clinical-image',
+            'clinical_staff.clinical-image',
             now()->addHours(12),
             ['appointment' => $this->appointment_id, 'type' => $type]
         );
@@ -443,8 +433,12 @@ class AppointmentNote extends Model
             return true;
         }
 
+        if (self::hasAssessmentChecklistContent($note)) {
+            return true;
+        }
+
         foreach ([
-            $note->doctor_notes,
+            $note->clinical_notes,
             $note->patient_concern,
             $note->appointment_remarks,
             $note->instructions,
@@ -525,7 +519,7 @@ class AppointmentNote extends Model
             $chunks[] = __('Micro needling');
         }
         foreach ([
-            $this->doctor_notes,
+            $this->clinical_notes,
             $this->patient_concern,
             $this->appointment_remarks,
             $this->instructions,
@@ -554,7 +548,7 @@ class AppointmentNote extends Model
             ['label' => __('Patient concern'), 'value' => $this->patient_concern],
             ['label' => __('Post procedures'), 'value' => $this->appointment_remarks],
             ['label' => __('Medical history'), 'value' => $this->admin_notes],
-            ['label' => __('Clinical notes'), 'value' => $this->doctor_notes],
+            ['label' => __('Clinical notes'), 'value' => $this->clinical_notes],
             ['label' => __('Take home medications'), 'value' => $this->instructions],
         ];
 
@@ -878,30 +872,63 @@ class AppointmentNote extends Model
     }
 
     /**
-     * Display name of whoever recorded vital signs (from section_authors), not the appointment doctor.
+     * Display name of whoever recorded vital signs (from section_authors), not the appointment assignee.
      */
     public function vitalSignsRecorderLabel(): ?string
     {
         $authors = is_array($this->section_authors) ? $this->section_authors : [];
 
+        $fromGroup = self::labelFromAuthor($authors['vital_signs'] ?? null);
+        if ($fromGroup !== null) {
+            return $fromGroup;
+        }
+
         foreach (self::vitalSignFieldKeys() as $key) {
-            $raw = $authors[$key] ?? null;
-            if (! is_array($raw)) {
-                continue;
-            }
-
-            $name = self::sectionAuthorDisplayName($raw);
-            if ($name !== null) {
-                return $name;
-            }
-
-            $label = self::formatSectionAuthorLabel($raw);
+            $label = self::labelFromAuthor($authors[$key] ?? null);
             if ($label !== null) {
                 return $label;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Whoever last documented this visit from a staff login, regardless of assigned clinician.
+     */
+    public function documentationRecorderLabel(): ?string
+    {
+        $fromVitals = $this->vitalSignsRecorderLabel();
+        if ($fromVitals !== null) {
+            return $fromVitals;
+        }
+
+        $authors = is_array($this->section_authors) ? $this->section_authors : [];
+        foreach ($authors as $raw) {
+            $label = self::labelFromAuthor($raw);
+            if ($label !== null) {
+                return $label;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array{type?: string, first_name?: string, last_name?: string, id?: int}|null  $author
+     */
+    public static function labelFromAuthor(mixed $author): ?string
+    {
+        if (! is_array($author)) {
+            return null;
+        }
+
+        $name = self::sectionAuthorDisplayName($author);
+        if ($name !== null) {
+            return $name;
+        }
+
+        return self::formatSectionAuthorLabel($author);
     }
 
     public static function normalizeNoteValue(mixed $value): ?string
@@ -933,18 +960,24 @@ class AppointmentNote extends Model
     }
 
     /**
-     * @param  'doctor'|'admin'|'patient'  $type
-     * @return array{type: string, first_name: string, last_name: string}
+     * @param  'doctor'|'admin'|'patient'|'clinical_staff'  $type
+     * @return array{type: string, first_name: string, last_name: string, id?: int}
      */
-    public static function authorPayloadFromUserName(string $type, ?string $name): array
+    public static function authorPayloadFromUserName(string $type, ?string $name, ?int $id = null): array
     {
         $split = self::splitDisplayName($name);
 
-        return [
+        $payload = [
             'type' => $type,
             'first_name' => $split['first_name'],
             'last_name' => $split['last_name'],
         ];
+
+        if ($id !== null && $id > 0) {
+            $payload['id'] = $id;
+        }
+
+        return $payload;
     }
 
     /**
@@ -1015,6 +1048,12 @@ class AppointmentNote extends Model
             $suffix = $last !== '' ? $last : $first;
 
             return $suffix !== '' ? 'Dr. '.$suffix : null;
+        }
+
+        if ($type === 'clinical_staff') {
+            $name = trim($first.' '.$last);
+
+            return $name !== '' ? $name : null;
         }
 
         return $first !== '' ? $first : null;

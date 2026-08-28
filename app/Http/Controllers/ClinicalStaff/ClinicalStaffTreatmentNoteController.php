@@ -11,7 +11,7 @@ class ClinicalStaffTreatmentNoteController extends Controller
 {
     public function index(Request $request): View
     {
-        $doctorId = auth('doctor')->id();
+        $doctorId = auth('clinical_staff')->id();
         $search = trim($request->string('search')->toString());
         $date = $request->string('date')->toString();
 
@@ -48,7 +48,7 @@ class ClinicalStaffTreatmentNoteController extends Controller
 
     public function show(Appointment $appointment): View
     {
-        abort_unless((int) $appointment->doctor_id === (int) auth('doctor')->id(), 403);
+        abort_unless((int) $appointment->clinical_staff_id === (int) auth('clinical_staff')->id(), 403);
 
         $appointment->load(['patient:id,name,email,phone', 'service:id,name', 'note', 'prescribedProducts']);
 

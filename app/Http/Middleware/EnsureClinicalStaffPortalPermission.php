@@ -11,7 +11,7 @@ class EnsureClinicalStaffPortalPermission
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $doctor = $request->user('doctor');
+        $doctor = $request->user('clinical_staff');
         if (! $doctor) {
             return $next($request);
         }

@@ -4,8 +4,8 @@
 
 @section('content')
   @php
-    /** @var \App\Models\ClinicalStaff $doctor */
-    $imageUrl = $doctor->image_url;
+    /** @var \App\Models\ClinicalStaff $clinicalStaff */
+    $imageUrl = $clinicalStaff->image_url;
     $statusClass = fn (?string $status) => match (strtolower((string) $status)) {
         'active' => 'text-success',
         'inactive' => 'text-danger',
@@ -56,7 +56,7 @@
                       <h5 class="mb-0">Profile &amp; professional information</h5>
                     </div>
                     <div class="card-body">
-                      <form method="POST" action="{{ route('doctor.profile.update') }}" enctype="multipart/form-data">
+                      <form method="POST" action="{{ route('clinical_staff.profile.update') }}" enctype="multipart/form-data">
                         @csrf
                         @method('PATCH')
 
@@ -68,7 +68,7 @@
                             @else
                               <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-secondary"
                                 style="width: 96px; height: 96px; font-size: 2rem;">
-                                {{ $doctor->initial }}
+                                {{ $clinicalStaff->initial }}
                               </div>
                             @endif
                           </div>
@@ -84,42 +84,27 @@
                           <div class="col-md-6 mb-15">
                             <label class="form-label">Full name</label>
                             <input type="text" name="name" class="form-control"
-                              value="{{ old('name', $doctor->name) }}" required autocomplete="name">
+                              value="{{ old('name', $clinicalStaff->name) }}" required autocomplete="name">
                           </div>
                           <div class="col-md-6 mb-15">
                             <label class="form-label">Email</label>
                             <input type="email" name="email" class="form-control"
-                              value="{{ old('email', $doctor->email) }}" required autocomplete="email">
+                              value="{{ old('email', $clinicalStaff->email) }}" required autocomplete="email">
                           </div>
                           <div class="col-md-6 mb-15">
                             <label class="form-label">Phone</label>
                             <input type="text" name="phone" class="form-control"
-                              value="{{ old('phone', $doctor->phone) }}" autocomplete="tel">
+                              value="{{ old('phone', $clinicalStaff->phone) }}" autocomplete="tel">
                           </div>
                           <div class="col-md-6 mb-15">
                             <label class="form-label">Account status</label>
-                            <p class="mb-0 pt-8"><span class="{{ $statusClass($doctor->status) }}">{{ ucfirst((string) ($doctor->status ?? 'active')) }}</span>
+                            <p class="mb-0 pt-8"><span class="{{ $statusClass($clinicalStaff->status) }}">{{ ucfirst((string) ($clinicalStaff->status ?? 'active')) }}</span>
                               <span class="text-muted small">&mdash; contact admin to change.</span>
                             </p>
                           </div>
-                          <div class="col-md-6 mb-15">
-                            <label class="form-label">Specialty</label>
-                            <input type="text" name="specialty" class="form-control"
-                              value="{{ old('specialty', $doctor->specialty) }}">
-                          </div>
-                          <div class="col-md-6 mb-15">
-                            <label class="form-label">License no.</label>
-                            <input type="text" name="license_no" class="form-control"
-                              value="{{ old('license_no', $doctor->license_no) }}">
-                          </div>
-                          <div class="col-md-6 mb-15">
-                            <label class="form-label">Years of experience</label>
-                            <input type="number" name="experience_years" class="form-control" min="0" max="80"
-                              value="{{ old('experience_years', $doctor->experience_years) }}">
-                          </div>
                           <div class="col-12 mb-15">
                             <label class="form-label">Bio</label>
-                            <textarea name="bio" class="form-control" rows="4">{{ old('bio', $doctor->bio) }}</textarea>
+                            <textarea name="bio" class="form-control" rows="4">{{ old('bio', $clinicalStaff->bio) }}</textarea>
                           </div>
                           @php
                             $socialPlatforms = [
@@ -169,7 +154,7 @@
                                 'website_url' => 'fa-solid fa-globe',
                             ];
 
-                            $savedSocialLinks = collect((array) ($doctor->social_links ?? []))
+                            $savedSocialLinks = collect((array) ($clinicalStaff->social_links ?? []))
                                 ->filter(fn ($url, $platform) => filled($platform) && filled($url))
                                 ->map(fn ($url, $platform) => [
                                     'platform' => (string) $platform,
@@ -273,7 +258,7 @@
                       <h5 class="mb-0">Change password</h5>
                     </div>
                     <div class="card-body">
-                      <form method="POST" action="{{ route('doctor.profile.password') }}">
+                      <form method="POST" action="{{ route('clinical_staff.profile.password') }}">
                         @csrf
                         @method('PUT')
 
@@ -310,7 +295,7 @@
   </main>
   <script>
     (function () {
-      const form = document.querySelector('form[action="{{ route('doctor.profile.update') }}"]');
+      const form = document.querySelector('form[action="{{ route('clinical_staff.profile.update') }}"]');
       const rowsWrap = document.getElementById('social-link-rows');
       if (!form || !rowsWrap) return;
 

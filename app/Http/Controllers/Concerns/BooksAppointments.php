@@ -20,7 +20,7 @@ trait BooksAppointments
     /**
      * @param  int|list<int>|null  $serviceId
      */
-    protected function bookableDoctorsQuery(?string $appointmentDate = null, int|array|null $serviceId = null): Builder
+    protected function bookableClinicalStaffQuery(?string $appointmentDate = null, int|array|null $serviceId = null): Builder
     {
         $q = ClinicalStaff::query()
             ->where('status', 'active')

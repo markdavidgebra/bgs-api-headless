@@ -57,7 +57,7 @@ class AdminLoginRequest extends FormRequest
         $remember = $this->boolean('remember');
 
         $loggedIn = Auth::guard('admin')->attempt($credentials, $remember)
-            || Auth::guard('doctor')->attempt($credentials, $remember);
+            || Auth::guard('clinical_staff')->attempt($credentials, $remember);
 
         if (! $loggedIn) {
             RateLimiter::hit($this->throttleKey());
@@ -65,6 +65,12 @@ class AdminLoginRequest extends FormRequest
             if (Auth::guard('web')->validate($credentials)) {
                 $this->throwAuthValidation([
                     'email' => __('Use the Patient tab to sign in with this email.'),
+                ]);
+            }
+
+            if (Auth::guard('doctor')->validate($credentials)) {
+                $this->throwAuthValidation([
+                    'email' => __('Use the doctor portal to sign in with this email.'),
                 ]);
             }
 
@@ -91,11 +97,11 @@ class AdminLoginRequest extends FormRequest
             }
         }
 
-        if (Auth::guard('doctor')->check()) {
-            $doctor = Auth::guard('doctor')->user();
+        if (Auth::guard('clinical_staff')->check()) {
+            $doctor = Auth::guard('clinical_staff')->user();
             $status = strtolower((string) ($doctor->status ?? 'pending'));
             if ($status !== 'active') {
-                Auth::guard('doctor')->logout();
+                Auth::guard('clinical_staff')->logout();
                 RateLimiter::hit($this->throttleKey());
 
                 $message = $status === 'inactive'

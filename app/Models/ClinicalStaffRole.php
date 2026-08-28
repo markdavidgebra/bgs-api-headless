@@ -32,7 +32,7 @@ class ClinicalStaffRole extends Model
         ];
     }
 
-    public function doctors(): HasMany
+    public function clinicalStaff(): HasMany
     {
         return $this->hasMany(ClinicalStaff::class, 'clinical_staff_role_id');
     }

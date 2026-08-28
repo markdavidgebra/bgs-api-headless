@@ -22,7 +22,7 @@ class StaffsController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Admin::query()->orderBy('name');
+        $query = Admin::query()->notInventoryOfficers()->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -85,14 +85,14 @@ class StaffsController extends Controller
 
     public function show(int $id): View
     {
-        $staff = Admin::query()->findOrFail($id);
+        $staff = $this->adminPortalStaff($id);
 
         return view('admin.staff.show', compact('staff'));
     }
 
     public function edit(int $id): View
     {
-        $staff = Admin::query()->findOrFail($id);
+        $staff = $this->adminPortalStaff($id);
 
         return view('admin.staff.edit', [
             'staff' => $staff,
@@ -102,7 +102,7 @@ class StaffsController extends Controller
 
     public function update(Request $request, int $id): RedirectResponse
     {
-        $staff = Admin::query()->findOrFail($id);
+        $staff = $this->adminPortalStaff($id);
         $roleOptions = $this->roleOptions();
 
         $validated = $request->validate([
@@ -143,7 +143,7 @@ class StaffsController extends Controller
                 ->with('error', __('You cannot delete your own account.'));
         }
 
-        $staff = Admin::query()->findOrFail($id);
+        $staff = $this->adminPortalStaff($id);
         $staff->delete();
 
         return redirect()
@@ -153,7 +153,7 @@ class StaffsController extends Controller
 
     public function updateStatus(Request $request, int $id): RedirectResponse
     {
-        $staff = Admin::query()->findOrFail($id);
+        $staff = $this->adminPortalStaff($id);
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(['draft', 'approved', 'disapproved'])],
         ]);
@@ -212,8 +212,18 @@ class StaffsController extends Controller
             }
         }
 
+        $roles = array_values(array_filter(
+            $roles,
+            static fn (string $role): bool => $role !== Admin::INVENTORY_ROLE
+        ));
+
         sort($roles);
 
         return $roles;
+    }
+
+    private function adminPortalStaff(int $id): Admin
+    {
+        return Admin::query()->notInventoryOfficers()->findOrFail($id);
     }
 }

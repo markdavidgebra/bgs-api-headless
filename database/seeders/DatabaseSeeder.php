@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             CashierSeeder::class,
             InventoryOfficerSeeder::class,
             DemoDataSeeder::class,
+            DoctorPortalSeeder::class,
         ]);
     }
 }

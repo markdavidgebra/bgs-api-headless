@@ -19,8 +19,8 @@
       </div>
     </div>
   @endif
-  @if (session('doctor_portal_credentials'))
-    @php($creds = session('doctor_portal_credentials'))
+  @if (session('clinical_staff_portal_credentials'))
+    @php($creds = session('clinical_staff_portal_credentials'))
     <div class="container-xl mb-3">
       <div class="alert alert-warning" role="alert">
         <strong>Portal login (copy now)</strong>
@@ -55,14 +55,15 @@
           <div class="page-pretitle text-secondary">Clinical staff profile</div>
           <h2 class="page-title mb-1">{{ $doctor['name'] ?? 'Clinical staff' }}</h2>
           <ul class="list-inline list-inline-dots text-secondary mb-0">
-            <li class="list-inline-item">{{ $doctor['specialty'] ?? '—' }}</li>
             <li class="list-inline-item"><span class="badge {{ $doctor->status_badge }}">{{ ucfirst($doctor->status_badge) }}</span></li>
           </ul>
         </div>
         <div class="col-auto ms-auto d-print-none">
           <div class="btn-list">
-            <a href="{{ route('admin.doctors') }}" class="btn">{{ __('Back') }}</a>
-            <a href="{{ route('admin.doctors.edit', $doctor) }}" class="btn btn-primary">{{ __('Edit') }}</a>
+            <a href="{{ route('admin.clinical-staff') }}" class="btn">{{ __('Back') }}</a>
+            @if (\App\Support\AdminPermissions::canAccess(auth('admin')->user(), 'clinical_staff.manage'))
+              <a href="{{ route('admin.clinical-staff.edit', $doctor) }}" class="btn btn-primary">{{ __('Edit') }}</a>
+            @endif
           </div>
         </div>
       </div>
@@ -99,20 +100,8 @@
                       <div class="datagrid-content fw-medium">{{ $doctor['name'] ?? '—' }}</div>
                     </div>
                     <div class="datagrid-item">
-                      <div class="datagrid-title">Specialty</div>
-                      <div class="datagrid-content">{{ $doctor['specialty'] ?? '—' }}</div>
-                    </div>
-                    <div class="datagrid-item">
                       <div class="datagrid-title">Status</div>
                       <div class="datagrid-content"><span class="badge {{ $doctor->status_badge }}">{{ ucfirst($doctor->status_badge) }}</span></div>
-                    </div>
-                    <div class="datagrid-item">
-                      <div class="datagrid-title">License no.</div>
-                      <div class="datagrid-content font-monospace">{{ $doctor['license_no'] ?? '—' }}</div>
-                    </div>
-                    <div class="datagrid-item">
-                      <div class="datagrid-title">Experience</div>
-                      <div class="datagrid-content">{{ $doctor['experience_years'] ?? '—' }} years</div>
                     </div>
                     <div class="datagrid-item">
                       <div class="datagrid-title">Email</div>
@@ -251,31 +240,6 @@
                   <div class="text-secondary small mt-2">
                     Links work once real email/phone values are stored.
                   </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-12">
-              <div class="card">
-                <div class="card-body">
-                  <h3 class="card-title">Clinical portal role</h3>
-                  <p class="text-secondary small mb-3">
-                    Optional: restrict what this person sees in the doctor portal. Leave as full access when they should see every section.
-                    <a href="{{ route('admin.doctor-roles.index') }}">Clinical roles</a>
-                  </p>
-                  <form method="POST" action="{{ route('admin.doctors.role', $doctor->id) }}">
-                    @csrf
-                    <label class="form-label" for="doctor_role_id">Role</label>
-                    <select id="doctor_role_id" name="doctor_role_id" class="form-select @error('doctor_role_id') is-invalid @enderror">
-                      <option value="" @selected(old('doctor_role_id', $doctor->doctor_role_id) === null || old('doctor_role_id', $doctor->doctor_role_id) === '')>Full portal access</option>
-                      @foreach ($doctorRoles as $r)
-                        <option value="{{ $r->id }}" @selected((string) old('doctor_role_id', $doctor->doctor_role_id) === (string) $r->id)>{{ $r->name }}</option>
-                      @endforeach
-                    </select>
-                    @error('doctor_role_id')
-                      <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
-                    <button type="submit" class="btn btn-primary w-100 mt-3">Save portal role</button>
-                  </form>
                 </div>
               </div>
             </div>

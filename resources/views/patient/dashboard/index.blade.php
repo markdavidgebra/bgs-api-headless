@@ -59,7 +59,7 @@
                               <span class="text-muted font-xs">&middot; {{ $upcomingAppointment->time_display }}</span>
                             </p>
                             <p class="mb-5">{{ $upcomingAppointment->service_name }}</p>
-                            <p class="font-sm text-muted mb-10">{{ $upcomingAppointment->doctor_name }}</p>
+                            <p class="font-sm text-muted mb-10">{{ $upcomingAppointment->clinical_staff_name }}</p>
                             <span class="{{ $statusClass($upcomingAppointment->status) }} font-sm">{{ $upcomingAppointment->status_label }}</span>
                             <p class="mt-15 mb-0 font-xs text-muted">
                               Ref. {{ $upcomingAppointment->appointment_no ?? '#' . $upcomingAppointment->id }}
@@ -79,7 +79,7 @@
                             <p class="font-lg mb-10">{{ $upcomingAppointment->service_name }}</p>
                             <p class="font-sm text-muted mb-0">
                               Scheduled for {{ $upcomingAppointment->date_display }} at {{ $upcomingAppointment->time_display }}
-                              with {{ $upcomingAppointment->doctor_name }}.
+                              with {{ $upcomingAppointment->clinical_staff_name }}.
                             </p>
                           @else
                             <p class="mb-15">No treatment is on the calendar yet.</p>

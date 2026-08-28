@@ -20,7 +20,7 @@
         </div>
         <div class="col-auto ms-auto d-print-none">
           <div class="btn-list">
-            <a href="{{ route('admin.doctors.show', $doctor) }}" class="btn">{{ __('Cancel') }}</a>
+            <a href="{{ route('admin.clinical-staff.show', $doctor) }}" class="btn">{{ __('Cancel') }}</a>
             <button type="submit" form="doctor-edit-form" class="btn btn-primary">{{ __('Save changes') }}</button>
           </div>
         </div>
@@ -30,7 +30,7 @@
 
   <div class="page-body">
     <div class="container-xl">
-      <form id="doctor-edit-form" method="POST" action="{{ route('admin.doctors.update', $doctor->id) }}" enctype="multipart/form-data">
+      <form id="doctor-edit-form" method="POST" action="{{ route('admin.clinical-staff.update', $doctor->id) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         <div class="row g-3">
@@ -65,50 +65,10 @@
                       <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="specialty">{{ __('Specialty') }}</label>
-                    <input id="specialty" name="specialty" type="text" class="form-control @error('specialty') is-invalid @enderror"
-                      value="{{ old('specialty', $doctor->specialty) }}">
-                    @error('specialty')
-                      <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="license_no">{{ __('License no.') }}</label>
-                    <input id="license_no" name="license_no" type="text" class="form-control @error('license_no') is-invalid @enderror"
-                      value="{{ old('license_no', $doctor->license_no) }}">
-                    @error('license_no')
-                      <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="experience_years">{{ __('Years of experience') }}</label>
-                    <input id="experience_years" name="experience_years" type="number" min="0" max="80"
-                      class="form-control @error('experience_years') is-invalid @enderror"
-                      value="{{ old('experience_years', $doctor->experience_years) }}">
-                    @error('experience_years')
-                      <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                  </div>
                   <div class="col-12">
                     <label class="form-label" for="bio">{{ __('Bio') }}</label>
                     <textarea id="bio" name="bio" rows="4" class="form-control @error('bio') is-invalid @enderror">{{ old('bio', $doctor->bio) }}</textarea>
                     @error('bio')
-                      <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label" for="doctor_role_id">{{ __('Clinical portal role') }}</label>
-                    <select id="doctor_role_id" name="doctor_role_id" class="form-select @error('doctor_role_id') is-invalid @enderror">
-                      <option value="" @selected(old('doctor_role_id', $doctor->doctor_role_id) === null || old('doctor_role_id', $doctor->doctor_role_id) === '')>{{ __('Full portal access (default)') }}</option>
-                      @foreach ($doctorRoles as $role)
-                        <option value="{{ $role->id }}" @selected((string) old('doctor_role_id', $doctor->doctor_role_id) === (string) $role->id)>{{ $role->name }}</option>
-                      @endforeach
-                    </select>
-                    <small class="form-hint">
-                      <a href="{{ route('admin.doctor-roles.index') }}">{{ __('Manage clinical roles') }}</a>
-                    </small>
-                    @error('doctor_role_id')
                       <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                   </div>

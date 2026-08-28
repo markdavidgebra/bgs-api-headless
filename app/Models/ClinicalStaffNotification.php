@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\AliasesLegacyStaffId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +11,6 @@ class ClinicalStaffNotification extends Model
 {
     /** @use HasFactory<\Database\Factories\ClinicalStaffNotificationFactory> */
     use HasFactory;
-    use AliasesLegacyStaffId;
 
     protected $table = 'clinical_staff_notifications';
 
@@ -58,7 +56,6 @@ class ClinicalStaffNotification extends Model
 
     protected $fillable = [
         'clinical_staff_id',
-        'doctor_id',
         'type',
         'title',
         'message',
@@ -74,7 +71,7 @@ class ClinicalStaffNotification extends Model
         ];
     }
 
-    public function doctor(): BelongsTo
+    public function clinicalStaff(): BelongsTo
     {
         return $this->belongsTo(ClinicalStaff::class, 'clinical_staff_id');
     }
@@ -89,9 +86,14 @@ class ClinicalStaffNotification extends Model
         return $this->belongsTo(Patient::class);
     }
 
+    public function scopeForClinicalStaff(Builder $query, int $clinicalStaffId): Builder
+    {
+        return $query->where('clinical_staff_id', $clinicalStaffId);
+    }
+
     public function scopeForDoctor(Builder $query, int $doctorId): Builder
     {
-        return $query->where('clinical_staff_id', $doctorId);
+        return $this->scopeForClinicalStaff($query, $doctorId);
     }
 
     public function scopeUnread(Builder $query): Builder
@@ -144,10 +146,10 @@ class ClinicalStaffNotification extends Model
     public function primaryActionUrl(): ?string
     {
         if ($this->appointment_id) {
-            return route('doctor.appointments.show', ['appointment' => $this->appointment_id]);
+            return route('clinical_staff.appointments.show', ['appointment' => $this->appointment_id]);
         }
         if ($this->patient_id) {
-            return route('doctor.patient-records.show', ['patient' => $this->patient_id]);
+            return route('clinical_staff.patient-records.show', ['patient' => $this->patient_id]);
         }
 
         return null;

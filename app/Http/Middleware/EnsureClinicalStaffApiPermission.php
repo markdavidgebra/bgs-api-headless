@@ -14,7 +14,7 @@ class EnsureClinicalStaffApiPermission
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        $doctor = $request->user('doctor');
+        $doctor = $request->user('clinical_staff');
 
         if (! ClinicalStaffPermissions::can($doctor, $permission)) {
             return response()->json([

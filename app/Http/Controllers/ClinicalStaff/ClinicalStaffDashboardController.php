@@ -11,11 +11,11 @@ class ClinicalStaffDashboardController extends Controller
 {
     public function index(): View
     {
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $today = now()->toDateString();
 
         $baseQuery = Appointment::query()
-            ->with(['patient:id,name', 'service:id,name', 'note', 'doctor:id,name']);
+            ->with(['patient:id,name', 'service:id,name', 'note', 'clinicalStaff:id,name']);
 
         $todayAppointmentsCount = (clone $baseQuery)
             ->whereDate('appointment_date', $today)
@@ -73,7 +73,7 @@ class ClinicalStaffDashboardController extends Controller
         }
 
         $notificationsUnreadCount = ClinicalStaffNotification::query()
-            ->forDoctor((int) $doctor->id)
+            ->forClinicalStaff((int) $doctor->id)
             ->unread()
             ->count();
 

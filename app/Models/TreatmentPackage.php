@@ -80,7 +80,7 @@ class TreatmentPackage extends Model
         )->withPivot('sessions')->withTimestamps();
     }
 
-    public function doctors(): BelongsToMany
+    public function clinicalStaff(): BelongsToMany
     {
         return $this->belongsToMany(
             ClinicalStaff::class,

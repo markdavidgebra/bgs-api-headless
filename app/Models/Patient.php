@@ -107,6 +107,20 @@ class Patient extends Authenticatable
         return $this->hasMany(Appointment::class, 'patient_id');
     }
 
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class, 'patient_id')
+            ->orderByDesc('issued_at')
+            ->orderByDesc('id');
+    }
+
+    public function doctorNotes(): HasMany
+    {
+        return $this->hasMany(DoctorNote::class, 'patient_id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+    }
+
     /**
      * Latest appointment date (YYYY-MM-DD) from appointment_history when stored as JSON array of rows with "date".
      */

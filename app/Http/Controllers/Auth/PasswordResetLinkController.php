@@ -47,7 +47,7 @@ class PasswordResetLinkController extends Controller
         }
 
         if ($status !== Password::RESET_LINK_SENT) {
-            $status = Password::broker('doctors')->sendResetLink($email);
+            $status = Password::broker('clinical_staff')->sendResetLink($email);
         }
 
         return $status == Password::RESET_LINK_SENT

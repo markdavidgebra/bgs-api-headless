@@ -64,14 +64,8 @@
         <div class="col-sm-6 col-lg-3">
           <div class="card">
             <div class="card-body">
-              <div class="text-secondary mb-1">Assigned doctors</div>
-              <div class="mb-0 small">
-                @if ($service->doctors->isEmpty())
-                  <span class="text-secondary">Any (not restricted)</span>
-                @else
-                  {{ $service->doctors->pluck('name')->join(', ') }}
-                @endif
-              </div>
+              <div class="text-secondary mb-1">Sessions</div>
+              <div class="h2 mb-0">{{ $service->session_count ?? '—' }}</div>
             </div>
           </div>
         </div>

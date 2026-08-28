@@ -56,7 +56,7 @@ class AdminDashboardService
             ->sum('amount');
 
         $todaysSchedule = Appointment::query()
-            ->with(['patient:id,name', 'doctor:id,name', 'service:id,name'])
+            ->with(['patient:id,name', 'clinicalStaff:id,name', 'service:id,name'])
             ->whereDate('appointment_date', $today)
             ->orderBy('appointment_time')
             ->orderBy('id')
@@ -69,7 +69,7 @@ class AdminDashboardService
                 'appointment_time' => $a->appointment_time ? substr((string) $a->appointment_time, 0, 5) : null,
                 'status' => $a->status,
                 'patient' => $a->patient ? ['id' => $a->patient->id, 'name' => $a->patient->name] : null,
-                'doctor' => $a->doctor ? ['id' => $a->doctor->id, 'name' => $a->doctor->name] : null,
+                'clinical_staff' => $a->clinicalStaff ? ['id' => $a->clinicalStaff->id, 'name' => $a->clinicalStaff->name] : null,
                 'service' => $a->service ? ['id' => $a->service->id, 'name' => $a->service->name] : null,
             ])
             ->values();
@@ -335,8 +335,8 @@ class AdminDashboardService
                 'expiring_memberships_count' => $expiringMembershipsCount,
                 'renewals_due_count' => $renewalsDueCount,
                 'cancelled_review_count' => $cancelledReviewCount,
-                'top_doctor_today_name' => $topDoctorTodayName,
-                'doctors_on_duty_today' => $doctorsOnDutyToday,
+                'top_clinical_staff_today_name' => $topDoctorTodayName,
+                'clinical_staff_on_duty_today' => $doctorsOnDutyToday,
                 'new_subscribers_this_month' => $newSubscribersThisMonth,
             ],
             'todays_schedule' => $todaysSchedule,
@@ -351,7 +351,7 @@ class AdminDashboardService
             'new_patient_appointments' => $newPatientAppointments,
             'top_services' => $topServices,
             'stock_movements_recent' => $stockMovementsRecent,
-            'doctor_activity_today' => $doctorActivityToday->map(fn ($d) => [
+            'clinical_staff_activity_today' => $doctorActivityToday->map(fn ($d) => [
                 'id' => $d->id,
                 'name' => $d->name,
                 'appointment_count' => (int) $d->appointment_count,
@@ -362,7 +362,7 @@ class AdminDashboardService
             'new_patients_by_day' => $newPatientsByDay,
             'low_stock_chart' => $lowStockChart,
             'recent_payments_chart' => $recentPaymentsChart,
-            'doctor_activity_chart' => $doctorActivityChart,
+            'clinical_staff_activity_chart' => $doctorActivityChart,
             'top_services_chart' => $topServicesChart,
         ];
     }

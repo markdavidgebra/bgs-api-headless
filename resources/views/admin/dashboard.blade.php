@@ -194,7 +194,7 @@
                         <a href="{{ route('admin.patients.show', $appt->patient_id) }}">{{ $appt->patient->name ?? '—' }}</a>
                       </td>
                       <td>{{ $appt->service->name ?? '—' }}</td>
-                      <td>{{ $appt->doctor->name ?? '—' }}</td>
+                      <td>{{ $appt->clinicalStaff->name ?? '—' }}</td>
                       <td class="font-monospace">{{ $appt->time_display }}</td>
                       <td><span class="badge {{ $appt->status_badge }}">{{ $appt->status_label }}</span></td>
                     </tr>

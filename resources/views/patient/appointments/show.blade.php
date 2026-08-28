@@ -71,7 +71,7 @@
                         </div>
                         <div class="col-md-6 mb-15">
                           <h6 class="text-muted font-sm text-uppercase mb-5">Clinical staff</h6>
-                          <p class="mb-0">{{ $appointment->doctor_name }}</p>
+                          <p class="mb-0">{{ $appointment->clinical_staff_name }}</p>
                         </div>
                       </div>
 

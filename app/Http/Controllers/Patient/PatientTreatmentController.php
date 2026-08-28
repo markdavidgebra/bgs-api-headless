@@ -21,7 +21,7 @@ class PatientTreatmentController extends Controller
         $packages = TreatmentPatientPackage::query()
             ->where('patient_id', Auth::id())
             ->with([
-                'treatmentPackage.doctors',
+                'treatmentPackage.clinicalStaff',
                 'usageHistories' => fn ($q) => $q->whereNotNull('used_on')->orderByDesc('used_on'),
             ])
             ->orderByDesc('start_date')
@@ -50,7 +50,7 @@ class PatientTreatmentController extends Controller
         $this->ensureOwnsPackage($patientPackage);
 
         $patientPackage->load([
-            'treatmentPackage.doctors',
+            'treatmentPackage.clinicalStaff',
             'treatmentPackage.services',
             'usageHistories' => fn ($q) => $q->with('service')->orderByDesc('used_on')->orderByDesc('id'),
         ]);
@@ -84,7 +84,7 @@ class PatientTreatmentController extends Controller
      *   id: int,
      *   treatment_name: string,
      *   category: string,
-     *   doctors_label: string,
+     *   clinical_staff_label: string,
      *   date_started: string,
      *   last_session: string,
      *   total_sessions: int,
@@ -96,7 +96,7 @@ class PatientTreatmentController extends Controller
     private function mapPackageToTreatmentRow(TreatmentPatientPackage $pkg): object
     {
         $treatment = $pkg->treatmentPackage;
-        $doctorNames = $treatment?->doctors?->pluck('name')->filter()->unique();
+        $doctorNames = $treatment?->clinicalStaff?->pluck('name')->filter()->unique();
 
         $started = $pkg->start_date ?? $pkg->purchased_at;
         $lastSession = $pkg->usageHistories->first()?->used_on;
@@ -107,7 +107,7 @@ class PatientTreatmentController extends Controller
             'id' => (int) $pkg->id,
             'treatment_name' => $treatment?->name ?? 'Treatment package',
             'category' => (string) ($treatment?->category ?? ''),
-            'doctors_label' => $doctorNames && $doctorNames->isNotEmpty() ? $doctorNames->implode(', ') : '—',
+            'clinical_staff_label' => $doctorNames && $doctorNames->isNotEmpty() ? $doctorNames->implode(', ') : '—',
             'date_started' => $started ? Carbon::parse((string) $started)->format('M j, Y') : '—',
             'last_session' => $lastSession ? Carbon::parse((string) $lastSession)->format('M j, Y') : '—',
             'total_sessions' => (int) $pkg->total_sessions,

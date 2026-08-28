@@ -7,12 +7,12 @@ use App\Models\ClinicalStaffNotification;
 
 class ClinicalStaffAppointmentAlerts
 {
-    public static function notifyDoctorOfNewBooking(Appointment $appointment): void
+    public static function notifyClinicalStaffOfNewBooking(Appointment $appointment): void
     {
         $appointment->loadMissing(['patient:id,name', 'service:id,name']);
 
         ClinicalStaffNotification::query()->create([
-            'doctor_id' => $appointment->doctor_id,
+            'clinical_staff_id' => $appointment->clinical_staff_id,
             'type' => ClinicalStaffNotification::TYPE_NEW_APPOINTMENT,
             'title' => __('New appointment booking'),
             'message' => __(':patient booked :service on :date at :time.', [

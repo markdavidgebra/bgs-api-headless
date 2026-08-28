@@ -217,9 +217,9 @@
                     <h3 class="mb-0">{{ $patient->name }} - Patient Details</h3>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                       @if ($lastVisit)
-                        <a href="{{ route('doctor.appointments.show', $lastVisit) }}" class="btn btn-sm btn-outline-primary">View appointment</a>
+                        <a href="{{ route('clinical_staff.appointments.show', $lastVisit) }}" class="btn btn-sm btn-outline-primary">View appointment</a>
                       @endif
-                      <a href="{{ route('doctor.patient-records') }}" class="btn btn-sm btn-outline">Back to records</a>
+                      <a href="{{ route('clinical_staff.patient-records') }}" class="btn btn-sm btn-outline">Back to records</a>
                     </div>
                   </div>
 
@@ -352,7 +352,7 @@
                               @foreach ($assessmentHistory as $row)
                                 <tr>
                                   <td>{{ $row->appointment->date_display }} {{ $row->appointment->time_display }}</td>
-                                  <td>{{ $row->appointment->doctor_name }}</td>
+                                  <td>{{ $row->appointment->clinical_staff_name }}</td>
                                   <td>{{ $row->appointment->service_name }}</td>
                                   <td>
                                     @if ($row->mobility_label)
@@ -376,7 +376,7 @@
                                   </td>
                                   <td>
                                     @if ($row->can_edit)
-                                      <a href="{{ route('doctor.appointments.show', $row->appointment) }}#clinical-notes-assessment" class="btn btn-sm btn-outline-primary">{{ $row->mobility_label ? __('Edit') : __('Record') }}</a>
+                                      <a href="{{ route('clinical_staff.appointments.show', $row->appointment) }}#clinical-notes-assessment" class="btn btn-sm btn-outline-primary">{{ $row->mobility_label ? __('Edit') : __('Record') }}</a>
                                     @else
                                       <span class="text-secondary small">—</span>
                                     @endif
@@ -412,7 +412,7 @@
                             @forelse ($notesHistory as $row)
                               <tr>
                                 <td>{{ $row->appointment->date_display }} {{ $row->appointment->time_display }}</td>
-                                <td>{{ $row->appointment->doctor_name }}</td>
+                                <td>{{ $row->appointment->clinical_staff_name }}</td>
                                 <td class="small">
                                   @php
                                     $vitalLine = $row->note->vitalSignsSummary();
@@ -440,13 +440,13 @@
                                     —
                                   @endif
                                 </td>
-                                <td>{{ $row->note->doctor_notes ?: $row->note->patient_concern ?: '—' }}</td>
+                                <td>{{ $row->note->clinical_notes ?: $row->note->patient_concern ?: '—' }}</td>
                                 <td>{{ $row->note->appointment_remarks ?: '—' }}</td>
                                 <td>{{ $row->note->instructions ?: '—' }}</td>
                                 <td>{{ $row->note->alerts ?: '—' }}</td>
                                 <td class="text-nowrap">
-                                  @if ((int) $row->appointment->doctor_id === (int) auth('doctor')->id())
-                                    <a href="{{ route('doctor.appointments.notes.create', $row->appointment) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                  @if ((int) $row->appointment->clinical_staff_id === (int) auth('clinical_staff')->id())
+                                    <a href="{{ route('clinical_staff.appointments.notes.create', $row->appointment) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                   @else
                                     —
                                   @endif
@@ -463,7 +463,7 @@
                       @if ($myAppointments->isEmpty())
                         <p class="text-secondary mb-0">You do not have any appointments with this patient yet. Notes can be added once an appointment exists between you and this patient.</p>
                       @else
-                        <form method="POST" action="{{ route('doctor.patient-records.notes.store', $patient) }}" class="row g-3">
+                        <form method="POST" action="{{ route('clinical_staff.patient-records.notes.store', $patient) }}" class="row g-3">
                           @csrf
                           <div class="col-md-6">
                             <label class="form-label">Appointment</label>
@@ -522,7 +522,7 @@
                                 <td class="text-nowrap">{{ $appointment->date_display }}</td>
                                 <td class="text-nowrap">{{ $appointment->time_display }}</td>
                                 <td class="text-nowrap">{{ $appointment->appointment_no ?? '—' }}</td>
-                                <td>{{ $appointment->doctor_name }}</td>
+                                <td>{{ $appointment->clinical_staff_name }}</td>
                                 <td>{{ $appointment->service_name }}</td>
                                 <td class="text-nowrap">
                                   <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
@@ -531,7 +531,7 @@
                                   @php
                                     $appointmentNeedsApproval = in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true);
                                   @endphp
-                                  <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                  <a href="{{ route('clinical_staff.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
                                   @if ($appointmentNeedsApproval)
                                     <button
                                       type="button"
@@ -540,7 +540,7 @@
                                       data-status-label="{{ $appointment->status_label }}"
                                     >Add note</button>
                                   @else
-                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                    <a href="{{ route('clinical_staff.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
                                   @endif
                                   @if ($appointmentNeedsApproval)
                                     <span class="text-muted small">Waiting for manager approval</span>
@@ -576,7 +576,7 @@
                                 <td class="text-nowrap">{{ $appointment->date_display }}</td>
                                 <td class="text-nowrap">{{ $appointment->time_display }}</td>
                                 <td class="text-nowrap">{{ $appointment->appointment_no ?? '—' }}</td>
-                                <td>{{ $appointment->doctor_name }}</td>
+                                <td>{{ $appointment->clinical_staff_name }}</td>
                                 <td>{{ $appointment->service_name }}</td>
                                 <td class="text-nowrap">
                                   <span class="badge {{ $appointment->status_badge }}">{{ $appointment->status_label }}</span>
@@ -585,7 +585,7 @@
                                   @php
                                     $appointmentNeedsApproval = in_array(strtolower((string) $appointment->status), ['pending', 'rescheduled'], true);
                                   @endphp
-                                  <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                  <a href="{{ route('clinical_staff.appointments.show', $appointment) }}" class="btn btn-sm btn-outline-primary">View</a>
                                   @if ($appointmentNeedsApproval)
                                     <button
                                       type="button"
@@ -594,7 +594,7 @@
                                       data-status-label="{{ $appointment->status_label }}"
                                     >Add note</button>
                                   @else
-                                    <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
+                                    <a href="{{ route('clinical_staff.appointments.notes.create', $appointment) }}" class="btn btn-sm">Add note</a>
                                   @endif
                                   @if ($appointmentNeedsApproval)
                                     <span class="text-muted small">Waiting for manager approval</span>
@@ -631,7 +631,7 @@
                             </div>
 
                             @if ($pp->has_breakdown)
-                              <form method="POST" action="{{ route('doctor.patient-records.packages.sessions.update', ['patient' => $patient, 'patientPackage' => $package]) }}" class="pkg-per-service-form">
+                              <form method="POST" action="{{ route('clinical_staff.patient-records.packages.sessions.update', ['patient' => $patient, 'patientPackage' => $package]) }}" class="pkg-per-service-form">
                                 @csrf
                                 @method('PATCH')
                                 @foreach ($pp->rows->groupBy('service_id') as $serviceId => $sessionRows)
@@ -662,7 +662,7 @@
                                 <button type="submit" class="btn btn-sm btn-primary">{{ __('Save package progress') }}</button>
                               </form>
                             @elseif ($pkgTotal > 0)
-                              <form method="POST" action="{{ route('doctor.patient-records.packages.sessions.update', ['patient' => $patient, 'patientPackage' => $package]) }}" class="pkg-aggregate-form">
+                              <form method="POST" action="{{ route('clinical_staff.patient-records.packages.sessions.update', ['patient' => $patient, 'patientPackage' => $package]) }}" class="pkg-aggregate-form">
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="used_sessions" value="{{ $pkgUsed }}" class="pkg-used-input">

@@ -18,7 +18,7 @@ class AdminStaffController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Admin::query()->orderBy('name');
+        $query = Admin::query()->notInventoryOfficers()->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -57,7 +57,7 @@ class AdminStaffController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $staff = Admin::query()->findOrFail($id);
+        $staff = $this->adminPortalStaff($id);
 
         return response()->json([
             'staff' => $this->staffPayload($staff),
@@ -66,7 +66,7 @@ class AdminStaffController extends Controller
 
     public function edit(int $id): JsonResponse
     {
-        $staff = Admin::query()->findOrFail($id);
+        $staff = $this->adminPortalStaff($id);
 
         return response()->json([
             'staff' => $this->staffPayload($staff),
@@ -114,8 +114,18 @@ class AdminStaffController extends Controller
             }
         }
 
+        $roles = array_values(array_filter(
+            $roles,
+            static fn (string $role): bool => $role !== Admin::INVENTORY_ROLE
+        ));
+
         sort($roles);
 
         return $roles;
+    }
+
+    private function adminPortalStaff(int $id): Admin
+    {
+        return Admin::query()->notInventoryOfficers()->findOrFail($id);
     }
 }

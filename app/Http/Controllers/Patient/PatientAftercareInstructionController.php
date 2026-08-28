@@ -18,7 +18,7 @@ class PatientAftercareInstructionController extends Controller
 
         $appointmentInstructions = AppointmentNote::query()
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.service', 'appointment.doctor'])
+            ->with(['appointment.service', 'appointment.clinicalStaff'])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->get()
@@ -80,7 +80,7 @@ class PatientAftercareInstructionController extends Controller
         $note = AppointmentNote::query()
             ->whereKey($record)
             ->whereHas('appointment', fn ($q) => $q->where('patient_id', $patientId))
-            ->with(['appointment.service', 'appointment.doctor'])
+            ->with(['appointment.service', 'appointment.clinicalStaff'])
             ->first();
 
         return $note && filled($note->instructions) ? $this->mapAppointmentInstruction($note) : null;

@@ -81,6 +81,7 @@
                 <th><button class="table-sort" data-sort="sort-patient">Patient</button></th>
                 <th class="text-secondary"><button class="table-sort" data-sort="sort-doctor">Clinical staff</button></th>
                 <th><button class="table-sort" data-sort="sort-service">Service</button></th>
+                <th><button class="table-sort" data-sort="sort-booked">Booked at</button></th>
                 <th><button class="table-sort" data-sort="sort-date">Date</button></th>
                 <th><button class="table-sort" data-sort="sort-time">Time</button></th>
                 <th><button class="table-sort" data-sort="sort-status">Status</button></th>
@@ -99,7 +100,7 @@
                       default => 'bg-yellow-lt',
                   };
                   $patientName = $appointment->patient?->name ?? '—';
-                  $doctorName = $appointment->doctor?->name ?? '—';
+                  $doctorName = $appointment->clinicalStaff?->name ?? '—';
                   $serviceName = $appointment->service?->name ?? '—';
                   $dateLabel = $appointment->appointment_date?->format('Y-m-d') ?? '—';
                   $timeRaw = $appointment->appointment_time;
@@ -113,6 +114,9 @@
                       $timeLabel = '—';
                   }
                   $dateTs = strtotime($dateLabel . ' ' . $timeForSort) ?: 0;
+                  $bookedAt = $appointment->created_at;
+                  $bookedTs = $bookedAt?->timestamp ?? 0;
+                  $bookedLabel = $bookedAt?->timezone(config('app.timezone'))->format('M j, Y g:i A') ?? '—';
                 @endphp
                 <tr>
                   <td class="sort-patient">
@@ -128,6 +132,7 @@
                   </td>
                   <td class="text-secondary sort-doctor">{{ $doctorName }}</td>
                   <td class="sort-service">{{ $serviceName }}</td>
+                  <td class="sort-booked text-nowrap" data-booked="{{ $bookedTs }}">{{ $bookedLabel }}</td>
                   <td class="sort-date" data-date="{{ $dateTs }}">{{ $dateLabel }}</td>
                   <td class="sort-time">{{ $timeLabel }}</td>
                   <td class="sort-status" data-status="{{ $status }}">
@@ -142,7 +147,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="7" class="text-secondary">
+                  <td colspan="8" class="text-secondary">
                     No appointments found.
                   </td>
                 </tr>
@@ -171,9 +176,10 @@
           valueNames: [
             'sort-patient',
             'sort-doctor',
+            'sort-service',
+            { attr: 'data-booked', name: 'sort-booked' },
             { attr: 'data-date', name: 'sort-date' },
             'sort-time',
-            'sort-service',
             { attr: 'data-status', name: 'sort-status' },
           ]
         });

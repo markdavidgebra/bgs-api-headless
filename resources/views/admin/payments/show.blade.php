@@ -10,9 +10,9 @@
   $methodLabel = $payment->method_label;
   $referenceTypeLabel = $payment->reference_type_label;
   $referenceName = $payment->reference_name ?? '—';
-  $assignedDoctorName = $payment->assigned_doctor_name ?? '—';
+  $assignedDoctorName = $payment->assigned_clinical_staff_name ?? '—';
   $assignedDoctorId = $payment->reference_type === 'appointment'
-    ? $payment->referenceAppointment?->doctor_id
+    ? $payment->referenceAppointment?->clinical_staff_id
     : null;
 
   $relatedRecordUrl = $payment->reference_id
@@ -27,7 +27,7 @@
     : null;
 
   $assignedDoctorUrl = $assignedDoctorId
-    ? route('admin.doctors.show', $assignedDoctorId)
+    ? route('admin.clinical-staff.show', $assignedDoctorId)
     : null;
 
   $patientUrl = route('admin.patients.show', $payment->patient_id);

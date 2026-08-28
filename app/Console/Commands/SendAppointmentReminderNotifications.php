@@ -18,7 +18,7 @@ class SendAppointmentReminderNotifications extends Command
         $tomorrow = now()->addDay()->toDateString();
 
         $query = Appointment::query()
-            ->with(['patient:id,name,email', 'doctor:id,name', 'service:id,name'])
+            ->with(['patient:id,name,email', 'clinicalStaff:id,name', 'service:id,name'])
             ->whereDate('appointment_date', $tomorrow)
             ->whereNull('reminder_sent_at')
             ->whereNotIn('status', ['cancelled', 'completed']);

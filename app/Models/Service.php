@@ -12,7 +12,7 @@ class Service extends Model
     /** @use HasFactory<\Database\Factories\ServiceFactory> */
     use HasFactory;
 
-    public function doctors(): BelongsToMany
+    public function clinicalStaff(): BelongsToMany
     {
         return $this->belongsToMany(ClinicalStaff::class, 'clinical_staff_service', 'service_id', 'clinical_staff_id')->withTimestamps();
     }

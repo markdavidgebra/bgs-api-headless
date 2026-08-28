@@ -1,5 +1,5 @@
 @php
-  $portalDoctor = auth('doctor')->user();
+  $portalDoctor = auth('clinical_staff')->user();
   $docCan = static fn (string $key): bool => $portalDoctor ? \App\Support\ClinicalStaffPermissions::can($portalDoctor, $key) : false;
   $horizontal = $horizontal ?? false;
 @endphp
@@ -9,85 +9,85 @@
   'flex-column' => ! $horizontal,
   'doctor-portal-nav-h d-flex flex-row flex-nowrap align-items-center' => $horizontal,
 ]) role="navigation" aria-label="{{ __('Clinical staff portal') }}">
-  @if ($docCan('doctor.dashboard'))
+  @if ($docCan('clinical_staff.dashboard'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.dashboard'),
-      ]) href="{{ route('doctor.dashboard') }}"><i class="fi-rs-home mr-10"></i>{{ __('Dashboard') }}</a>
+        'active' => request()->routeIs('clinical_staff.dashboard'),
+      ]) href="{{ route('clinical_staff.dashboard') }}"><i class="fi-rs-home mr-10"></i>{{ __('Dashboard') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.appointments'))
+  @if ($docCan('clinical_staff.appointments'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.appointments*'),
-      ]) href="{{ route('doctor.appointments') }}"><i class="fi-rs-calendar mr-10"></i>{{ __('Appointments / Schedule') }}</a>
+        'active' => request()->routeIs('clinical_staff.appointments*'),
+      ]) href="{{ route('clinical_staff.appointments') }}"><i class="fi-rs-calendar mr-10"></i>{{ __('Appointments / Schedule') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.patient_records'))
+  @if ($docCan('clinical_staff.patient_records'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.patient-records*'),
-      ]) href="{{ route('doctor.patient-records') }}"><i class="fi-rs-folder mr-10"></i>{{ __('Patient Records') }}</a>
+        'active' => request()->routeIs('clinical_staff.patient-records*'),
+      ]) href="{{ route('clinical_staff.patient-records') }}"><i class="fi-rs-folder mr-10"></i>{{ __('Patient Records') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.treatment_notes'))
+  @if ($docCan('clinical_staff.treatment_notes'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.treatment-notes*'),
-      ]) href="{{ route('doctor.treatment-notes') }}"><i class="fi-rs-note mr-10"></i>{{ __('Treatment Notes') }}</a>
+        'active' => request()->routeIs('clinical_staff.treatment-notes*'),
+      ]) href="{{ route('clinical_staff.treatment-notes') }}"><i class="fi-rs-note mr-10"></i>{{ __('Treatment Notes') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.products'))
+  @if ($docCan('clinical_staff.products'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.products*'),
-      ]) href="{{ route('doctor.products') }}"><i class="fi-rs-shopping-cart mr-10"></i>{{ __('Clinic products & stock') }}</a>
+        'active' => request()->routeIs('clinical_staff.products*'),
+      ]) href="{{ route('clinical_staff.products') }}"><i class="fi-rs-shopping-cart mr-10"></i>{{ __('Clinic products & stock') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.services'))
+  @if ($docCan('clinical_staff.services'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.services*'),
-      ]) href="{{ route('doctor.services') }}"><i class="fi-rs-apps mr-10"></i>{{ __('My Services') }}</a>
+        'active' => request()->routeIs('clinical_staff.services*'),
+      ]) href="{{ route('clinical_staff.services') }}"><i class="fi-rs-apps mr-10"></i>{{ __('My Services') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.availability'))
+  @if ($docCan('clinical_staff.availability'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.availability*'),
-      ]) href="{{ route('doctor.availability') }}"><i class="fi-rs-clock mr-10"></i>{{ __('Availability') }}</a>
+        'active' => request()->routeIs('clinical_staff.availability*'),
+      ]) href="{{ route('clinical_staff.availability') }}"><i class="fi-rs-clock mr-10"></i>{{ __('Availability') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.notifications'))
+  @if ($docCan('clinical_staff.notifications'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.notifications*'),
-      ]) href="{{ route('doctor.notifications') }}"><i class="fi-rs-bell mr-10"></i>{{ __('Notifications') }}</a>
+        'active' => request()->routeIs('clinical_staff.notifications*'),
+      ]) href="{{ route('clinical_staff.notifications') }}"><i class="fi-rs-bell mr-10"></i>{{ __('Notifications') }}</a>
     </li>
   @endif
-  @if ($docCan('doctor.profile'))
+  @if ($docCan('clinical_staff.profile'))
     <li @class(['nav-item', 'flex-shrink-0' => $horizontal])>
       <a @class([
         'nav-link',
         'doctor-portal-nav-h-link' => $horizontal,
-        'active' => request()->routeIs('doctor.profile*'),
-      ]) href="{{ route('doctor.profile') }}"><i class="fi-rs-user mr-10"></i>{{ __('Profile') }}</a>
+        'active' => request()->routeIs('clinical_staff.profile*'),
+      ]) href="{{ route('clinical_staff.profile') }}"><i class="fi-rs-user mr-10"></i>{{ __('Profile') }}</a>
     </li>
   @endif
   <li @class(['nav-item', 'flex-shrink-0' => $horizontal, 'doctor-portal-nav-h-logout' => $horizontal])>

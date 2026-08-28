@@ -151,7 +151,7 @@ class AdminPaymentsController extends Controller
         $fresh = $items->fresh([
             'patient:id,name,email,phone',
             'referenceAppointment.service',
-            'referenceAppointment.doctor',
+            'referenceAppointment.clinicalStaff',
             'referencePackage',
             'referenceMembership',
             'referenceProduct',
@@ -308,7 +308,7 @@ class AdminPaymentsController extends Controller
         return Payment::query()->with([
             'patient:id,name,email,phone',
             'referenceAppointment.service',
-            'referenceAppointment.doctor',
+            'referenceAppointment.clinicalStaff',
             'referencePackage',
             'referenceMembership',
             'referenceProduct',
@@ -375,7 +375,7 @@ class AdminPaymentsController extends Controller
         if ($detailed) {
             $payload['transaction_reference'] = $items->pluck('transaction_reference')->filter()->first();
             $payload['notes'] = $items->pluck('notes')->filter()->unique()->values();
-            $payload['assigned_doctor'] = $items->pluck('assigned_doctor_name')->filter()->first();
+            $payload['assigned_clinical_staff'] = $items->pluck('assigned_clinical_staff_name')->filter()->first();
         }
 
         return $payload;

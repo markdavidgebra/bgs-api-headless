@@ -23,6 +23,12 @@ class EnsureAdminAccountApproved
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => __('Your admin access has been removed.'),
+                ], 403);
+            }
+
             return redirect()->route('admin.login')->withErrors([
                 'email' => __('Your admin access has been removed.'),
             ]);

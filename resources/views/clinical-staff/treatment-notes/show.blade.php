@@ -77,9 +77,9 @@
                       </p>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                      <a href="{{ route('doctor.treatment-notes') }}" class="btn btn-sm tn-btn tn-btn-light">Back to list</a>
-                      <a href="{{ route('doctor.appointments.notes.create', $appointment) }}" class="btn btn-sm tn-btn tn-btn-primary">Edit notes</a>
-                      <a href="{{ route('doctor.appointments.show', $appointment) }}" class="btn btn-sm tn-btn tn-btn-light">Appointment</a>
+                      <a href="{{ route('clinical_staff.treatment-notes') }}" class="btn btn-sm tn-btn tn-btn-light">Back to list</a>
+                      <a href="{{ route('clinical_staff.appointments.notes.create', $appointment) }}" class="btn btn-sm tn-btn tn-btn-primary">Edit notes</a>
+                      <a href="{{ route('clinical_staff.appointments.show', $appointment) }}" class="btn btn-sm tn-btn tn-btn-light">Appointment</a>
                     </div>
                   </div>
 
@@ -118,7 +118,7 @@
                         </div>
                         <div class="col-md-6 mb-4">
                           <div class="note-label">Clinical notes (observation)</div>
-                          <div class="note-block">{{ $note->doctor_notes ?: '—' }}</div>
+                          <div class="note-block">{{ $note->clinical_notes ?: '—' }}</div>
                         </div>
                         <div class="col-md-6 mb-4">
                           <div class="note-label">Take home medications</div>

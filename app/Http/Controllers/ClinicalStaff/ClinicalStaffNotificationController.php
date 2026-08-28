@@ -14,13 +14,13 @@ class ClinicalStaffNotificationController extends Controller
 
     public function index(Request $request): View
     {
-        $doctor = auth('doctor')->user();
+        $doctor = auth('clinical_staff')->user();
         $tab = in_array($request->query('tab'), self::TABS, true)
             ? $request->query('tab')
             : 'all';
 
         $query = ClinicalStaffNotification::query()
-            ->forDoctor((int) $doctor->id)
+            ->forClinicalStaff((int) $doctor->id)
             ->with(['appointment:id,appointment_no,patient_id,service_id,appointment_date,appointment_time', 'patient:id,name'])
             ->tab($tab)
             ->orderByDesc('created_at');
@@ -28,7 +28,7 @@ class ClinicalStaffNotificationController extends Controller
         $notifications = $query->paginate(15)->withQueryString();
 
         $unreadCount = ClinicalStaffNotification::query()
-            ->forDoctor((int) $doctor->id)
+            ->forClinicalStaff((int) $doctor->id)
             ->unread()
             ->count();
 
@@ -59,29 +59,29 @@ class ClinicalStaffNotificationController extends Controller
 
     public function markAllRead(Request $request): RedirectResponse
     {
-        $doctorId = (int) auth('doctor')->id();
+        $doctorId = (int) auth('clinical_staff')->id();
 
         ClinicalStaffNotification::query()
-            ->forDoctor($doctorId)
+            ->forClinicalStaff($doctorId)
             ->unread()
             ->update(['read_at' => now()]);
 
         return redirect()
-            ->route('doctor.notifications', ['tab' => $request->input('tab', 'all')])
+            ->route('clinical_staff.notifications', ['tab' => $request->input('tab', 'all')])
             ->with('success', __('All notifications marked as read.'));
     }
 
     public function clearRead(Request $request): RedirectResponse
     {
-        $doctorId = (int) auth('doctor')->id();
+        $doctorId = (int) auth('clinical_staff')->id();
 
         ClinicalStaffNotification::query()
-            ->forDoctor($doctorId)
+            ->forClinicalStaff($doctorId)
             ->whereNotNull('read_at')
             ->delete();
 
         return redirect()
-            ->route('doctor.notifications', ['tab' => $request->input('tab', 'all')])
+            ->route('clinical_staff.notifications', ['tab' => $request->input('tab', 'all')])
             ->with('success', __('Read notifications cleared.'));
     }
 
@@ -92,14 +92,14 @@ class ClinicalStaffNotificationController extends Controller
         $notification->delete();
 
         return redirect()
-            ->route('doctor.notifications')
+            ->route('clinical_staff.notifications')
             ->with('success', __('Notification removed.'));
     }
 
     private function assertOwnsNotification(ClinicalStaffNotification $notification): void
     {
         abort_unless(
-            $notification->doctor_id === (int) auth('doctor')->id(),
+            $notification->clinical_staff_id === (int) auth('clinical_staff')->id(),
             403
         );
     }

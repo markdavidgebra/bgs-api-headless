@@ -16,7 +16,7 @@ class ClinicalStaffBlockedDateFactory extends Factory
     public function definition(): array
     {
         return [
-            'doctor_id' => ClinicalStaff::factory(),
+            'clinical_staff_id' => ClinicalStaff::factory(),
             'blocked_date' => fake()->dateTimeBetween('+1 day', '+4 months')->format('Y-m-d'),
             'reason' => fake()->optional()->sentence(),
         ];

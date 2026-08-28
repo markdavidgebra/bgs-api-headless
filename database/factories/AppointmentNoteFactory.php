@@ -20,7 +20,7 @@ class AppointmentNoteFactory extends Factory
             'patient_concern' => $this->faker->optional()->paragraph(),
             'appointment_remarks' => $this->faker->optional()->sentence(),
             'admin_notes' => $this->faker->optional()->sentence(),
-            'doctor_notes' => $this->faker->optional()->paragraph(),
+            'clinical_notes' => $this->faker->optional()->paragraph(),
             'instructions' => $this->faker->optional()->sentence(),
             'alerts' => $this->faker->optional()->sentence(),
         ];

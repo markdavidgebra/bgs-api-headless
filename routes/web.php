@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ClinicalStaffPortalController;
+use App\Http\Controllers\Api\DoctorPortalController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\PatientPortalController;
 use App\Http\Controllers\Api\PosController;
@@ -121,26 +122,26 @@ Route::prefix('api')->group(function () {
 |
 */
 Route::prefix('api')->group(function () {
-    Route::get('doctor/clinical-images/{appointment}/{type}', [ClinicalStaffPortalController::class, 'clinicalImage'])
+    Route::get('clinical-staff/clinical-images/{appointment}/{type}', [ClinicalStaffPortalController::class, 'clinicalImage'])
         ->middleware('signed')
-        ->name('doctor.clinical-image');
+        ->name('clinical_staff.clinical-image');
 
-    Route::middleware('throttle:10,1')->prefix('doctor')->group(function () {
+    Route::middleware('throttle:10,1')->prefix('clinical-staff')->group(function () {
         Route::post('login', [ClinicalStaffPortalController::class, 'login']);
     });
 
     Route::middleware([
-        'prevent_cross_guard:doctor',
-        'auth:doctor',
-        'doctor_approved',
+        'prevent_cross_guard:clinical_staff',
+        'auth:clinical_staff',
+        'clinical_staff_approved',
         'verified',
-    ])->prefix('doctor')->group(function () {
+    ])->prefix('clinical-staff')->group(function () {
         Route::post('logout', [ClinicalStaffPortalController::class, 'logout']);
         Route::get('me', [ClinicalStaffPortalController::class, 'me']);
 
-        Route::middleware('doctor.permission:doctor.dashboard')->get('dashboard', [ClinicalStaffPortalController::class, 'dashboard']);
+        Route::middleware('clinical_staff.permission:clinical_staff.dashboard')->get('dashboard', [ClinicalStaffPortalController::class, 'dashboard']);
 
-        Route::middleware('doctor.permission:doctor.appointments')->group(function () {
+        Route::middleware('clinical_staff.permission:clinical_staff.appointments')->group(function () {
             Route::get('appointments', [ClinicalStaffPortalController::class, 'appointmentsIndex']);
             Route::get('appointments/{appointment}', [ClinicalStaffPortalController::class, 'appointmentShow']);
             Route::get('appointments/{appointment}/notes-form', [ClinicalStaffPortalController::class, 'appointmentNotesForm']);
@@ -156,19 +157,19 @@ Route::prefix('api')->group(function () {
             Route::post('appointments/{appointment}/consent', [ClinicalStaffPortalController::class, 'appointmentConsent']);
         });
 
-        Route::middleware('doctor.permission:doctor.patient_records')->prefix('patient-records')->group(function () {
+        Route::middleware('clinical_staff.permission:clinical_staff.patient_records')->prefix('patient-records')->group(function () {
             Route::get('/', [ClinicalStaffPortalController::class, 'patientRecordsIndex']);
             Route::get('{patient}', [ClinicalStaffPortalController::class, 'patientRecordShow']);
             Route::post('{patient}/notes', [ClinicalStaffPortalController::class, 'patientRecordStoreNote']);
             Route::patch('{patient}/packages/{patientPackage}/sessions', [ClinicalStaffPortalController::class, 'patientRecordUpdatePackageSessions']);
         });
 
-        Route::middleware('doctor.permission:doctor.treatment_notes')->prefix('treatment-notes')->group(function () {
+        Route::middleware('clinical_staff.permission:clinical_staff.treatment_notes')->prefix('treatment-notes')->group(function () {
             Route::get('/', [ClinicalStaffPortalController::class, 'treatmentNotesIndex']);
             Route::get('{appointment}', [ClinicalStaffPortalController::class, 'treatmentNoteShow']);
         });
 
-        Route::middleware('doctor.permission:doctor.notifications')->prefix('notifications')->group(function () {
+        Route::middleware('clinical_staff.permission:clinical_staff.notifications')->prefix('notifications')->group(function () {
             Route::get('/', [ClinicalStaffPortalController::class, 'notificationsIndex']);
             Route::post('mark-all-read', [ClinicalStaffPortalController::class, 'notificationsMarkAllRead']);
             Route::post('clear-read', [ClinicalStaffPortalController::class, 'notificationsClearRead']);
@@ -177,16 +178,16 @@ Route::prefix('api')->group(function () {
             Route::delete('{notification}', [ClinicalStaffPortalController::class, 'notificationDestroy']);
         });
 
-        Route::middleware('doctor.permission:doctor.products')->get('products', [ClinicalStaffPortalController::class, 'productsIndex']);
-        Route::middleware('doctor.permission:doctor.services')->get('services', [ClinicalStaffPortalController::class, 'servicesIndex']);
+        Route::middleware('clinical_staff.permission:clinical_staff.products')->get('products', [ClinicalStaffPortalController::class, 'productsIndex']);
+        Route::middleware('clinical_staff.permission:clinical_staff.services')->get('services', [ClinicalStaffPortalController::class, 'servicesIndex']);
 
-        Route::middleware('doctor.permission:doctor.profile')->group(function () {
+        Route::middleware('clinical_staff.permission:clinical_staff.profile')->group(function () {
             Route::get('profile', [ClinicalStaffPortalController::class, 'profileShow']);
             Route::patch('profile', [ClinicalStaffPortalController::class, 'profileUpdate']);
             Route::put('profile/password', [ClinicalStaffPortalController::class, 'profileUpdatePassword']);
         });
 
-        Route::middleware('doctor.permission:doctor.availability')->prefix('availability')->group(function () {
+        Route::middleware('clinical_staff.permission:clinical_staff.availability')->prefix('availability')->group(function () {
             Route::get('/', [ClinicalStaffPortalController::class, 'availabilityIndex']);
             Route::get('weekday/{weekday}', [ClinicalStaffPortalController::class, 'availabilityWeekday'])->whereNumber('weekday');
             Route::patch('weekday/{weekday}', [ClinicalStaffPortalController::class, 'availabilityUpdateWeekday'])->whereNumber('weekday');
@@ -194,6 +195,52 @@ Route::prefix('api')->group(function () {
             Route::post('blocked-dates', [ClinicalStaffPortalController::class, 'availabilityStoreBlockedDate']);
             Route::delete('blocked-dates/{blockedDate}', [ClinicalStaffPortalController::class, 'availabilityDestroyBlockedDate']);
         });
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Doctor portal JSON API (/api/doctor/*)
+|--------------------------------------------------------------------------
+|
+| Session-based API for the prescribing Doctor SPA. Unrelated to the
+| clinical staff portal at /api/clinical-staff/*.
+|
+*/
+Route::prefix('api')->group(function () {
+    Route::middleware('throttle:10,1')->prefix('doctor')->group(function () {
+        Route::post('login', [DoctorPortalController::class, 'login']);
+    });
+
+    Route::middleware([
+        'prevent_cross_guard:doctor',
+        'auth:doctor',
+        'doctor_approved',
+    ])->prefix('doctor')->group(function () {
+        Route::post('logout', [DoctorPortalController::class, 'logout']);
+        Route::get('me', [DoctorPortalController::class, 'me']);
+        Route::get('dashboard', [DoctorPortalController::class, 'dashboard']);
+
+        Route::get('patients', [DoctorPortalController::class, 'patientsIndex']);
+        Route::get('patients/{patient}', [DoctorPortalController::class, 'patientShow'])->whereNumber('patient');
+        Route::get('patients/{patient}/vitals', [DoctorPortalController::class, 'patientVitals'])->whereNumber('patient');
+        Route::post('patients/{patient}/notes', [DoctorPortalController::class, 'storePatientNote'])->whereNumber('patient');
+
+        Route::get('notes', [DoctorPortalController::class, 'notesIndex']);
+        Route::patch('notes/{note}', [DoctorPortalController::class, 'updateNote'])->whereNumber('note');
+        Route::delete('notes/{note}', [DoctorPortalController::class, 'destroyNote'])->whereNumber('note');
+
+        Route::get('medications', [DoctorPortalController::class, 'medicationsIndex']);
+
+        Route::get('prescriptions', [DoctorPortalController::class, 'prescriptionsIndex']);
+        Route::post('prescriptions', [DoctorPortalController::class, 'storePrescription']);
+        Route::get('prescriptions/{prescription}', [DoctorPortalController::class, 'showPrescription'])->whereNumber('prescription');
+        Route::patch('prescriptions/{prescription}', [DoctorPortalController::class, 'updatePrescription'])->whereNumber('prescription');
+        Route::post('prescriptions/{prescription}/cancel', [DoctorPortalController::class, 'cancelPrescription'])->whereNumber('prescription');
+
+        Route::get('profile', [DoctorPortalController::class, 'profileShow']);
+        Route::patch('profile', [DoctorPortalController::class, 'profileUpdate']);
+        Route::put('profile/password', [DoctorPortalController::class, 'profileUpdatePassword']);
     });
 });
 
@@ -250,7 +297,7 @@ Route::prefix('api')->group(function () {
 
             Route::get('appointments', [PatientPortalController::class, 'appointments']);
             Route::get('appointments/book', [PatientPortalController::class, 'bookOptions']);
-            Route::get('appointments/book/doctors', [PatientPortalController::class, 'bookableDoctors']);
+            Route::get('appointments/book/doctors', [PatientPortalController::class, 'bookableClinicalStaff']);
             Route::post('appointments/book', [PatientPortalController::class, 'bookAppointment']);
             Route::get('appointments/{appointment}', [PatientPortalController::class, 'appointment']);
             Route::post('appointments/{appointment}/reschedule', [PatientPortalController::class, 'rescheduleAppointment']);
@@ -297,7 +344,7 @@ Route::group(['middleware' => ['prevent_cross_guard:web', 'auth:web', 'verified'
     Route::post('/notifications/{notification}/read', [PatientNotificationController::class, 'markRead'])->name('notifications.read');
     Route::get('/appointments', [PatientAppointmentController::class, 'index'])->name('appointments');
     Route::get('/appointments/book', [PatientAppointmentController::class, 'book'])->name('appointments.book');
-    Route::get('/appointments/book/doctors', [PatientAppointmentController::class, 'doctorsForBookingDate'])->name('appointments.book.doctors');
+    Route::get('/appointments/book/doctors', [PatientAppointmentController::class, 'clinicalStaffForBookingDate'])->name('appointments.book.doctors');
     Route::post('/appointments/book', [PatientAppointmentController::class, 'store'])->name('appointments.store');
     Route::get('/appointments/{appointment}', [PatientAppointmentController::class, 'show'])->name('appointments.show');
     Route::get('/appointments/{appointment}/reschedule', [PatientAppointmentController::class, 'editReschedule'])->name('appointments.reschedule');
@@ -323,7 +370,7 @@ Route::group(['middleware' => ['prevent_cross_guard:web', 'auth:web', 'verified'
 *==========================
 */
 
-Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doctor_approved', EnsureClinicalStaffPortalPermission::class, 'verified'], 'prefix' => 'doctor', 'as' => 'doctor.'], function () {
+Route::group(['middleware' => ['prevent_cross_guard:clinical_staff', 'auth:clinical_staff', 'clinical_staff_approved', EnsureClinicalStaffPortalPermission::class, 'verified'], 'prefix' => 'clinical-staff', 'as' => 'clinical_staff.'], function () {
     Route::get('/dashboard', [ClinicalStaffDashboardController::class, 'index'])->name('dashboard');
     Route::get('/products', [ClinicalStaffProductInventoryController::class, 'index'])->name('products');
     Route::get('/services', [ClinicalStaffServiceController::class, 'index'])->name('services');
@@ -363,6 +410,23 @@ Route::group(['middleware' => ['prevent_cross_guard:doctor', 'auth:doctor', 'doc
     Route::post('/appointments/{appointment}/reschedule', [ClinicalStaffAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::post('/appointments/{appointment}/mark-no-show', [ClinicalStaffAppointmentController::class, 'markNoShow'])->name('appointments.mark-no-show');
 });
+
+/*
+*==========================
+* Doctor Portal Route
+*==========================
+*
+* The doctor portal itself is a separate Next.js SPA talking to /api/doctor/*.
+* This single named route exists so PreventCrossGuardAccess and
+* RedirectIfAuthenticated can resolve route('doctor.dashboard').
+*/
+
+Route::get('/doctor-portal', function () {
+    return response()->json([
+        'message' => __('The doctor portal is served by the doctor SPA.'),
+        'api_base' => url('/api/doctor'),
+    ]);
+})->name('doctor.dashboard');
 
 /*
 *==========================

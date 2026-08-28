@@ -59,7 +59,7 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest('admin');
         $this->assertGuest('web');
-        $this->assertGuest('doctor');
+        $this->assertGuest('clinical_staff');
     }
 
     public function test_patient_credentials_cannot_sign_in_through_staff_login(): void
@@ -76,7 +76,7 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest('admin');
         $this->assertGuest('web');
-        $this->assertGuest('doctor');
+        $this->assertGuest('clinical_staff');
     }
 
     public function test_doctor_credentials_cannot_sign_in_through_patient_login(): void
@@ -94,7 +94,7 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest('admin');
         $this->assertGuest('web');
-        $this->assertGuest('doctor');
+        $this->assertGuest('clinical_staff');
     }
 
     public function test_doctor_can_authenticate_using_staff_login(): void
@@ -110,9 +110,9 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
-        $this->assertAuthenticated('doctor');
+        $this->assertAuthenticated('clinical_staff');
         $this->assertGuest('admin');
-        $response->assertRedirect(route('doctor.dashboard', absolute: false));
+        $response->assertRedirect(route('clinical_staff.dashboard', absolute: false));
     }
 
     public function test_users_can_logout(): void

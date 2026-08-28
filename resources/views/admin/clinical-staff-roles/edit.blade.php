@@ -11,7 +11,7 @@
         </div>
         <div class="col-auto ms-auto d-print-none">
           <div class="btn-list">
-            <a href="{{ route('admin.doctor-roles.index') }}" class="btn">Cancel</a>
+            <a href="{{ route('admin.clinical-staff-roles.index') }}" class="btn">Cancel</a>
             <button type="submit" form="doctor-role-edit-form" class="btn btn-primary">Save changes</button>
           </div>
         </div>
@@ -21,7 +21,7 @@
 
   <div class="page-body">
     <div class="container-xl">
-      <form id="doctor-role-edit-form" method="POST" action="{{ route('admin.doctor-roles.update', $role->id) }}">
+      <form id="doctor-role-edit-form" method="POST" action="{{ route('admin.clinical-staff-roles.update', $role->id) }}">
         @csrf
         @method('PUT')
         <div class="card">

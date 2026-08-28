@@ -59,7 +59,7 @@ class NewPasswordController extends Controller
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            $status = Password::broker('doctors')->reset(
+            $status = Password::broker('clinical_staff')->reset(
                 $credentials,
                 function (ClinicalStaff $doctor) use ($resetPassword) {
                     $resetPassword($doctor);

@@ -79,7 +79,7 @@ class AdminPatientsController extends Controller
         $patient = Patient::query()->findOrFail($id);
 
         $appointments = Appointment::query()
-            ->with(['service:id,name', 'doctor:id,name', 'note'])
+            ->with(['service:id,name', 'clinicalStaff:id,name', 'note'])
             ->where('patient_id', $patient->id)
             ->orderByDesc('appointment_date')
             ->orderByDesc('id')

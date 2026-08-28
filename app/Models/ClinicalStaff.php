@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -33,7 +32,6 @@ class ClinicalStaff extends Authenticatable
         'status',
         'approved_at',
         'clinical_staff_role_id',
-        'doctor_role_id',
     ];
 
     protected $hidden = [
@@ -132,16 +130,8 @@ class ClinicalStaff extends Authenticatable
         return $this->belongsToMany(Service::class, 'clinical_staff_service', 'clinical_staff_id', 'service_id')->withTimestamps();
     }
 
-    public function doctorRole(): BelongsTo
+    public function role(): BelongsTo
     {
         return $this->belongsTo(ClinicalStaffRole::class, 'clinical_staff_role_id');
-    }
-
-    protected function doctorRoleId(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->attributes['clinical_staff_role_id'] ?? null,
-            set: fn ($value) => ['clinical_staff_role_id' => $value],
-        );
     }
 }

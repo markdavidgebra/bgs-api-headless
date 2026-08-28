@@ -36,7 +36,7 @@ use App\Http\Controllers\Admin\SubscriptionsController;
 use App\Http\Controllers\Admin\TestimonialsController;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['middleware' => 'guest:admin,web,doctor', 'prefix' => 'admin', 'as' => 'admin.'], function () {
+Route::group(['middleware' => 'guest:admin,web,clinical_staff,doctor', 'prefix' => 'admin', 'as' => 'admin.'], function () {
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
@@ -114,22 +114,24 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::delete('staff/{id}', [StaffsController::class, 'destroy'])->name('staffs.destroy');
         Route::post('staff/{id}/status', [StaffsController::class, 'updateStatus'])->name('staffs.status');
     });
-    Route::middleware('admin_permission:doctors.manage')->group(function () {
-        Route::get('doctor-roles', [ClinicalStaffRolesController::class, 'index'])->name('doctor-roles.index');
-        Route::get('doctor-roles/create', [ClinicalStaffRolesController::class, 'create'])->name('doctor-roles.create');
-        Route::post('doctor-roles', [ClinicalStaffRolesController::class, 'store'])->name('doctor-roles.store');
-        Route::get('doctor-roles/{id}/edit', [ClinicalStaffRolesController::class, 'edit'])->name('doctor-roles.edit');
-        Route::put('doctor-roles/{id}', [ClinicalStaffRolesController::class, 'update'])->name('doctor-roles.update');
+    Route::middleware('admin_permission:clinical_staff.view,clinical_staff.manage')->group(function () {
+        Route::get('clinical-staff', [ClinicalStaffController::class, 'index'])->name('clinical-staff');
+        Route::get('clinical-staff/{id}', [ClinicalStaffController::class, 'show'])->name('clinical-staff.show')->whereNumber('id');
+    });
+    Route::middleware('admin_permission:clinical_staff.manage')->group(function () {
+        Route::get('clinical-staff-roles', [ClinicalStaffRolesController::class, 'index'])->name('clinical-staff-roles.index');
+        Route::get('clinical-staff-roles/create', [ClinicalStaffRolesController::class, 'create'])->name('clinical-staff-roles.create');
+        Route::post('clinical-staff-roles', [ClinicalStaffRolesController::class, 'store'])->name('clinical-staff-roles.store');
+        Route::get('clinical-staff-roles/{id}/edit', [ClinicalStaffRolesController::class, 'edit'])->name('clinical-staff-roles.edit');
+        Route::put('clinical-staff-roles/{id}', [ClinicalStaffRolesController::class, 'update'])->name('clinical-staff-roles.update');
 
-        Route::post('doctors/{id}/role', [ClinicalStaffController::class, 'updateRole'])->name('doctors.role');
-        Route::get('doctors', [ClinicalStaffController::class, 'index'])->name('doctors');
-        Route::get('doctors/create', [ClinicalStaffController::class, 'create'])->name('doctors.create');
-        Route::post('doctors', [ClinicalStaffController::class, 'store'])->name('doctors.store');
-        Route::get('doctors/{id}/edit', [ClinicalStaffController::class, 'edit'])->name('doctors.edit');
-        Route::put('doctors/{id}', [ClinicalStaffController::class, 'update'])->name('doctors.update');
-        Route::post('doctors/{id}/status', [ClinicalStaffController::class, 'updateStatus'])->name('doctors.status');
-        Route::delete('doctors/{id}', [ClinicalStaffController::class, 'destroy'])->name('doctors.destroy');
-        Route::get('doctors/{id}', [ClinicalStaffController::class, 'show'])->name('doctors.show');
+        Route::post('clinical-staff/{id}/role', [ClinicalStaffController::class, 'updateRole'])->name('clinical-staff.role');
+        Route::get('clinical-staff/create', [ClinicalStaffController::class, 'create'])->name('clinical-staff.create');
+        Route::post('clinical-staff', [ClinicalStaffController::class, 'store'])->name('clinical-staff.store');
+        Route::get('clinical-staff/{id}/edit', [ClinicalStaffController::class, 'edit'])->name('clinical-staff.edit');
+        Route::put('clinical-staff/{id}', [ClinicalStaffController::class, 'update'])->name('clinical-staff.update');
+        Route::post('clinical-staff/{id}/status', [ClinicalStaffController::class, 'updateStatus'])->name('clinical-staff.status');
+        Route::delete('clinical-staff/{id}', [ClinicalStaffController::class, 'destroy'])->name('clinical-staff.destroy');
     });
     Route::middleware('admin_permission:patients.view,patients.manage')->group(function () {
         Route::get('patients', [PatientsController::class, 'index'])->name('patients');
@@ -145,7 +147,7 @@ Route::group(['middleware' => ['auth:admin', 'admin_approved'], 'prefix' => 'adm
         Route::post('patients/{id}/password', [PatientsController::class, 'updatePassword'])->name('patients.password.update');
         Route::post('patients/{id}/password-reset-link', [PatientsController::class, 'sendPasswordReset'])->name('patients.password.reset-link');
         Route::put('patients/{patient}/appointments/{appointment}/appointment-notes', [PatientsController::class, 'upsertAppointmentNote'])->name('patients.appointments.appointment-notes.update');
-        Route::delete('patients/{patient}/appointments/{appointment}/appointment-notes/field/{field}', [PatientsController::class, 'clearAppointmentNoteField'])->name('patients.appointments.appointment-notes.field.destroy')->where('field', 'patient_concern|doctor_notes|instructions|alerts|appointment_remarks|admin_notes');
+        Route::delete('patients/{patient}/appointments/{appointment}/appointment-notes/field/{field}', [PatientsController::class, 'clearAppointmentNoteField'])->name('patients.appointments.appointment-notes.field.destroy')->where('field', 'patient_concern|clinical_notes|instructions|alerts|appointment_remarks|admin_notes');
         Route::delete('patients/{patient}/appointments/{appointment}/appointment-notes', [PatientsController::class, 'destroyAppointmentNote'])->name('patients.appointments.appointment-notes.destroy');
     });
     Route::middleware('admin_permission:patients.view,patients.manage')->group(function () {

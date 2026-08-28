@@ -13,6 +13,8 @@ class Admin extends Authenticatable
     /** @use HasFactory<\Database\Factories\AdminFactory> */
     use HasFactory, Notifiable;
 
+    public const INVENTORY_ROLE = 'inventory_officer';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -67,6 +69,21 @@ class Admin extends Authenticatable
         );
 
         return in_array($role, $allowed, true);
+    }
+
+    public function isInventoryOfficer(): bool
+    {
+        return strtolower((string) $this->role) === self::INVENTORY_ROLE;
+    }
+
+    public function scopeInventoryOfficers(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->whereRaw('LOWER(role) = ?', [self::INVENTORY_ROLE]);
+    }
+
+    public function scopeNotInventoryOfficers(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->whereRaw('LOWER(COALESCE(role, "")) <> ?', [self::INVENTORY_ROLE]);
     }
 
     public function getInitialAttribute(): string

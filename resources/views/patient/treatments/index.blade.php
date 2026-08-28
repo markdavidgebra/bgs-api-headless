@@ -82,7 +82,7 @@
                               <a href="{{ route('patient.treatments.show', $row->id) }}">{{ $row->treatment_name }}</a>
                             </h5>
                             <p class="font-sm text-muted mb-5">{{ $row->category ?: '—' }}</p>
-                            <p class="font-sm mb-5"><span class="text-muted">Clinical staff:</span> {{ $row->doctors_label }}</p>
+                            <p class="font-sm mb-5"><span class="text-muted">Clinical staff:</span> {{ $row->clinical_staff_label }}</p>
                             <p class="font-sm mb-5"><span class="text-muted">Started:</span> {{ $row->date_started }}</p>
                             <p class="font-sm mb-5"><span class="text-muted">Last session:</span> {{ $row->last_session }}</p>
                             <p class="font-sm mb-5">
@@ -144,7 +144,7 @@
                                   <a href="{{ route('patient.treatments.show', $row->id) }}">{{ $row->treatment_name }}</a>
                                 </td>
                                 <td>{{ $row->category ?: '—' }}</td>
-                                <td>{{ $row->doctors_label }}</td>
+                                <td>{{ $row->clinical_staff_label }}</td>
                                 <td>{{ $row->date_started }}</td>
                                 <td>{{ $row->last_session }}</td>
                                 <td class="text-center">{{ $row->total_sessions }}</td>

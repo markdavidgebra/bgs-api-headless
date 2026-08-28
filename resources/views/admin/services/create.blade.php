@@ -1,9 +1,5 @@
 @extends('admin.layouts.master')
 
-@php
-  $oldDocs = (array) old('assigned_doctors', []);
-@endphp
-
 @section('content')
   <div class="page-header d-print-none">
     <div class="container-xl">
@@ -187,33 +183,6 @@
                           @checked(old('is_bookable') === '1' || ! count(old()) > 0)>
                       <span class="form-check-label">Bookable</span>
                     </label>
-                  </div>
-
-                  <div class="col-12">
-                    <span id="assigned-doctors-label" class="form-label d-block">Assigned doctors</span>
-                    @if ($doctors->isEmpty())
-                      <p class="text-secondary small mb-0">No doctors in the system yet.</p>
-                    @else
-                      <div
-                        class="border rounded p-3 bg-secondary-lt row row-cols-1 row-cols-md-2 g-2 @error('assigned_doctors') border-danger @enderror"
-                        role="group" aria-labelledby="assigned-doctors-label">
-                        @foreach ($doctors as $doc)
-                          <div class="col">
-                            <label class="form-check mb-0">
-                              <input type="checkbox" class="form-check-input" name="assigned_doctors[]"
-                                value="{{ $doc->id }}" id="assigned-doctor-{{ $doc->id }}"
-                                @checked(in_array((string) $doc->id, $oldDocs, true))>
-                              <span class="form-check-label">{{ $doc->name }}</span>
-                            </label>
-                          </div>
-                        @endforeach
-                      </div>
-                    @endif
-                    <small class="form-hint">Optional — check all doctors who may deliver this service. If none are
-                      checked, any doctor with an active schedule can be booked for this service (patient portal).</small>
-                    @error('assigned_doctors')
-                      <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
                   </div>
 
                   <div class="col-12">

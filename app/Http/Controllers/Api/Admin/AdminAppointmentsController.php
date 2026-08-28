@@ -32,11 +32,11 @@ class AdminAppointmentsController extends Controller
         $query = Appointment::query()
             ->with([
                 'patient:id,name,email',
-                'doctor:id,name',
+                'clinicalStaff:id,name',
                 'service:id,name',
             ])
-            ->orderByDesc('appointment_date')
-            ->orderBy('appointment_time');
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -46,7 +46,7 @@ class AdminAppointmentsController extends Controller
                         $q->where('name', 'like', '%'.$term.'%')
                             ->orWhere('email', 'like', '%'.$term.'%');
                     })
-                    ->orWhereHas('doctor', fn ($q) => $q->where('name', 'like', '%'.$term.'%'))
+                    ->orWhereHas('clinicalStaff', fn ($q) => $q->where('name', 'like', '%'.$term.'%'))
                     ->orWhereHas('service', fn ($q) => $q->where('name', 'like', '%'.$term.'%'));
             });
         }
@@ -86,7 +86,7 @@ class AdminAppointmentsController extends Controller
             ->with([
                 'patient:id,name',
                 'service:id,name',
-                'doctor:id,name',
+                'clinicalStaff:id,name',
             ])
             ->whereBetween('appointment_date', [$start->toDateString(), $end->toDateString()])
             ->orderBy('appointment_date')
@@ -126,7 +126,7 @@ class AdminAppointmentsController extends Controller
 
         $date = $request->query('date');
         $serviceId = $request->query('service_id');
-        $doctors = $this->bookableDoctorsQuery($date, $serviceId ? (int) $serviceId : null)
+        $clinicalStaff = $this->bookableClinicalStaffQuery($date, $serviceId ? (int) $serviceId : null)
             ->get(['id', 'name', 'specialty']);
 
         return response()->json([
@@ -136,7 +136,7 @@ class AdminAppointmentsController extends Controller
                 'duration_minutes' => $s->duration_minutes !== null ? (int) $s->duration_minutes : null,
                 'price' => $s->price !== null ? (float) $s->price : null,
             ])->values(),
-            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
+            'clinical_staff' => $clinicalStaff->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -148,18 +148,18 @@ class AdminAppointmentsController extends Controller
     /**
      * Refresh the doctor list when the date and/or service change on the booking form.
      */
-    public function bookableDoctors(Request $request): JsonResponse
+    public function bookableClinicalStaff(Request $request): JsonResponse
     {
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
         ]);
 
-        $doctors = $this->bookableDoctorsQuery($data['date'], isset($data['service_id']) ? (int) $data['service_id'] : null)
+        $clinicalStaff = $this->bookableClinicalStaffQuery($data['date'], isset($data['service_id']) ? (int) $data['service_id'] : null)
             ->get(['id', 'name', 'specialty']);
 
         return response()->json([
-            'doctors' => $doctors->map(fn (ClinicalStaff $d) => [
+            'clinical_staff' => $clinicalStaff->map(fn (ClinicalStaff $d) => [
                 'id' => (int) $d->id,
                 'name' => (string) $d->name,
                 'specialty' => (string) ($d->specialty ?? ''),
@@ -176,19 +176,19 @@ class AdminAppointmentsController extends Controller
         $data = $request->validate([
             'patient_id' => ['required', 'integer', 'exists:users,id'],
             'service_id' => ['required', 'integer', 'exists:services,id'],
-            'doctor_id' => ['required', 'integer', 'exists:clinical_staff,id'],
+            'clinical_staff_id' => ['required', 'integer', 'exists:clinical_staff,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
             'status' => ['nullable', 'in:pending,confirmed'],
             'patient_concern' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if (! $this->bookableDoctorsQuery($data['appointment_date'], (int) $data['service_id'])
-            ->whereKey((int) $data['doctor_id'])
+        if (! $this->bookableClinicalStaffQuery($data['appointment_date'], (int) $data['service_id'])
+            ->whereKey((int) $data['clinical_staff_id'])
             ->exists()
         ) {
             throw ValidationException::withMessages([
-                'doctor_id' => 'This clinical staff member is not available on the selected date for the selected service.',
+                'clinical_staff_id' => 'This clinical staff member is not available on the selected date for the selected service.',
             ]);
         }
 
@@ -202,7 +202,7 @@ class AdminAppointmentsController extends Controller
             $appointment = Appointment::create([
                 'appointment_no' => $this->generateAppointmentNo(),
                 'patient_id' => (int) $data['patient_id'],
-                'doctor_id' => (int) $data['doctor_id'],
+                'clinical_staff_id' => (int) $data['clinical_staff_id'],
                 'service_id' => (int) $data['service_id'],
                 'appointment_date' => $data['appointment_date'],
                 'appointment_time' => $data['appointment_time'],
@@ -223,13 +223,13 @@ class AdminAppointmentsController extends Controller
             return $appointment;
         });
 
-        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name', 'createdByAdmin:id,name']);
+        $appointment->load(['patient:id,name,email', 'clinicalStaff:id,name', 'service:id,name', 'createdByAdmin:id,name']);
 
         try {
             if ($appointment->patient) {
                 Notification::send($appointment->patient, new AppointmentBookedPatientNotification($appointment));
             }
-            ClinicalStaffAppointmentAlerts::notifyDoctorOfNewBooking($appointment);
+            ClinicalStaffAppointmentAlerts::notifyClinicalStaffOfNewBooking($appointment);
         } catch (\Throwable $e) {
             report($e);
         }
@@ -246,7 +246,7 @@ class AdminAppointmentsController extends Controller
         $appointment = Appointment::query()
             ->with([
                 'patient',
-                'doctor',
+                'clinicalStaff',
                 'service',
                 'createdByAdmin:id,name',
                 'updatedByAdmin:id,name',
@@ -297,7 +297,7 @@ class AdminAppointmentsController extends Controller
             'status' => 'confirmed',
             'updated_by' => $admin?->id,
         ]);
-        $appointment->load(['patient:id,name,email', 'doctor:id,name', 'service:id,name']);
+        $appointment->load(['patient:id,name,email', 'clinicalStaff:id,name', 'service:id,name']);
 
         return response()->json([
             'message' => __('Appointment approved successfully.'),

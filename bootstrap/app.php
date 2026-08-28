@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAdminAccountApproved;
 use App\Http\Middleware\EnsureAdminHasPermission;
 use App\Http\Middleware\EnsureAdminHasRole;
 use App\Http\Middleware\EnsureClinicalStaffAccountApproved;
+use App\Http\Middleware\EnsureDoctorAccountApproved;
 use App\Http\Middleware\PreventCrossGuardAccess;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use Illuminate\Auth\Middleware\Authenticate;
@@ -40,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/public/*',
             'api/pos/*',
             'api/inventory/*',
+            'api/clinical-staff/*',
             'api/doctor/*',
             'api/patient/*',
             'pos/login',
@@ -56,8 +58,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin_role' => EnsureAdminHasRole::class,
             'admin_permission' => EnsureAdminHasPermission::class,
             'admin_approved' => EnsureAdminAccountApproved::class,
-            'doctor_approved' => EnsureClinicalStaffAccountApproved::class,
-            'doctor.permission' => \App\Http\Middleware\EnsureClinicalStaffApiPermission::class,
+            'clinical_staff_approved' => EnsureClinicalStaffAccountApproved::class,
+            'doctor_approved' => EnsureDoctorAccountApproved::class,
+            'clinical_staff.permission' => \App\Http\Middleware\EnsureClinicalStaffApiPermission::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

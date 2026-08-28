@@ -66,16 +66,16 @@
                           </div>
 
                           <div class="col-md-6 mb-15" id="doctor-field-wrap" @if (! $hasDateTime || ! $hasService) style="display:none;" @endif>
-                            <label class="font-sm mb-5" for="doctor_id">Select doctor</label>
-                            <select id="doctor_id" name="doctor_id" class="form-control @error('doctor_id') is-invalid @enderror" required>
+                            <label class="font-sm mb-5" for="clinical_staff_id">Select doctor</label>
+                            <select id="clinical_staff_id" name="clinical_staff_id" class="form-control @error('clinical_staff_id') is-invalid @enderror" required>
                               <option value="">Choose a doctor</option>
-                              @foreach ($doctors as $doctor)
-                                <option value="{{ $doctor->id }}" @selected(old('doctor_id') == $doctor->id)>
+                              @foreach ($clinicalStaff as $doctor)
+                                <option value="{{ $doctor->id }}" @selected(old('clinical_staff_id') == $doctor->id)>
                                   {{ $doctor->name }}@if ($doctor->specialty) — {{ $doctor->specialty }} @endif
                                 </option>
                               @endforeach
                             </select>
-                            @error('doctor_id')
+                            @error('clinical_staff_id')
                               <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                           </div>
@@ -155,7 +155,7 @@
       var serviceWrap = document.getElementById('service-field-wrap');
       var doctorWrap = document.getElementById('doctor-field-wrap');
       var serviceSelect = document.getElementById('service_id');
-      var doctorSelect = document.getElementById('doctor_id');
+      var doctorSelect = document.getElementById('clinical_staff_id');
       var timeInput = document.getElementById('appointment_time');
       var doctorsUrl = @json(route('patient.appointments.book.doctors'));
       if (!dateInput || !timeInput || !serviceWrap || !doctorWrap || !serviceSelect || !doctorSelect) return;
@@ -206,7 +206,7 @@
           headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
           .then(function (r) { return r.json(); })
-          .then(function (data) { fillDoctors(data.doctors || [], keepId); })
+          .then(function (data) { fillDoctors(data.clinical_staff || [], keepId); })
           .catch(function () {});
       }
 

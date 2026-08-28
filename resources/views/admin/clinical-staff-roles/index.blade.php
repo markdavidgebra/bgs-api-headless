@@ -22,7 +22,7 @@
         </div>
         <div class="col-auto ms-auto d-print-none">
           <div class="btn-list">
-            <a href="{{ route('admin.doctor-roles.create') }}" class="btn btn-primary">Add clinical role</a>
+            <a href="{{ route('admin.clinical-staff-roles.create') }}" class="btn btn-primary">Add clinical role</a>
           </div>
         </div>
       </div>
@@ -33,7 +33,7 @@
     <div class="container-xl">
       <div class="card">
         <div class="card-body">
-          <form method="GET" action="{{ route('admin.doctor-roles.index') }}" class="row g-3 align-items-end">
+          <form method="GET" action="{{ route('admin.clinical-staff-roles.index') }}" class="row g-3 align-items-end">
             <div class="col-md-6">
               <label class="form-label" for="search">Search</label>
               <input id="search" type="text" name="search" class="form-control" placeholder="Name or description" value="{{ request('search') }}">
@@ -43,7 +43,7 @@
             </div>
             @if (request()->filled('search'))
               <div class="col-auto">
-                <a class="btn" href="{{ route('admin.doctor-roles.index') }}">Clear</a>
+                <a class="btn" href="{{ route('admin.clinical-staff-roles.index') }}">Clear</a>
               </div>
             @endif
           </form>
@@ -72,7 +72,7 @@
                   <td>{{ is_array($role->permissions) ? count($role->permissions) : 0 }}</td>
                   <td class="text-secondary">{{ $role->description ?: '—' }}</td>
                   <td>
-                    <a href="{{ route('admin.doctor-roles.edit', $role->id) }}" class="btn btn-sm">Edit</a>
+                    <a href="{{ route('admin.clinical-staff-roles.edit', $role->id) }}" class="btn btn-sm">Edit</a>
                   </td>
                 </tr>
               @empty
