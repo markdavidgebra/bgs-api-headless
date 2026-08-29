@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,6 +22,7 @@ class Doctor extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'admin_id',
         'name',
         'email',
         'password',
@@ -58,6 +60,16 @@ class Doctor extends Authenticatable
             'prc_expiry' => 'date',
             'password' => 'hashed',
         ];
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
+    }
+
+    public function scopeNotManagerAlias($query)
+    {
+        return $query->whereNull($this->getTable().'.admin_id');
     }
 
     public function isActive(): bool

@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Service;
 use App\Models\TreatmentPatientPackage;
 use App\Support\ClinicalStaffPermissions;
+use App\Support\ManagerPortalAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 
@@ -40,6 +41,7 @@ trait ClinicalStaffPortalResponses
             'image_url' => $doctor->image_url,
             'social_links' => $doctor->social_links,
             'permissions' => ClinicalStaffPermissions::forClinicalStaff($doctor),
+            'can_approve_appointments' => ManagerPortalAccess::canApproveAppointments($doctor),
         ];
     }
 

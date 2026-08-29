@@ -36,6 +36,7 @@ class FrontendPublicController extends Controller
     public function home(): JsonResponse
     {
         $homeDoctors = ClinicalStaff::query()
+            ->notManagerAlias()
             ->where('status', 'active')
             ->orderByRaw('CASE WHEN image_path IS NULL OR image_path = "" THEN 1 ELSE 0 END')
             ->orderBy('name')
@@ -112,6 +113,7 @@ class FrontendPublicController extends Controller
     public function doctors(): JsonResponse
     {
         $doctors = ClinicalStaff::query()
+            ->notManagerAlias()
             ->where('status', 'active')
             ->orderBy('name')
             ->get();

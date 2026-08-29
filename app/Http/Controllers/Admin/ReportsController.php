@@ -318,7 +318,7 @@ class ReportsController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $clinicalStaff = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
+        $clinicalStaff = ClinicalStaff::query()->notManagerAlias()->orderBy('name')->get(['id', 'name']);
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
 
         $statusOptions = [

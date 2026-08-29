@@ -25,6 +25,7 @@ use App\Models\Service;
 use App\Models\TreatmentPackageUsageHistory;
 use App\Models\TreatmentPatientPackage;
 use App\Support\AppointmentBookingRules;
+use App\Support\ManagerPortalAccess;
 use Illuminate\Contracts\Support\MessageBag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -64,9 +65,17 @@ class ClinicalStaffPortalController extends Controller
         }
 
         if (! Auth::guard('clinical_staff')->attempt($credentials, true)) {
-            throw ValidationException::withMessages([
-                'email' => ['Invalid credentials.'],
-            ]);
+            $manager = ManagerPortalAccess::authenticate($credentials);
+            if (! $manager) {
+                throw ValidationException::withMessages([
+                    'email' => ['Invalid credentials.'],
+                ]);
+            }
+
+            Auth::guard('clinical_staff')->login(
+                ManagerPortalAccess::clinicalStaffIdentity($manager),
+                true
+            );
         }
 
         $request->session()->regenerate();
@@ -312,9 +321,30 @@ class ClinicalStaffPortalController extends Controller
 
     public function appointmentApprove(Appointment $appointment): JsonResponse
     {
+        $staff = auth('clinical_staff')->user();
+        if (! ManagerPortalAccess::canApproveAppointments($staff)) {
+            return response()->json([
+                'message' => __('Only a manager can approve appointments.'),
+            ], 403);
+        }
+
+        $status = strtolower((string) ($appointment->status ?? ''));
+        if (! in_array($status, ['pending', 'rescheduled'], true)) {
+            return response()->json([
+                'message' => __('This appointment cannot be approved.'),
+            ], 422);
+        }
+
+        $appointment->update([
+            'status' => 'confirmed',
+            'updated_by' => ManagerPortalAccess::linkedManagerId($staff),
+        ]);
+        $appointment->load(['patient:id,name,email', 'clinicalStaff:id,name', 'assignedAdmin:id,name,role', 'service:id,name']);
+
         return response()->json([
-            'message' => __('Only a manager can approve appointments.'),
-        ], 403);
+            'message' => __('Appointment approved successfully.'),
+            'appointment' => $this->appointmentPayload($appointment, true),
+        ]);
     }
 
     public function appointmentStartSession(Request $request, Appointment $appointment): JsonResponse

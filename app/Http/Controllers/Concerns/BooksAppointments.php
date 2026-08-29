@@ -23,6 +23,7 @@ trait BooksAppointments
     protected function bookableClinicalStaffQuery(?string $appointmentDate = null, int|array|null $serviceId = null): Builder
     {
         $q = ClinicalStaff::query()
+            ->notManagerAlias()
             ->where('status', 'active')
             ->whereHas('weeklySchedules', fn (Builder $sub) => $sub->where('is_active', true));
 

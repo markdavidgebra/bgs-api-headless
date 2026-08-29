@@ -157,6 +157,7 @@ class FrontEndController extends Controller
     public function index(): View
     {
         $homeDoctors = ClinicalStaff::query()
+            ->notManagerAlias()
             ->where('status', 'active')
             ->orderByRaw('CASE WHEN image_path IS NULL OR image_path = "" THEN 1 ELSE 0 END')
             ->orderBy('name')

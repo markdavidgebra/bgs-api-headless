@@ -23,7 +23,7 @@ class ClinicalStaffController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = ClinicalStaff::query()->with('role')->orderBy('name');
+        $query = ClinicalStaff::query()->notManagerAlias()->with('role')->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();

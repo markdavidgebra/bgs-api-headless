@@ -50,7 +50,7 @@ class PackagesController extends Controller
     public function create(): View
     {
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
-        $clinicalStaff = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
+        $clinicalStaff = ClinicalStaff::query()->notManagerAlias()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.packages.create', compact('services', 'clinicalStaff'));
     }
@@ -103,7 +103,7 @@ class PackagesController extends Controller
             ->findOrFail($id);
 
         $services = Service::query()->orderBy('name')->get(['id', 'name']);
-        $clinicalStaff = ClinicalStaff::query()->orderBy('name')->get(['id', 'name']);
+        $clinicalStaff = ClinicalStaff::query()->notManagerAlias()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.packages.edit', compact('package', 'services', 'clinicalStaff'));
     }

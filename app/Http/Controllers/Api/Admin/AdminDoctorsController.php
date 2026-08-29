@@ -18,7 +18,7 @@ class AdminDoctorsController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Doctor::query()->orderBy('name');
+        $query = Doctor::query()->notManagerAlias()->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();

@@ -52,6 +52,7 @@ trait AdminPortalResponses
             'appointment_no' => $appointment->appointment_no,
             'patient_id' => $appointment->patient_id,
             'clinical_staff_id' => $appointment->clinical_staff_id,
+            'assigned_admin_id' => $appointment->assigned_admin_id,
             'service_id' => $appointment->service_id,
             'appointment_date' => $appointment->appointment_date?->toDateString(),
             'appointment_time' => $this->formatAppointmentTime($appointment->appointment_time),
@@ -60,9 +61,7 @@ trait AdminPortalResponses
             'patient' => $appointment->relationLoaded('patient') && $appointment->patient
                 ? $this->patientSummaryPayload($appointment->patient)
                 : null,
-            'clinical_staff' => $appointment->relationLoaded('clinicalStaff') && $appointment->clinicalStaff
-                ? ['id' => $appointment->clinicalStaff->id, 'name' => $appointment->clinicalStaff->name]
-                : null,
+            'clinical_staff' => $this->appointmentAssigneePayload($appointment),
             'service' => $appointment->relationLoaded('service') && $appointment->service
                 ? ['id' => $appointment->service->id, 'name' => $appointment->service->name]
                 : null,
@@ -80,6 +79,30 @@ trait AdminPortalResponses
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array{id: int, name: string, type: string}|null
+     */
+    protected function appointmentAssigneePayload(Appointment $appointment): ?array
+    {
+        if ($appointment->relationLoaded('clinicalStaff') && $appointment->clinicalStaff) {
+            return [
+                'id' => (int) $appointment->clinicalStaff->id,
+                'name' => (string) $appointment->clinicalStaff->name,
+                'type' => 'clinical_staff',
+            ];
+        }
+
+        if ($appointment->relationLoaded('assignedAdmin') && $appointment->assignedAdmin) {
+            return [
+                'id' => (int) $appointment->assignedAdmin->id,
+                'name' => (string) $appointment->assignedAdmin->name,
+                'type' => 'manager',
+            ];
+        }
+
+        return null;
     }
 
     /**

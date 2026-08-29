@@ -10,6 +10,7 @@ use App\Models\TreatmentPackageUsageHistory;
 use App\Models\TreatmentPatientPackage;
 use App\Notifications\Patient\AppointmentRescheduledPatientNotification;
 use App\Rules\BookableAppointmentDate;
+use App\Support\ManagerPortalAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -223,7 +224,22 @@ class ClinicalStaffAppointmentController extends Controller
 
     public function approve(Appointment $appointment): RedirectResponse
     {
-        return back()->with('error', __('Only a manager can approve appointments.'));
+        $staff = auth('clinical_staff')->user();
+        if (! ManagerPortalAccess::canApproveAppointments($staff)) {
+            return back()->with('error', __('Only a manager can approve appointments.'));
+        }
+
+        $status = strtolower((string) ($appointment->status ?? ''));
+        if (! in_array($status, ['pending', 'rescheduled'], true)) {
+            return back()->with('error', __('This appointment cannot be approved.'));
+        }
+
+        $appointment->update([
+            'status' => 'confirmed',
+            'updated_by' => ManagerPortalAccess::linkedManagerId($staff),
+        ]);
+
+        return back()->with('status', __('Appointment approved successfully.'));
     }
 
     public function startSession(Request $request, Appointment $appointment): RedirectResponse

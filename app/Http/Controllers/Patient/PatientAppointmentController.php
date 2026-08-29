@@ -243,6 +243,7 @@ class PatientAppointmentController extends Controller
     private function bookableClinicalStaffQuery(?string $appointmentDate = null, ?int $serviceId = null): Builder
     {
         $q = ClinicalStaff::query()
+            ->notManagerAlias()
             ->where('status', 'active')
             ->whereHas('weeklySchedules', fn (Builder $sub) => $sub->where('is_active', true));
 

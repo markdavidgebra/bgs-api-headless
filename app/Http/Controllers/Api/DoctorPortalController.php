@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\DoctorPortalResponses;
 use App\Http\Controllers\Controller;
+use App\Support\ManagerPortalAccess;
 use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\Doctor;
@@ -48,7 +49,16 @@ class DoctorPortalController extends Controller
             'password' => (string) $request->input('password'),
         ];
 
-        if (
+        foreach (['web', 'admin', 'clinical_staff'] as $otherGuard) {
+            if (Auth::guard($otherGuard)->check()) {
+                Auth::guard($otherGuard)->logout();
+            }
+        }
+
+        $manager = ManagerPortalAccess::authenticate($credentials);
+        if ($manager) {
+            Auth::guard('doctor')->login(ManagerPortalAccess::doctorIdentity($manager), true);
+        } elseif (
             Auth::guard('admin')->validate($credentials)
             || Auth::guard('clinical_staff')->validate($credentials)
             || Auth::guard('web')->validate($credentials)
@@ -56,9 +66,7 @@ class DoctorPortalController extends Controller
             throw ValidationException::withMessages([
                 'email' => [__('This email belongs to another portal. Sign in there instead.')],
             ]);
-        }
-
-        if (! Auth::guard('doctor')->attempt($credentials, true)) {
+        } elseif (! Auth::guard('doctor')->attempt($credentials, true)) {
             throw ValidationException::withMessages([
                 'email' => ['Invalid credentials.'],
             ]);

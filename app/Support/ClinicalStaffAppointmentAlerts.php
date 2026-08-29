@@ -9,6 +9,10 @@ class ClinicalStaffAppointmentAlerts
 {
     public static function notifyClinicalStaffOfNewBooking(Appointment $appointment): void
     {
+        if (! $appointment->clinical_staff_id) {
+            return;
+        }
+
         $appointment->loadMissing(['patient:id,name', 'service:id,name']);
 
         ClinicalStaffNotification::query()->create([

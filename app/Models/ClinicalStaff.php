@@ -18,6 +18,7 @@ class ClinicalStaff extends Authenticatable
     protected $table = 'clinical_staff';
 
     protected $fillable = [
+        'admin_id',
         'name',
         'email',
         'password',
@@ -103,6 +104,16 @@ class ClinicalStaff extends Authenticatable
         }
 
         return asset('storage/'.$normalized);
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
+    }
+
+    public function scopeNotManagerAlias($query)
+    {
+        return $query->whereNull($this->getTable().'.admin_id');
     }
 
     public function weeklySchedules(): HasMany

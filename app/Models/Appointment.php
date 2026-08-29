@@ -18,6 +18,7 @@ class Appointment extends Model
         'appointment_no',
         'patient_id',
         'clinical_staff_id',
+        'assigned_admin_id',
         'service_id',
         'appointment_date',
         'appointment_time',
@@ -43,6 +44,11 @@ class Appointment extends Model
     public function clinicalStaff(): BelongsTo
     {
         return $this->belongsTo(ClinicalStaff::class, 'clinical_staff_id');
+    }
+
+    public function assignedAdmin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'assigned_admin_id');
     }
 
     public function service(): BelongsTo
@@ -118,7 +124,9 @@ class Appointment extends Model
 
     public function getClinicalStaffNameAttribute()
     {
-        return $this->clinicalStaff?->name ?? '—';
+        return $this->clinicalStaff?->name
+            ?? $this->assignedAdmin?->name
+            ?? '—';
     }
 
     public function getServiceNameAttribute()
