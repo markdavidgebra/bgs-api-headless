@@ -15,6 +15,7 @@ use App\Models\Service;
 use App\Notifications\Patient\AppointmentBookedPatientNotification;
 use App\Rules\BookableAppointmentDate;
 use App\Support\AdminPermissions;
+use App\Support\AppointmentBookingRules;
 use App\Support\ClinicalStaffAppointmentAlerts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -145,8 +146,9 @@ class AdminAppointmentsController extends Controller
      */
     public function bookableClinicalStaff(Request $request): JsonResponse
     {
+        $minDate = AppointmentBookingRules::earliestBookableDate($request->user('admin'));
         $data = $request->validate([
-            'date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
+            'date' => ['required', 'date', 'after_or_equal:'.$minDate, new BookableAppointmentDate],
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
         ]);
 
@@ -161,12 +163,14 @@ class AdminAppointmentsController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $admin = $request->user('admin');
+        $minDate = AppointmentBookingRules::earliestBookableDate($admin);
         $data = $request->validate([
             'patient_id' => ['required', 'integer', 'exists:users,id'],
             'service_id' => ['required', 'integer', 'exists:services,id'],
             'clinical_staff_id' => ['nullable', 'integer', 'exists:clinical_staff,id'],
             'assigned_admin_id' => ['nullable', 'integer', 'exists:admins,id'],
-            'appointment_date' => ['required', 'date', 'after_or_equal:today', new BookableAppointmentDate],
+            'appointment_date' => ['required', 'date', 'after_or_equal:'.$minDate, new BookableAppointmentDate],
             'appointment_time' => ['required', 'date_format:H:i'],
             'status' => ['nullable', 'in:pending,confirmed'],
             'patient_concern' => ['nullable', 'string', 'max:2000'],
@@ -190,7 +194,6 @@ class AdminAppointmentsController extends Controller
             ]);
         }
 
-        $admin = $request->user('admin');
         $isManager = AdminPermissions::canApproveAppointments($admin);
         $status = $isManager
             ? ($data['status'] ?? 'confirmed')
@@ -303,6 +306,198 @@ class AdminAppointmentsController extends Controller
             'message' => __('Appointment approved successfully.'),
             'appointment' => $this->appointmentPayload($appointment, true),
         ]);
+    }
+
+    public function upsertNotes(Request $request, int $id): JsonResponse
+    {
+        $appointment = Appointment::query()->findOrFail($id);
+        $textKeys = $this->appointmentNoteTextKeys();
+        $rules = [];
+        foreach ($textKeys as $key) {
+            $rules[$key] = ['sometimes', 'nullable', 'string', 'max:65535'];
+        }
+        $rules = array_merge($rules, $this->vitalSignsValidationRules());
+
+        $validated = $request->validate($rules);
+        $existing = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
+
+        $payload = [];
+        foreach ($textKeys as $key) {
+            if (array_key_exists($key, $validated)) {
+                $trimmed = trim((string) ($validated[$key] ?? ''));
+                $payload[$key] = $trimmed === '' ? null : $trimmed;
+            } else {
+                $payload[$key] = $existing?->{$key};
+            }
+        }
+
+        $hasVitalRequest = $request->exists('vital_signs')
+            || collect(AppointmentNote::vitalSignFieldKeys())->contains(
+                fn (string $key) => $request->exists($key)
+            );
+
+        $phasedVitals = $hasVitalRequest
+            ? ($request->exists('vital_signs')
+                ? AppointmentNote::normalizeVitalSignsInput($request->input('vital_signs'), $existing)
+                : AppointmentNote::mergeLegacyVitalSignsIntoPhases($validated, $existing))
+            : ($existing?->resolvedVitalSigns() ?? AppointmentNote::emptyVitalSigns());
+
+        $flatVitals = AppointmentNote::flattenPrimaryVitalSigns($phasedVitals);
+        foreach (AppointmentNote::vitalSignFieldKeys() as $key) {
+            $payload[$key] = $flatVitals[$key] ?? null;
+        }
+        $payload['vital_signs'] = $phasedVitals;
+
+        $admin = $request->user('admin');
+        $adminAuthor = AppointmentNote::authorPayloadFromUserName('admin', $admin?->name, $admin?->id);
+
+        $oldText = [];
+        $newText = [];
+        foreach ($textKeys as $key) {
+            $oldText[$key] = $existing?->{$key};
+            $newText[$key] = $payload[$key] ?? null;
+        }
+
+        $authors = AppointmentNote::mergeAuthorsOnFieldChanges(
+            is_array($existing?->section_authors) ? $existing->section_authors : null,
+            $oldText,
+            $newText,
+            $textKeys,
+            $adminAuthor,
+        );
+
+        if ($hasVitalRequest) {
+            $oldVitals = $existing?->resolvedVitalSigns() ?? AppointmentNote::emptyVitalSigns();
+            if (json_encode($oldVitals) !== json_encode($phasedVitals)) {
+                if (AppointmentNote::vitalSignsHaveValues($phasedVitals)) {
+                    $authors['vital_signs'] = $adminAuthor;
+                } else {
+                    unset($authors['vital_signs']);
+                }
+            }
+        }
+
+        $payload['section_authors'] = $authors;
+
+        $note = AppointmentNote::query()->updateOrCreate(
+            ['appointment_id' => $appointment->id],
+            $payload
+        );
+
+        return response()->json([
+            'message' => __('Appointment notes saved.'),
+            'note' => $this->appointmentNotePayload($note->fresh()),
+        ]);
+    }
+
+    public function clearNoteField(int $id, string $field): JsonResponse
+    {
+        $appointment = Appointment::query()->findOrFail($id);
+        $note = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
+        if (! $note) {
+            return response()->json([
+                'message' => __('No note exists for this appointment.'),
+            ], 404);
+        }
+
+        $authors = is_array($note->section_authors) ? $note->section_authors : [];
+
+        if ($field === 'vital_signs') {
+            $empty = AppointmentNote::emptyVitalSigns();
+            $flat = AppointmentNote::emptyVitalPhase();
+            unset($authors['vital_signs']);
+            foreach (AppointmentNote::vitalSignFieldKeys() as $key) {
+                unset($authors[$key]);
+            }
+            $note->update(array_merge($flat, [
+                'vital_signs' => $empty,
+                'section_authors' => $authors,
+            ]));
+        } else {
+            unset($authors[$field]);
+            $note->update([
+                $field => null,
+                'section_authors' => $authors,
+            ]);
+        }
+
+        $note->refresh();
+
+        return response()->json([
+            'message' => $field === 'vital_signs'
+                ? __('Vital signs cleared.')
+                : __('Note section removed.'),
+            'note' => $this->appointmentNotePayload($note),
+        ]);
+    }
+
+    public function destroyNotes(int $id): JsonResponse
+    {
+        $appointment = Appointment::query()->findOrFail($id);
+        $note = AppointmentNote::query()->where('appointment_id', $appointment->id)->first();
+        if ($note) {
+            $note->delete();
+        }
+
+        return response()->json([
+            'message' => __('Appointment notes deleted.'),
+            'note' => null,
+        ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function appointmentNoteTextKeys(): array
+    {
+        return [
+            'patient_concern',
+            'appointment_remarks',
+            'admin_notes',
+            'clinical_notes',
+            'instructions',
+            'alerts',
+        ];
+    }
+
+    /**
+     * @return array<string, list<mixed>>
+     */
+    private function vitalSignsValidationRules(): array
+    {
+        $phaseField = ['nullable', 'string', 'max:50'];
+        $shortField = ['nullable', 'string', 'max:32'];
+
+        return [
+            'vital_blood_pressure' => $phaseField,
+            'vital_heart_rate' => $shortField,
+            'vital_temperature' => $shortField,
+            'vital_respiratory_rate' => $shortField,
+            'vital_oxygen_saturation' => $shortField,
+            'vital_weight' => $shortField,
+            'vital_height' => $shortField,
+            'vital_signs' => ['sometimes', 'nullable', 'array'],
+            'vital_signs.before' => ['nullable', 'array'],
+            'vital_signs.during' => ['nullable', 'array'],
+            'vital_signs.after' => ['nullable', 'array'],
+            'vital_signs.extra' => ['nullable', 'array'],
+            'vital_signs.extra.*.id' => ['nullable', 'string', 'max:64'],
+            'vital_signs.extra.*.time' => ['nullable', 'string', 'max:32'],
+            'vital_signs.extra.*.vital_blood_pressure' => $phaseField,
+            'vital_signs.extra.*.vital_heart_rate' => $shortField,
+            'vital_signs.extra.*.vital_temperature' => $shortField,
+            'vital_signs.extra.*.vital_respiratory_rate' => $shortField,
+            'vital_signs.extra.*.vital_oxygen_saturation' => $shortField,
+            'vital_signs.extra.*.vital_weight' => $shortField,
+            'vital_signs.extra.*.vital_height' => $shortField,
+            'vital_signs.*.vital_blood_pressure' => $phaseField,
+            'vital_signs.*.vital_heart_rate' => $shortField,
+            'vital_signs.*.vital_temperature' => $shortField,
+            'vital_signs.*.vital_respiratory_rate' => $shortField,
+            'vital_signs.*.vital_oxygen_saturation' => $shortField,
+            'vital_signs.*.vital_weight' => $shortField,
+            'vital_signs.*.vital_height' => $shortField,
+        ];
     }
 
     /**

@@ -119,6 +119,16 @@ trait AdminPortalResponses
             'clinical_notes' => $note->clinical_notes,
             'instructions' => $note->instructions,
             'alerts' => $note->alerts,
+            'vital_blood_pressure' => $note->vital_blood_pressure,
+            'vital_heart_rate' => $note->vital_heart_rate,
+            'vital_temperature' => $note->vital_temperature,
+            'vital_respiratory_rate' => $note->vital_respiratory_rate,
+            'vital_oxygen_saturation' => $note->vital_oxygen_saturation,
+            'vital_weight' => $note->vital_weight,
+            'vital_height' => $note->vital_height,
+            'vital_signs' => $note->resolvedVitalSigns(),
+            'vital_signs_summary' => $note->vitalSignsSummary(),
+            'vital_signs_recorded_by' => $note->vitalSignsRecorderLabel(),
             'section_authors' => $note->section_authors,
         ];
     }

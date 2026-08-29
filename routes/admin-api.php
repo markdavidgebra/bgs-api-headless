@@ -70,6 +70,11 @@ Route::prefix('api/admin')->group(function () {
             Route::get('bookable-doctors', [AdminAppointmentsController::class, 'bookableClinicalStaff']);
             Route::get('{id}', [AdminAppointmentsController::class, 'show'])->whereNumber('id');
             Route::post('{id}/approve', [AdminAppointmentsController::class, 'approve'])->whereNumber('id');
+            Route::put('{id}/notes', [AdminAppointmentsController::class, 'upsertNotes'])->whereNumber('id');
+            Route::delete('{id}/notes', [AdminAppointmentsController::class, 'destroyNotes'])->whereNumber('id');
+            Route::delete('{id}/notes/field/{field}', [AdminAppointmentsController::class, 'clearNoteField'])
+                ->whereNumber('id')
+                ->where('field', 'patient_concern|clinical_notes|instructions|alerts|appointment_remarks|admin_notes|vital_signs');
         });
 
         Route::middleware('admin_permission:inquiries.manage')->prefix('inquiries')->group(function () {
