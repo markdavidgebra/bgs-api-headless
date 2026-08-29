@@ -35,19 +35,20 @@ final class AppointmentBookingRules
 
     public static function canBackdate(?Admin $admin): bool
     {
-        return AdminPermissions::isFullAccess($admin);
+        return $admin !== null && AdminPermissions::canAccess($admin, 'appointments.manage');
     }
 
     /**
-     * Earliest calendar date the given admin may book (Y-m-d).
+     * Earliest calendar date for admin-portal booking (Y-m-d).
+     * Applies to every signed-in admin, including custom front-desk roles.
      */
     public static function earliestBookableDate(?Admin $admin): string
     {
         $today = Carbon::today();
-        if (self::canBackdate($admin)) {
-            return $today->copy()->subDays(self::ADMIN_BACKDATE_DAYS)->toDateString();
+        if ($admin === null) {
+            return $today->toDateString();
         }
 
-        return $today->toDateString();
+        return $today->copy()->subDays(self::ADMIN_BACKDATE_DAYS)->toDateString();
     }
 }
