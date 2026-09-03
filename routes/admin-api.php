@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AdminAffiliateCodesController;
 use App\Http\Controllers\Api\Admin\AdminAppointmentsController;
 use App\Http\Controllers\Api\Admin\AdminAuthController;
 use App\Http\Controllers\Api\Admin\AdminBlogsController;
+use App\Http\Controllers\Api\Admin\AdminCeosController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminDoctorsController;
 use App\Http\Controllers\Api\Admin\AdminClinicalStaffRolesController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\Admin\AdminFaqsController;
 use App\Http\Controllers\Api\Admin\AdminFooterSettingsController;
 use App\Http\Controllers\Api\Admin\AdminInquiriesController;
 use App\Http\Controllers\Api\Admin\AdminInventoryStaffController;
+use App\Http\Controllers\Api\Admin\AdminManagersController;
 use App\Http\Controllers\Api\Admin\AdminMedicationsController;
 use App\Http\Controllers\Api\Admin\AdminNavBadgesController;
 use App\Http\Controllers\Api\Admin\AdminPackagesController;
@@ -45,6 +47,8 @@ Route::prefix('api/admin')->group(function () {
     Route::middleware('throttle:10,1')->group(function () {
         Route::post('login', [AdminAuthController::class, 'login']);
         Route::post('manager/login', [AdminAuthController::class, 'managerLogin']);
+        Route::post('ceo/login', [AdminAuthController::class, 'ceoLogin']);
+        Route::post('developer/login', [AdminAuthController::class, 'developerLogin']);
         Route::post('forgot-password', [AdminAuthController::class, 'forgotPassword']);
         Route::post('reset-password', [AdminAuthController::class, 'resetPassword']);
     });
@@ -98,6 +102,28 @@ Route::prefix('api/admin')->group(function () {
             Route::put('{id}', [AdminStaffController::class, 'update'])->whereNumber('id');
             Route::delete('{id}', [AdminStaffController::class, 'destroy'])->whereNumber('id');
             Route::post('{id}/status', [AdminStaffController::class, 'updateStatus'])->whereNumber('id');
+        });
+
+        Route::middleware('admin_permission:managers.manage')->prefix('managers')->group(function () {
+            Route::get('/', [AdminManagersController::class, 'index']);
+            Route::get('create', [AdminManagersController::class, 'create']);
+            Route::post('/', [AdminManagersController::class, 'store']);
+            Route::get('{id}', [AdminManagersController::class, 'show'])->whereNumber('id');
+            Route::get('{id}/edit', [AdminManagersController::class, 'edit'])->whereNumber('id');
+            Route::put('{id}', [AdminManagersController::class, 'update'])->whereNumber('id');
+            Route::delete('{id}', [AdminManagersController::class, 'destroy'])->whereNumber('id');
+            Route::post('{id}/status', [AdminManagersController::class, 'updateStatus'])->whereNumber('id');
+        });
+
+        Route::middleware('admin_permission:ceos.manage')->prefix('ceos')->group(function () {
+            Route::get('/', [AdminCeosController::class, 'index']);
+            Route::get('create', [AdminCeosController::class, 'create']);
+            Route::post('/', [AdminCeosController::class, 'store']);
+            Route::get('{id}', [AdminCeosController::class, 'show'])->whereNumber('id');
+            Route::get('{id}/edit', [AdminCeosController::class, 'edit'])->whereNumber('id');
+            Route::put('{id}', [AdminCeosController::class, 'update'])->whereNumber('id');
+            Route::delete('{id}', [AdminCeosController::class, 'destroy'])->whereNumber('id');
+            Route::post('{id}/status', [AdminCeosController::class, 'updateStatus'])->whereNumber('id');
         });
 
         Route::middleware('admin_permission:inventory_staff.view,inventory_staff.manage')->prefix('inventory-staff')->group(function () {

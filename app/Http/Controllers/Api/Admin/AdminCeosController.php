@@ -7,26 +7,27 @@ use App\Http\Controllers\Api\Concerns\AdminPortalResponses;
 use App\Http\Controllers\Api\Concerns\ConvertsAdminWebResponses;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Support\AdminPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class AdminStaffController extends Controller
+class AdminCeosController extends Controller
 {
     use AdminPortalResponses;
     use ConvertsAdminWebResponses;
 
     public function index(Request $request): JsonResponse
     {
-        $staffs = app(StaffsController::class);
-        $query = Admin::query()->notInventoryOfficers()->orderBy('name');
-        $staffs->applyVisibleStaffScope($query, $request->user('admin'));
+        $query = Admin::query()
+            ->notInventoryOfficers()
+            ->whereRaw('LOWER(role) = ?', ['ceo'])
+            ->orderBy('name');
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
             $query->where(function ($q) use ($term) {
                 $q->where('name', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%")
-                    ->orWhere('role', 'like', "%{$term}%");
+                    ->orWhere('email', 'like', "%{$term}%");
             });
         }
 
@@ -44,12 +45,14 @@ class AdminStaffController extends Controller
     public function create(): JsonResponse
     {
         return response()->json([
-            'role_options' => app(StaffsController::class)->roleOptions(request()->user('admin')),
+            'role_options' => ['ceo'],
         ]);
     }
 
     public function store(Request $request): JsonResponse
     {
+        $request->merge(['role' => 'ceo']);
+
         return $this->adminWebJson(
             app(StaffsController::class)->store($request),
             201
@@ -58,27 +61,28 @@ class AdminStaffController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $staff = $this->adminPortalStaff($id);
-        app(StaffsController::class)->assertCanViewStaff(request()->user('admin'), $staff);
+        $ceo = $this->ceoAccount($id);
 
         return response()->json([
-            'staff' => $this->staffPayload($staff),
+            'staff' => $this->staffPayload($ceo),
         ]);
     }
 
     public function edit(int $id): JsonResponse
     {
-        $staff = $this->adminPortalStaff($id);
-        app(StaffsController::class)->assertCanViewStaff(request()->user('admin'), $staff);
+        $ceo = $this->ceoAccount($id);
 
         return response()->json([
-            'staff' => $this->staffPayload($staff),
-            'role_options' => app(StaffsController::class)->roleOptions(request()->user('admin')),
+            'staff' => $this->staffPayload($ceo),
+            'role_options' => ['ceo'],
         ]);
     }
 
     public function update(Request $request, int $id): JsonResponse
     {
+        $this->ceoAccount($id);
+        $request->merge(['role' => 'ceo']);
+
         return $this->adminWebJson(
             app(StaffsController::class)->update($request, $id)
         );
@@ -86,6 +90,8 @@ class AdminStaffController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
+        $this->ceoAccount($id);
+
         return $this->adminWebJson(
             app(StaffsController::class)->destroy($id)
         );
@@ -93,13 +99,20 @@ class AdminStaffController extends Controller
 
     public function updateStatus(Request $request, int $id): JsonResponse
     {
+        $this->ceoAccount($id);
+
         return $this->adminWebJson(
             app(StaffsController::class)->updateStatus($request, $id)
         );
     }
 
-    private function adminPortalStaff(int $id): Admin
+    private function ceoAccount(int $id): Admin
     {
-        return Admin::query()->notInventoryOfficers()->findOrFail($id);
+        $admin = Admin::query()->notInventoryOfficers()->findOrFail($id);
+        if (! AdminPermissions::isCeo($admin)) {
+            abort(404);
+        }
+
+        return $admin;
     }
 }

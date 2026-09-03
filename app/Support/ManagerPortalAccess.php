@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 /**
- * Approved managers may sign into the clinical-staff and doctor portals.
+ * Approved managers, CEOs, and developers may sign into the clinical-staff and doctor portals.
  * Each manager gets a linked portal identity so those guards keep working
  * without changing every staff/doctor query to also accept the admin guard.
  */
@@ -27,7 +27,7 @@ class ManagerPortalAccess
         }
 
         $admin = Admin::query()->whereRaw('LOWER(email) = ?', [$email])->first();
-        if (! $admin || ! $admin->isApproved() || ! AdminPermissions::isManager($admin)) {
+        if (! $admin || ! $admin->isApproved() || ! AdminPermissions::isLeadership($admin)) {
             return null;
         }
 
@@ -60,7 +60,7 @@ class ManagerPortalAccess
             'name' => (string) $manager->name,
             'email' => (string) $manager->email,
             'password' => Str::password(40),
-            'specialty' => 'Manager',
+            'specialty' => self::aliasSpecialty($manager),
             'status' => 'active',
             'approved_at' => now(),
             'clinical_staff_role_id' => null,
@@ -86,7 +86,7 @@ class ManagerPortalAccess
             'name' => (string) $manager->name,
             'email' => (string) $manager->email,
             'password' => Str::password(40),
-            'specialty' => 'Manager',
+            'specialty' => self::aliasSpecialty($manager),
             'status' => 'active',
             'approved_at' => now(),
         ]);
@@ -100,9 +100,7 @@ class ManagerPortalAccess
     {
         $identity->name = (string) $manager->name;
         $identity->email = (string) $manager->email;
-        if (blank($identity->specialty)) {
-            $identity->specialty = 'Manager';
-        }
+        $identity->specialty = self::aliasSpecialty($manager);
 
         return self::ensureActive($identity);
     }
@@ -142,7 +140,7 @@ class ManagerPortalAccess
             $admin = $staff->relationLoaded('admin')
                 ? $staff->admin
                 : Admin::query()->find($staff->admin_id);
-            if ($admin && $admin->isApproved() && AdminPermissions::isManager($admin)) {
+            if ($admin && $admin->isApproved() && AdminPermissions::isLeadership($admin)) {
                 return $admin;
             }
         }
@@ -151,10 +149,19 @@ class ManagerPortalAccess
             ->whereRaw('LOWER(email) = ?', [strtolower((string) $staff->email)])
             ->first();
 
-        if ($admin && $admin->isApproved() && AdminPermissions::isManager($admin)) {
+        if ($admin && $admin->isApproved() && AdminPermissions::isLeadership($admin)) {
             return $admin;
         }
 
         return null;
+    }
+
+    private static function aliasSpecialty(Admin $admin): string
+    {
+        if (AdminPermissions::isDeveloper($admin)) {
+            return 'Developer';
+        }
+
+        return AdminPermissions::isCeo($admin) ? 'CEO' : 'Manager';
     }
 }

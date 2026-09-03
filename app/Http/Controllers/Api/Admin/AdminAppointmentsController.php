@@ -190,7 +190,7 @@ class AdminAppointmentsController extends Controller
         }
         if ($managerId > 0 && ! $this->adminManagerIsAssignable($managerId)) {
             throw ValidationException::withMessages([
-                'assigned_admin_id' => 'Select an approved manager.',
+                    'assigned_admin_id' => 'Select an approved manager or CEO.',
             ]);
         }
 
@@ -284,7 +284,7 @@ class AdminAppointmentsController extends Controller
         $admin = request()->user('admin');
         if (! AdminPermissions::canApproveAppointments($admin)) {
             return response()->json([
-                'message' => __('Only a manager can approve appointments.'),
+                'message' => __('Only a manager or CEO can approve appointments.'),
             ], 403);
         }
 
@@ -521,17 +521,34 @@ class AdminAppointmentsController extends Controller
             ]);
 
         $managers = Admin::query()
-            ->whereRaw('LOWER(role) = ?', ['manager'])
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role) = ?', ['manager'])
+                    ->orWhereRaw('LOWER(role) = ?', ['ceo'])
+                    ->orWhereRaw('LOWER(role) = ?', ['developer']);
+            })
             ->whereRaw('LOWER(status) = ?', ['approved'])
             ->orderBy('name')
             ->get(['id', 'name', 'role'])
-            ->map(fn (Admin $admin) => [
-                'id' => (int) $admin->id,
-                'type' => 'manager',
-                'value' => 'manager:'.$admin->id,
-                'name' => (string) $admin->name,
-                'specialty' => 'Manager',
-            ]);
+            ->map(function (Admin $admin) {
+                $type = AdminPermissions::portalForRole((string) $admin->role);
+                if (! in_array($type, ['manager', 'ceo', 'developer'], true)) {
+                    $type = 'manager';
+                }
+
+                $specialty = match ($type) {
+                    'developer' => 'Developer',
+                    'ceo' => 'CEO',
+                    default => 'Manager',
+                };
+
+                return [
+                    'id' => (int) $admin->id,
+                    'type' => $type,
+                    'value' => $type.':'.$admin->id,
+                    'name' => (string) $admin->name,
+                    'specialty' => $specialty,
+                ];
+            });
 
         return $staff->concat($managers)->values();
     }
@@ -548,7 +565,11 @@ class AdminAppointmentsController extends Controller
     {
         return Admin::query()
             ->whereKey($id)
-            ->whereRaw('LOWER(role) = ?', ['manager'])
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role) = ?', ['manager'])
+                    ->orWhereRaw('LOWER(role) = ?', ['ceo'])
+                    ->orWhereRaw('LOWER(role) = ?', ['developer']);
+            })
             ->whereRaw('LOWER(status) = ?', ['approved'])
             ->exists();
     }

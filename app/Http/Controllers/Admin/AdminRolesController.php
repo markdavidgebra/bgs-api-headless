@@ -132,7 +132,7 @@ class AdminRolesController extends Controller
     {
         $role = AdminRole::query()->findOrFail($id);
 
-        $reserved = ['super admin', 'superadmin', 'admin', 'manager'];
+        $reserved = ['super admin', 'superadmin', 'admin', 'manager', 'ceo', 'developer'];
         if (in_array(strtolower((string) $role->role_value), $reserved, true)) {
             return back()->with('error', __('This role is reserved and cannot be deleted.'));
         }

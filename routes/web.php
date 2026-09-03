@@ -265,7 +265,9 @@ Route::prefix('api')->group(function () {
             Route::patch('profile', [InventoryController::class, 'updateProfile']);
             Route::put('profile/password', [InventoryController::class, 'updatePassword']);
             Route::get('summary', [InventoryController::class, 'summary']);
+            Route::get('categories', [InventoryController::class, 'categories']);
             Route::get('products', [InventoryController::class, 'products']);
+            Route::post('products', [InventoryController::class, 'storeProduct']);
             Route::get('products/{id}', [InventoryController::class, 'showProduct'])->whereNumber('id');
             Route::get('low-stock', [InventoryController::class, 'lowStock']);
             Route::get('movements', [InventoryController::class, 'movements']);

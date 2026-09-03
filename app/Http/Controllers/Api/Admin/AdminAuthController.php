@@ -31,8 +31,18 @@ class AdminAuthController extends Controller
         return $this->completePortalLogin($request, 'manager');
     }
 
+    public function ceoLogin(AdminLoginRequest $request): JsonResponse
+    {
+        return $this->completePortalLogin($request, 'ceo');
+    }
+
+    public function developerLogin(AdminLoginRequest $request): JsonResponse
+    {
+        return $this->completePortalLogin($request, 'developer');
+    }
+
     /**
-     * @param  'admin'|'manager'  $portal
+     * @param  'admin'|'manager'|'ceo'|'developer'  $portal
      */
     private function completePortalLogin(AdminLoginRequest $request, string $portal): JsonResponse
     {
@@ -59,22 +69,23 @@ class AdminAuthController extends Controller
         }
 
         $admin = Auth::guard('admin')->user();
-        $isManager = AdminPermissions::isManagerRole((string) ($admin->role ?? ''));
+        $expectedPortal = AdminPermissions::portalForRole((string) ($admin->role ?? ''));
 
-        if ($portal === 'manager' && ! $isManager) {
-            $this->rejectWrongPortal($request, __('Use the admin portal to sign in with this account.'));
-        }
-
-        if ($portal === 'admin' && $isManager) {
-            $this->rejectWrongPortal($request, __('Use the manager portal to sign in with this account.'));
+        if ($portal !== $expectedPortal) {
+            $this->rejectWrongPortal($request, AdminPermissions::portalLoginHint((string) ($admin->role ?? '')));
         }
 
         $request->session()->regenerate();
 
+        $message = match ($portal) {
+            'developer' => __('Developer login successful.'),
+            'ceo' => __('CEO login successful.'),
+            'manager' => __('Manager login successful.'),
+            default => __('Admin login successful.'),
+        };
+
         return response()->json([
-            'message' => $portal === 'manager'
-                ? __('Manager login successful.')
-                : __('Admin login successful.'),
+            'message' => $message,
             'csrf_token' => csrf_token(),
             'admin' => $this->adminPayload($admin),
         ]);

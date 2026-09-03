@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\StockMovement;
 use App\Services\ProductStockService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -189,6 +192,100 @@ class InventoryController extends Controller
         ]);
     }
 
+    public function categories(): JsonResponse
+    {
+        $categories = ProductCategory::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json([
+            'categories' => $categories,
+        ]);
+    }
+
+    public function storeProduct(Request $request): JsonResponse
+    {
+        foreach (['sku', 'brand', 'description', 'unit', 'batch_number', 'supplier', 'expiry_date', 'category_name'] as $field) {
+            if ($request->input($field) === '') {
+                $request->merge([$field => null]);
+            }
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'category_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id'), 'required_without:category_name'],
+            'category_name' => ['nullable', 'string', 'max:255', 'required_without:category_id'],
+            'brand' => ['nullable', 'string', 'max:255'],
+            'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')],
+            'description' => ['nullable', 'string'],
+            'cost_price' => ['required', 'numeric', 'min:0'],
+            'selling_price' => ['required', 'numeric', 'min:0'],
+            'stock_quantity' => ['required', 'integer', 'min:0'],
+            'minimum_stock_alert' => ['nullable', 'integer', 'min:0'],
+            'unit' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'in:active,inactive'],
+            'expiry_date' => ['nullable', 'date'],
+            'batch_number' => ['nullable', 'string', 'max:255'],
+            'supplier' => ['nullable', 'string', 'max:255'],
+            'is_available_for_sale' => ['nullable', 'boolean'],
+        ]);
+
+        $slug = $this->uniqueProductSlug(Str::slug($validated['name']) ?: 'product-'.Str::lower(Str::random(8)));
+        $sku = isset($validated['sku']) && trim((string) $validated['sku']) !== ''
+            ? trim((string) $validated['sku'])
+            : null;
+        $openingStock = (int) $validated['stock_quantity'];
+
+        $product = DB::transaction(function () use ($request, $validated, $slug, $sku, $openingStock) {
+            $categoryId = $validated['category_id'] ?? null;
+            $categoryName = trim((string) ($validated['category_name'] ?? ''));
+            if (! $categoryId && $categoryName !== '') {
+                $category = ProductCategory::query()->firstOrCreate(['name' => $categoryName]);
+                $categoryId = $category->id;
+            }
+
+            $product = Product::query()->create([
+                'name' => $validated['name'],
+                'slug' => $slug,
+                'category_id' => $categoryId,
+                'brand' => $validated['brand'] ?? null,
+                'sku' => $sku,
+                'description' => $validated['description'] ?? null,
+                'cost_price' => $validated['cost_price'],
+                'selling_price' => $validated['selling_price'],
+                'stock_quantity' => $openingStock,
+                'minimum_stock_alert' => $validated['minimum_stock_alert'] ?? 5,
+                'unit' => $validated['unit'] ?? 'pcs',
+                'status' => $validated['status'] ?? 'active',
+                'is_available_for_sale' => $request->has('is_available_for_sale')
+                    ? $request->boolean('is_available_for_sale')
+                    : true,
+                'expiry_date' => $validated['expiry_date'] ?? null,
+                'batch_number' => $validated['batch_number'] ?? null,
+                'supplier' => $validated['supplier'] ?? null,
+            ]);
+
+            if ($openingStock > 0) {
+                StockMovement::query()->create([
+                    'product_id' => $product->id,
+                    'type' => 'in',
+                    'quantity' => $openingStock,
+                    'reference' => 'OPENING',
+                    'notes' => 'Initial stock on product creation.',
+                ]);
+            }
+
+            return $product;
+        });
+
+        $product->load('categoryItem:id,name');
+
+        return response()->json([
+            'message' => 'Product created.',
+            'product' => $this->productPayload($product),
+        ], 201);
+    }
+
     public function products(Request $request): JsonResponse
     {
         $limit = max(1, min((int) $request->integer('limit', 25), 100));
@@ -359,6 +456,21 @@ class InventoryController extends Controller
             'movement' => $this->movementPayload($movement),
             'product' => $this->productPayload($movement->product),
         ], 201);
+    }
+
+    private function uniqueProductSlug(string $slug): string
+    {
+        if ($slug === '') {
+            $slug = 'product-'.Str::lower(Str::random(8));
+        }
+
+        $base = $slug;
+        $i = 1;
+        while (Product::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$i++;
+        }
+
+        return $slug;
     }
 
     /**

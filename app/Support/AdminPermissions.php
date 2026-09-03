@@ -27,6 +27,8 @@ class AdminPermissions
                 ['key' => 'inquiries.manage', 'label' => 'Inquiries'],
                 ['key' => 'registrations.manage', 'label' => 'Registrations'],
                 ['key' => 'staff.manage', 'label' => 'Staff'],
+                ['key' => 'managers.manage', 'label' => 'Managers'],
+                ['key' => 'ceos.manage', 'label' => 'CEOs'],
                 ['key' => 'inventory_staff.view', 'label' => 'Inventory staff (view list)'],
                 ['key' => 'inventory_staff.manage', 'label' => 'Inventory staff (add & edit)'],
                 ['key' => 'clinical_staff.view', 'label' => 'Clinical staff (view list)'],
@@ -83,7 +85,7 @@ class AdminPermissions
 
     public static function isFullAccessRole(string $role): bool
     {
-        return in_array(self::normalizeRole($role), ['super admin', 'superadmin', 'admin', 'manager'], true);
+        return in_array(self::normalizeRole($role), ['super admin', 'superadmin', 'admin', 'manager', 'ceo', 'developer'], true);
     }
 
     public static function isManagerRole(string $role): bool
@@ -96,9 +98,92 @@ class AdminPermissions
         return $admin !== null && self::isManagerRole((string) ($admin->role ?? ''));
     }
 
+    public static function isCeoRole(string $role): bool
+    {
+        return self::normalizeRole($role) === 'ceo';
+    }
+
+    public static function isCeo(?Admin $admin): bool
+    {
+        return $admin !== null && self::isCeoRole((string) ($admin->role ?? ''));
+    }
+
+    public static function isSuperAdminRole(string $role): bool
+    {
+        return in_array(self::normalizeRole($role), ['super admin', 'superadmin'], true);
+    }
+
+    public static function isSuperAdmin(?Admin $admin): bool
+    {
+        return $admin !== null && self::isSuperAdminRole((string) ($admin->role ?? ''));
+    }
+
+    public static function isDeveloperRole(string $role): bool
+    {
+        return self::normalizeRole($role) === 'developer';
+    }
+
+    public static function isDeveloper(?Admin $admin): bool
+    {
+        return $admin !== null && self::isDeveloperRole((string) ($admin->role ?? ''));
+    }
+
+    /** Manager, CEO, or Developer — leadership that may approve and enter staff/doctor portals. */
+    public static function isLeadership(?Admin $admin): bool
+    {
+        return self::isManager($admin) || self::isCeo($admin) || self::isDeveloper($admin);
+    }
+
     public static function canApproveAppointments(?Admin $admin): bool
     {
-        return self::isManager($admin);
+        return self::isLeadership($admin);
+    }
+
+    public static function canManageManagers(?Admin $admin): bool
+    {
+        return self::canAccess($admin, 'managers.manage');
+    }
+
+    public static function canManageCeos(?Admin $admin): bool
+    {
+        return self::canAccess($admin, 'ceos.manage');
+    }
+
+    public static function portalForRole(string $role): string
+    {
+        $normalized = self::normalizeRole($role);
+
+        return match ($normalized) {
+            'developer' => 'developer',
+            'ceo' => 'ceo',
+            'manager' => 'manager',
+            default => 'admin',
+        };
+    }
+
+    public static function portalLoginHint(string $role): string
+    {
+        return match (self::portalForRole($role)) {
+            'developer' => __('Use the developer portal to sign in with this account.'),
+            'ceo' => __('Use the CEO portal to sign in with this account.'),
+            'manager' => __('Use the manager portal to sign in with this account.'),
+            default => __('Use the admin portal to sign in with this account.'),
+        };
+    }
+
+    public static function canManagePeopleRole(?Admin $actor, string $role): bool
+    {
+        return match (self::normalizeRole($role)) {
+            'developer' => self::isDeveloper($actor),
+            'ceo' => self::canManageCeos($actor),
+            'manager' => self::canManageManagers($actor),
+            default => true,
+        };
+    }
+
+    public static function isProtectedPeopleRole(string $role): bool
+    {
+        return in_array(self::normalizeRole($role), ['manager', 'ceo', 'developer'], true);
     }
 
     /**
@@ -127,6 +212,30 @@ class AdminPermissions
     }
 
     /**
+     * Keys only the CEO (and Super Admin) may hold among built-in roles.
+     *
+     * @return list<string>
+     */
+    public static function ceoOnlyKeys(): array
+    {
+        return [
+            'managers.manage',
+        ];
+    }
+
+    /**
+     * Keys only the Developer may hold among built-in roles.
+     *
+     * @return list<string>
+     */
+    public static function developerOnlyKeys(): array
+    {
+        return [
+            'ceos.manage',
+        ];
+    }
+
+    /**
      * @return list<string>
      */
     public static function forAdmin(Admin $admin): array
@@ -149,6 +258,14 @@ class AdminPermissions
 
         if (self::isBuiltInAdminRole($admin)) {
             $allowed = array_values(array_diff($allowed, self::managerOnlyKeys()));
+        }
+
+        if (self::isFullAccess($admin) && ! self::isCeo($admin) && ! self::isSuperAdmin($admin) && ! self::isDeveloper($admin)) {
+            $allowed = array_values(array_diff($allowed, self::ceoOnlyKeys()));
+        }
+
+        if (self::isFullAccess($admin) && ! self::isDeveloper($admin)) {
+            $allowed = array_values(array_diff($allowed, self::developerOnlyKeys()));
         }
 
         return self::expandImpliedPermissions($allowed);

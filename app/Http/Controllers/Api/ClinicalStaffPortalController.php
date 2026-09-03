@@ -324,7 +324,7 @@ class ClinicalStaffPortalController extends Controller
         $staff = auth('clinical_staff')->user();
         if (! ManagerPortalAccess::canApproveAppointments($staff)) {
             return response()->json([
-                'message' => __('Only a manager can approve appointments.'),
+                'message' => __('Only a manager or CEO can approve appointments.'),
             ], 403);
         }
 

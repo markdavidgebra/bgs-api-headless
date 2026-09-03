@@ -9,6 +9,7 @@ use App\Mail\StaffAccountCreatedMail;
 use App\Models\Admin;
 use App\Models\AdminRole;
 use App\Support\AdminNotificationRecipients;
+use App\Support\AdminPermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,7 @@ class StaffsController extends Controller
     public function index(Request $request): View
     {
         $query = Admin::query()->notInventoryOfficers()->orderBy('name');
+        $this->applyVisibleStaffScope($query, Auth::guard('admin')->user());
 
         if ($request->filled('search')) {
             $term = $request->string('search')->toString();
@@ -41,19 +43,22 @@ class StaffsController extends Controller
     public function create(): View
     {
         return view('admin.staff.create', [
-            'roleOptions' => $this->roleOptions(),
+            'roleOptions' => $this->roleOptions(Auth::guard('admin')->user()),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $roleOptions = $this->roleOptions();
+        $actor = Auth::guard('admin')->user();
+        $roleOptions = $this->roleOptions($actor);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('admins', 'email')],
             'role' => ['required', 'string', 'max:50', Rule::in($roleOptions)],
         ]);
+
+        $this->assertCanAssignRole($actor, $validated['role']);
 
         $temporaryPassword = Str::password(12);
 
@@ -86,6 +91,7 @@ class StaffsController extends Controller
     public function show(int $id): View
     {
         $staff = $this->adminPortalStaff($id);
+        $this->assertCanViewStaff(Auth::guard('admin')->user(), $staff);
 
         return view('admin.staff.show', compact('staff'));
     }
@@ -93,17 +99,20 @@ class StaffsController extends Controller
     public function edit(int $id): View
     {
         $staff = $this->adminPortalStaff($id);
+        $this->assertCanViewStaff(Auth::guard('admin')->user(), $staff);
 
         return view('admin.staff.edit', [
             'staff' => $staff,
-            'roleOptions' => $this->roleOptions(),
+            'roleOptions' => $this->roleOptions(Auth::guard('admin')->user()),
         ]);
     }
 
     public function update(Request $request, int $id): RedirectResponse
     {
+        $actor = Auth::guard('admin')->user();
         $staff = $this->adminPortalStaff($id);
-        $roleOptions = $this->roleOptions();
+        $this->assertCanMutateStaff($actor, $staff);
+        $roleOptions = $this->roleOptions($actor);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -111,6 +120,8 @@ class StaffsController extends Controller
             'role' => ['required', 'string', 'max:50', Rule::in($roleOptions)],
             'password' => ['nullable', 'string', 'min:8'],
         ]);
+
+        $this->assertCanAssignRole($actor, $validated['role'], $staff);
 
         $payload = [
             'name' => trim($validated['name']),
@@ -144,6 +155,7 @@ class StaffsController extends Controller
         }
 
         $staff = $this->adminPortalStaff($id);
+        $this->assertCanMutateStaff(Auth::guard('admin')->user(), $staff);
         $staff->delete();
 
         return redirect()
@@ -154,6 +166,7 @@ class StaffsController extends Controller
     public function updateStatus(Request $request, int $id): RedirectResponse
     {
         $staff = $this->adminPortalStaff($id);
+        $this->assertCanMutateStaff(Auth::guard('admin')->user(), $staff);
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(['draft', 'approved', 'disapproved'])],
         ]);
@@ -194,9 +207,10 @@ class StaffsController extends Controller
     }
 
     /**
+     * @param  \App\Models\Admin|null  $actor
      * @return list<string>
      */
-    private function roleOptions(): array
+    public function roleOptions(?Admin $actor = null): array
     {
         $roles = AdminRole::query()
             ->orderBy('name')
@@ -206,7 +220,7 @@ class StaffsController extends Controller
             ->values()
             ->all();
 
-        foreach (['super admin', 'admin', 'manager'] as $defaultRole) {
+        foreach (['super admin', 'admin', 'manager', 'ceo', 'developer'] as $defaultRole) {
             if (! in_array($defaultRole, $roles, true)) {
                 $roles[] = $defaultRole;
             }
@@ -215,11 +229,63 @@ class StaffsController extends Controller
         $roles = array_values(array_filter(
             $roles,
             static fn (string $role): bool => $role !== Admin::INVENTORY_ROLE
+                && AdminPermissions::canManagePeopleRole($actor, $role)
         ));
 
         sort($roles);
 
         return $roles;
+    }
+
+    public function assertCanViewStaff(?Admin $actor, Admin $staff): void
+    {
+        if (! AdminPermissions::canManagePeopleRole($actor, (string) $staff->role)) {
+            abort(404);
+        }
+    }
+
+    public function assertCanMutateStaff(?Admin $actor, Admin $staff): void
+    {
+        if (! AdminPermissions::canManagePeopleRole($actor, (string) $staff->role)) {
+            abort(403, self::peopleRoleForbiddenMessage((string) $staff->role));
+        }
+    }
+
+    public function assertCanAssignRole(?Admin $actor, string $role, ?Admin $existing = null): void
+    {
+        if ($existing) {
+            $this->assertCanMutateStaff($actor, $existing);
+        }
+
+        if (! AdminPermissions::canManagePeopleRole($actor, $role)) {
+            abort(403, self::peopleRoleForbiddenMessage($role));
+        }
+    }
+
+    public function applyVisibleStaffScope($query, ?Admin $actor)
+    {
+        $hidden = [];
+        foreach (['manager', 'ceo', 'developer'] as $role) {
+            if (! AdminPermissions::canManagePeopleRole($actor, $role)) {
+                $hidden[] = $role;
+            }
+        }
+
+        if ($hidden !== []) {
+            $placeholders = implode(', ', array_fill(0, count($hidden), '?'));
+            $query->whereRaw('LOWER(role) not in ('.$placeholders.')', $hidden);
+        }
+
+        return $query;
+    }
+
+    private static function peopleRoleForbiddenMessage(string $role): string
+    {
+        return match (AdminPermissions::normalizeRole($role)) {
+            'ceo' => 'Only a developer can manage CEO accounts.',
+            'developer' => 'Only a developer can manage developer accounts.',
+            default => 'Only the CEO can manage manager accounts.',
+        };
     }
 
     private function adminPortalStaff(int $id): Admin
